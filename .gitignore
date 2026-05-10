@@ -1,0 +1,23 @@
+# Python
+backend/__pycache__/
+backend/venv/
+backend/.env
+*.pyc
+
+# React
+frontend/node_modules/
+frontend/build/
+backend/.pytest_cache/
+backend/tests/_runtime_data/
+backend/*.log
+frontend/*.log
+
+# Data (keep structure, ignore content)
+data/profiles/*.json
+data/archive/
+data/users/
+data/vendors/
+data/event/current.json
+data/admin/stats.json
+data/sequence.json
+data/**/*.lock

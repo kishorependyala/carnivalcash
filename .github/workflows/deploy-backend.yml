@@ -47,3 +47,12 @@ jobs:
           app-name: carnivalcash-api
           package: backend-deploy.zip
           startup-command: 'gunicorn --bind=0.0.0.0:8000 --timeout 120 --workers 2 run:app'
+
+      - name: Warm up backend
+        run: |
+          echo "Waiting for app to start..."
+          sleep 20
+          curl -s --max-time 60 -X POST https://carnivalcash-api.azurewebsites.net/api/auth/request-code \
+            -H "Content-Type: application/json" \
+            -d '{"phone":"0000000000"}' || true
+          echo "Backend warmed up."

@@ -44,13 +44,16 @@ function LoginPage() {
   const handleRequestCode = async () => {
     setLoading(true);
     setStatus('');
+    const wakeTimer = setTimeout(() => setStatus('Waking up server, please wait...'), 5000);
     try {
       await authApi.requestCode(phone);
+      clearTimeout(wakeTimer);
       setCode(phone);
       setStep(2);
       setStatus('Code sent. For this build, the code matches the phone number.');
     } catch (error) {
-      setStatus(error.response?.data?.error || 'Unable to request code.');
+      clearTimeout(wakeTimer);
+      setStatus(error.response?.data?.error || 'Unable to request code. Please try again.');
     } finally {
       setLoading(false);
     }

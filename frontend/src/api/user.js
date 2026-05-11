@@ -1,6 +1,10 @@
 import api from './index';
 
 const userApi = {
+  async getQr() {
+    const response = await api.get('/api/user/qr');
+    return response.data;
+  },
   async getProfile() {
     const response = await api.get('/api/user/profile');
     return response.data;

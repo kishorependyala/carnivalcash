@@ -5,6 +5,7 @@ from flask_cors import CORS
 from .blueprints.admin import admin_bp
 from .blueprints.auth import auth_bp
 from .blueprints.bootstrap import bootstrap_bp
+from .blueprints.stalls import stalls_bp
 from .blueprints.transactions import transactions_bp
 from .blueprints.user import user_bp
 from .blueprints.vendor import vendor_bp
@@ -48,5 +49,6 @@ def create_app():
     app.register_blueprint(user_bp)
     app.register_blueprint(vendor_bp)
     app.register_blueprint(transactions_bp)
+    app.register_blueprint(stalls_bp)
 
     return app

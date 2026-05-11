@@ -45,6 +45,27 @@ def get_user_profile():
     return jsonify(profile)
 
 
+@user_bp.get('/api/user/qr')
+@require_auth
+def get_user_qr():
+    """
+    Get the logged-in user's QR payload for vendors to scan.
+    ---
+    tags: [User]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: QR payload string
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qrPayload: {type: string, example: "CARNIVAL_USER:20260510000000000001"}
+    """
+    return jsonify({'qrPayload': f"CARNIVAL_USER:{g.user['userId']}"})
+
+
 @user_bp.put('/api/user/profile')
 @require_auth
 def update_profile():

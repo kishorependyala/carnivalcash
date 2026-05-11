@@ -33,6 +33,14 @@ const adminApi = {
     const response = await api.put(`/api/admin/users/${userId}/roles`, { roles });
     return response.data;
   },
+  async listVendors() {
+    const response = await api.get('/api/admin/vendors');
+    return response.data;
+  },
+  async getAuditLog() {
+    const response = await api.get('/api/admin/audit');
+    return response.data;
+  },
 };
 
 export default adminApi;

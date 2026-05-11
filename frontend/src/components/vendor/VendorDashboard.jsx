@@ -1,154 +1,123 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import userApi from '../../api/user';
 import vendorApi from '../../api/vendor';
+import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
+import { HistoryTab, ProfileEditTab, ProfileViewTab, StallTab, card } from '../common/ProfileSections';
 
-const sectionStyle = {
-  background: '#fff',
-  border: '1px solid #fed7aa',
-  borderRadius: '1rem',
-  padding: '1rem',
-  display: 'grid',
-  gap: '0.75rem',
-};
+const TABS = ['Profile', 'Edit', 'Stall', 'Transactions'];
 
-const inputStyle = {
-  padding: '0.8rem 1rem',
-  borderRadius: '0.75rem',
-  border: '1px solid #d1d5db',
-};
+function TabBar({ tabs, active, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      {tabs.map(t => (
+        <button key={t} type="button" onClick={() => onChange(t)}
+          style={{
+            padding: '0.5rem 1.1rem', borderRadius: '2rem', border: 'none', cursor: 'pointer',
+            background: active === t ? '#f59e0b' : '#f3f4f6',
+            color: active === t ? '#fff' : '#374151',
+            fontWeight: active === t ? 700 : 400,
+          }}>
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function VendorDashboard() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes('admin');
+
+  const [tab, setTab] = useState('Profile');
+  const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
+  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '' });
   const [qrPayload, setQrPayload] = useState('');
-  const [items, setItems] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [status, setStatus] = useState('');
   const [notice, setNotice] = useState('');
-  const [editingId, setEditingId] = useState('');
-  const [itemForm, setItemForm] = useState({ name: '', tokenPrice: 5, stallType: 'food' });
+  const [status, setStatus] = useState('');
 
   const latestTimestamp = useMemo(() => transactions[0]?.timestamp || '', [transactions]);
 
-  const loadDashboard = async () => {
-    const [qrResponse, itemResponse, transactionResponse] = await Promise.all([
+  const load = async () => {
+    const [p, b, qr, txns] = await Promise.all([
+      userApi.getProfile(),
+      userApi.getBalance(),
       vendorApi.getQr(),
-      vendorApi.getItems(),
       vendorApi.getTransactions(),
     ]);
-    setQrPayload(qrResponse.qrPayload);
-    setItems(itemResponse);
-    setTransactions(transactionResponse.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+    setProfile(p);
+    setBalance(b);
+    setQrPayload(qr.qrPayload);
+    setTransactions(txns.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
   };
 
-  useEffect(() => {
-    loadDashboard().catch(() => setStatus('Unable to load vendor dashboard.'));
-  }, []);
+  useEffect(() => { load().catch(() => setStatus('Unable to load vendor dashboard.')); }, []);
 
+  /* real-time polling for new transactions */
   useEffect(() => {
-    if (!latestTimestamp) {
-      return undefined;
-    }
-
+    if (!latestTimestamp) return undefined;
     const interval = setInterval(async () => {
       try {
         const poll = await vendorApi.pollTransactions(latestTimestamp);
         if (poll.newTransactions > 0) {
-          setNotice(`New payment received (${poll.newTransactions}).`);
-          await loadDashboard();
+          setNotice(`🔔 New payment received (${poll.newTransactions}).`);
+          await load();
         }
-      } catch (error) {
-        setStatus(error.response?.data?.error || 'Polling failed.');
-      }
+      } catch (_) {}
     }, 5000);
-
     return () => clearInterval(interval);
   }, [latestTimestamp]);
 
-  const resetForm = () => {
-    setEditingId('');
-    setItemForm({ name: '', tokenPrice: 5, stallType: 'food' });
-  };
-
-  const saveItem = async () => {
-    try {
-      if (editingId) {
-        await vendorApi.updateItem(editingId, itemForm);
-        setStatus('Item updated.');
-      } else {
-        await vendorApi.createItem(itemForm);
-        setStatus('Item added.');
-      }
-      resetForm();
-      await loadDashboard();
-    } catch (error) {
-      setStatus(error.response?.data?.error || 'Unable to save item.');
-    }
-  };
-
-  const deactivateItem = async (itemId) => {
-    try {
-      await vendorApi.deleteItem(itemId);
-      await loadDashboard();
-      setStatus('Item deactivated.');
-    } catch (error) {
-      setStatus(error.response?.data?.error || 'Unable to deactivate item.');
-    }
-  };
+  const changeTab = (t) => { setStatus(''); setNotice(''); setTab(t); };
 
   return (
     <Layout>
       <div style={{ display: 'grid', gap: '1rem' }}>
-        <h1 style={{ marginBottom: 0 }}>Vendor Dashboard</h1>
-        {notice ? <div style={{ ...sectionStyle, background: '#fffbeb' }}>{notice}</div> : null}
-        {status ? <p style={{ margin: 0, color: '#92400e' }}>{status}</p> : null}
-
-        <section id="qr" style={sectionStyle}>
-          <h2 style={{ margin: 0 }}>My QR Code</h2>
-          {qrPayload ? <PrintableQR title="Vendor Payment QR" qrValue={qrPayload} subtitle="Show this to CarnivalCash users" /> : null}
-        </section>
-
-        <section id="items" style={sectionStyle}>
-          <h2 style={{ margin: 0 }}>Stall Items</h2>
-          <input style={inputStyle} value={itemForm.name} placeholder="Item name" onChange={(event) => setItemForm((current) => ({ ...current, name: event.target.value }))} />
-          <input style={inputStyle} type="number" value={itemForm.tokenPrice} placeholder="Token price" onChange={(event) => setItemForm((current) => ({ ...current, tokenPrice: Number(event.target.value) }))} />
-          <input style={inputStyle} value={itemForm.stallType} placeholder="Stall type" onChange={(event) => setItemForm((current) => ({ ...current, stallType: event.target.value }))} />
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <button type="button" onClick={saveItem}>{editingId ? 'Update Item' : 'Add Item'}</button>
-            {editingId ? <button type="button" onClick={resetForm}>Cancel</button> : null}
+        {notice && (
+          <div style={{ background: '#d1fae5', color: '#065f46', borderRadius: '0.75rem', padding: '0.75rem 1rem', fontWeight: 600 }}>
+            {notice}
           </div>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            {items.map((item) => (
-              <div key={item.itemId} style={{ background: '#fffbeb', padding: '1rem', borderRadius: '1rem' }}>
-                <strong>{item.name}</strong> — {item.tokenPrice} tokens — {item.stallType} — {item.active ? 'Active' : 'Inactive'}
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingId(item.itemId);
-                      setItemForm({ name: item.name, tokenPrice: item.tokenPrice, stallType: item.stallType });
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => deactivateItem(item.itemId)} disabled={!item.active}>Deactivate</button>
-                </div>
+        )}
+        {status && (
+          <p style={{ margin: 0, color: '#92400e', background: '#fffbeb', padding: '0.6rem 1rem', borderRadius: '0.75rem' }}>{status}</p>
+        )}
+
+        {/* QR always visible at top */}
+        {qrPayload && (
+          <div style={{ ...card, alignItems: 'center', textAlign: 'center' }}>
+            <PrintableQR title="Vendor Payment QR" qrValue={qrPayload} subtitle="Show this to CarnivalCash users" />
+          </div>
+        )}
+
+        <TabBar tabs={TABS} active={tab} onChange={changeTab} />
+
+        {tab === 'Profile' && (
+          <ProfileViewTab profile={profile} balance={balance} event={null} isAdmin={isAdmin} setStatus={setStatus} onReload={load} />
+        )}
+        {tab === 'Edit' && (
+          <ProfileEditTab profile={profile} setProfile={setProfile} setStatus={setStatus} onTabChange={changeTab} />
+        )}
+        {tab === 'Stall' && (
+          <StallTab setStatus={setStatus} />
+        )}
+        {tab === 'Transactions' && (
+          <section style={card}>
+            <h2 style={{ margin: 0 }}>💳 Transactions</h2>
+            {transactions.length === 0 && <p style={{ color: '#6b7280' }}>No transactions yet.</p>}
+            {transactions.map(tx => (
+              <div key={`${tx.txId}-${tx.itemId}`}
+                style={{ background: '#fffbeb', borderRadius: '0.75rem', padding: '0.75rem', fontSize: '0.9rem' }}>
+                <div style={{ fontWeight: 700 }}>{tx.userName} bought {tx.itemName} × {tx.qty}</div>
+                <div style={{ color: '#b45309', fontWeight: 700 }}>{tx.amount} tokens</div>
+                {tx.kidName && <div style={{ color: '#7c3aed', fontSize: '0.8rem' }}>👦 {tx.kidName}</div>}
+                <div style={{ color: '#9ca3af', fontSize: '0.75rem' }}>{tx.timestamp}</div>
               </div>
             ))}
-          </div>
-        </section>
-
-        <section id="history" style={sectionStyle}>
-          <h2 style={{ margin: 0 }}>Transactions</h2>
-          <ul style={{ paddingLeft: '1rem', margin: 0 }}>
-            {transactions.map((transaction) => (
-              <li key={`${transaction.txId}-${transaction.itemId}`}>
-                {transaction.userName} bought {transaction.itemName} × {transaction.qty} for {transaction.amount} tokens
-                {transaction.kidName ? ` (${transaction.kidName})` : ''}
-              </li>
-            ))}
-          </ul>
-        </section>
+          </section>
+        )}
       </div>
     </Layout>
   );

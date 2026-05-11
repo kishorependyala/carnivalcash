@@ -1,0 +1,21 @@
+{
+  "event": {
+    "eventId": "c0c08688-9186-46af-b0f3-cc86636608c5",
+    "name": "Carnival 2026",
+    "status": "open",
+    "tokenRate": 2,
+    "openedAt": "2026-05-11T02:01:51Z",
+    "closedAt": null
+  },
+  "auditLog": [
+    {
+      "timestamp": "2026-05-11T02:01:51Z",
+      "adminId": "202605100000000002",
+      "action": "open_event",
+      "details": {
+        "eventId": "c0c08688-9186-46af-b0f3-cc86636608c5",
+        "status": "open"
+      }
+    }
+  ]
+}

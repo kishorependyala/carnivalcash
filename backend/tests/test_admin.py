@@ -41,8 +41,9 @@ def test_open_close_event_lifecycle(client, seed_profile, auth_header):
     assert event['status'] == 'open'
     assert close_response.status_code == 200
     assert close_response.get_json()['status'] == 'closed'
-    history_file = get_data_dir() / 'event' / 'history' / f"{event['eventId']}.json"
-    assert history_file.exists()
+    # event lifecycle now recorded in admin.json audit log (not separate history files)
+    admin_file = get_data_dir() / 'admin.json'
+    assert admin_file.exists()
 
 
 def test_stats_returns_expected_shape(client, seed_profile, auth_header):

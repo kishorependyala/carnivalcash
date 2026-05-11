@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
-from app.storage.event_store import archive_event, get_event, save_event
+from app.storage.admin_store import get_admin_data, get_event, log_admin_action, save_event
 from app.storage.user_store import (
     find_profile_by_phone,
-    get_vendor_transactions,
     get_profile,
+    get_vendor_items,
+    get_vendor_transactions,
     list_profiles,
     save_profile,
 )
@@ -21,7 +22,7 @@ def utc_now():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
 
 
-def default_event(token_rate=10):
+def default_event(token_rate=2):
     return {
         'eventId': str(uuid4()),
         'name': 'Carnival Event',
@@ -83,6 +84,7 @@ def create_tokens():
 
     profile['tokenBalance'] = int(profile.get('tokenBalance', 0)) + amount
     save_profile(profile['userId'], profile)
+    log_admin_action(g.user['userId'], 'add_tokens', {'phone': phone, 'amount': amount, 'newBalance': profile['tokenBalance']})
     return jsonify({'userId': profile['userId'], 'tokenBalance': profile['tokenBalance']})
 
 
@@ -112,7 +114,7 @@ def set_rate():
     token_rate = int(payload.get('tokenRate', 0))
     event = get_event() or default_event(token_rate=token_rate or 10)
     event['tokenRate'] = token_rate
-    save_event(event)
+    save_event(event, admin_id=g.user['userId'], action='set_rate')
     return jsonify(event)
 
 
@@ -157,7 +159,7 @@ def create_event():
             'openedAt': utc_now(),
             'closedAt': None,
         }
-        save_event(event)
+        save_event(event, admin_id=g.user['userId'], action='open_event')
         return jsonify(event)
 
     if action == 'close':
@@ -165,8 +167,7 @@ def create_event():
             return jsonify({'error': 'No active event'}), 404
         current['status'] = 'closed'
         current['closedAt'] = utc_now()
-        save_event(current)
-        archive_event(current)
+        save_event(current, admin_id=g.user['userId'], action='close_event')
         return jsonify(current)
 
     return jsonify({'error': 'Unsupported action'}), 400
@@ -197,6 +198,7 @@ def zero_balance(user_id):
         return jsonify({'error': 'User not found'}), 404
     profile['tokenBalance'] = 0
     save_profile(user_id, profile)
+    log_admin_action(g.user['userId'], 'zero_balance', {'targetUserId': user_id})
     return jsonify({'userId': user_id, 'tokenBalance': 0})
 
 
@@ -314,6 +316,7 @@ def set_user_roles(user_id):
 
     profile['roles'] = list(set(roles))
     save_profile(user_id, profile)
+    log_admin_action(g.user['userId'], 'set_roles', {'targetUserId': user_id, 'roles': profile['roles']})
     return jsonify({'userId': user_id, 'phone': profile.get('phone'), 'roles': profile['roles']})
 
 
@@ -341,3 +344,54 @@ def list_users():
         }
         for p in profiles
     ])
+
+
+@admin_bp.get('/api/admin/vendors')
+@require_auth
+@require_role('admin')
+def list_vendors():
+    """
+    List all vendor profiles with items and transaction totals.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of vendors with items and stats
+    """
+    profiles = list_profiles()
+    vendor_profiles = [p for p in profiles if 'vendor' in p.get('roles', [])]
+    result = []
+    for v in vendor_profiles:
+        transactions = get_vendor_transactions(v['userId'])
+        items = get_vendor_items(v['userId'])
+        result.append({
+            'userId': v['userId'],
+            'phone': v.get('phone', ''),
+            'name': v.get('name', ''),
+            'roles': v.get('roles', []),
+            'socials': v.get('socials', {}),
+            'totalReceived': sum(int(tx.get('amount', 0)) for tx in transactions),
+            'transactionCount': len(transactions),
+            'items': items,
+            'recentTransactions': transactions[-10:],
+        })
+    return jsonify(result)
+
+
+@admin_bp.get('/api/admin/audit')
+@require_auth
+@require_role('admin')
+def get_audit_log():
+    """
+    Get the admin audit log (last 100 entries, newest first).
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Audit log entries
+    """
+    data = get_admin_data()
+    log = list(reversed(data.get('auditLog', [])))[:100]
+    return jsonify(log)

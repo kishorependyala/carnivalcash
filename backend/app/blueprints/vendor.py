@@ -1,14 +1,85 @@
 from flask import Blueprint, g, jsonify, request
 
 from app.storage.user_store import (
+    get_profile,
     get_vendor_items,
     get_vendor_transactions,
+    save_profile,
     save_vendor_items,
 )
 from app.utils.auth_middleware import require_auth, require_role
 
 
 vendor_bp = Blueprint('vendor', __name__)
+
+STALL_FIELDS = {'stallName', 'stallType', 'tokensPerPlay', 'description'}
+
+
+@vendor_bp.get('/api/vendor/stall')
+@require_auth
+@require_role('vendor')
+def get_stall():
+    """
+    Get the vendor's stall profile.
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Stall object
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stallName: {type: string}
+                stallType: {type: string, enum: [food, game]}
+                tokensPerPlay: {type: integer}
+                description: {type: string}
+    """
+    profile = get_profile(g.user['userId']) or {}
+    return jsonify(profile.get('stall') or {})
+
+
+@vendor_bp.put('/api/vendor/stall')
+@require_auth
+@require_role('vendor')
+def update_stall():
+    """
+    Update the vendor's stall profile.
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              stallName: {type: string, example: "Ring Toss"}
+              stallType: {type: string, enum: [food, game]}
+              tokensPerPlay: {type: integer, example: 3}
+              description: {type: string, example: "3 rings for a prize!"}
+    responses:
+      200:
+        description: Updated stall
+      404:
+        description: Profile not found
+    """
+    profile = get_profile(g.user['userId'])
+    if profile is None:
+        return jsonify({'error': 'Profile not found'}), 404
+    payload = request.get_json(silent=True) or {}
+    stall = profile.get('stall') or {}
+    for field in STALL_FIELDS:
+        if field in payload:
+            stall[field] = payload[field]
+    if 'tokensPerPlay' in stall:
+        stall['tokensPerPlay'] = int(stall['tokensPerPlay'])
+    profile['stall'] = stall
+    save_profile(profile['userId'], profile)
+    return jsonify(stall)
 
 
 @vendor_bp.get('/api/vendor/qr')

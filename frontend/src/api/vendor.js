@@ -5,6 +5,14 @@ const vendorApi = {
     const response = await api.get('/api/vendor/qr');
     return response.data;
   },
+  async getStall() {
+    const response = await api.get('/api/vendor/stall');
+    return response.data;
+  },
+  async updateStall(payload) {
+    const response = await api.put('/api/vendor/stall', payload);
+    return response.data;
+  },
   async getItems() {
     const response = await api.get('/api/vendor/items');
     return response.data;

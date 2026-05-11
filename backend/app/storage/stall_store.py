@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from uuid import uuid4
 
 from config import get_data_dir
 
@@ -11,11 +10,26 @@ def _stalls_dir():
 
 
 def _stall_txns_dir():
-    return get_data_dir() / 'stall_transactions'
+    return get_data_dir() / 'stalls' / 'transactions'
 
 
 def _utc_now():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+
+
+def _generate_stall_id():
+    """Generate yyyyMMdd_stall_XXXX ID (4-digit sequence per day)."""
+    date_prefix = datetime.now().strftime('%Y%m%d')
+    ensure_dir(_stalls_dir())
+    existing = list(_stalls_dir().glob(f'{date_prefix}_stall_*.json'))
+    max_seq = 0
+    for path in existing:
+        try:
+            seq = int(path.stem.split('_stall_')[1])
+            max_seq = max(max_seq, seq)
+        except (IndexError, ValueError):
+            pass
+    return f'{date_prefix}_stall_{(max_seq + 1):04d}'
 
 
 def get_stall(stall_id):
@@ -31,9 +45,10 @@ def list_stalls():
     ensure_dir(_stalls_dir())
     result = []
     for path in sorted(_stalls_dir().glob('*.json')):
-        data = read_json(path)
-        if data:
-            result.append(data)
+        if path.parent == _stalls_dir():
+            data = read_json(path)
+            if data:
+                result.append(data)
     return result
 
 
@@ -42,7 +57,7 @@ def list_user_stalls(user_id):
 
 
 def create_stall(stall_name, stall_type, tokens_per_item, description, creator_id):
-    stall_id = str(uuid4())
+    stall_id = _generate_stall_id()
     stall = {
         'stallId': stall_id,
         'stallName': stall_name,
@@ -54,6 +69,7 @@ def create_stall(stall_name, stall_type, tokens_per_item, description, creator_i
         'createdAt': _utc_now(),
         'tokenBalance': 0,
         'items': [],
+        'joinRequests': [],
     }
     save_stall(stall_id, stall)
     return stall

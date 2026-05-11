@@ -37,6 +37,18 @@ const stallsApi = {
   async searchUsers(q) {
     return (await api.get('/api/stalls/search-users', { params: { q } })).data;
   },
+  async listAll() {
+    return (await api.get('/api/stalls')).data;
+  },
+  async requestJoin(stallId) {
+    return (await api.post(`/api/stalls/${stallId}/join-request`)).data;
+  },
+  async listJoinRequests(stallId) {
+    return (await api.get(`/api/stalls/${stallId}/join-requests`)).data;
+  },
+  async handleJoinRequest(stallId, userId, action) {
+    return (await api.put(`/api/stalls/${stallId}/join-requests/${userId}`, { action })).data;
+  },
 };
 
 export default stallsApi;

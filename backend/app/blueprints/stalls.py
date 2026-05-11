@@ -7,6 +7,7 @@ from app.storage.stall_store import (
     create_stall,
     get_stall,
     get_stall_transactions,
+    list_stalls,
     list_user_stalls,
     save_stall,
     save_stall_transactions,
@@ -15,6 +16,43 @@ from app.storage.user_store import find_profile_by_phone, get_profile, get_user_
 from app.utils.auth_middleware import require_auth
 
 stalls_bp = Blueprint('stalls', __name__)
+
+
+# ── List ALL stalls (public browse) ──────────────────────────────────────────
+
+@stalls_bp.get('/api/stalls')
+@require_auth
+def list_all_stalls():
+    """
+    List all stalls (for browsing). Any authenticated user can see this.
+    ---
+    tags: [Stalls]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Summary list of all stalls
+    """
+    stalls = list_stalls()
+    caller = g.user['userId']
+    result = []
+    for s in stalls:
+        pending = any(
+            r['userId'] == caller and r['status'] == 'pending'
+            for r in s.get('joinRequests', [])
+        )
+        result.append({
+            'stallId': s['stallId'],
+            'stallName': s['stallName'],
+            'stallType': s['stallType'],
+            'description': s['description'],
+            'tokensPerItem': s['tokensPerItem'],
+            'memberCount': len(s.get('members', [])),
+            'tokenBalance': s.get('tokenBalance', 0),
+            'isMember': caller in s.get('members', []),
+            'hasPendingRequest': pending,
+            'createdAt': s.get('createdAt', ''),
+        })
+    return jsonify(result)
 
 
 def _utc_now():
@@ -82,33 +120,6 @@ def my_stalls():
     """
     stalls = list_user_stalls(g.user['userId'])
     return jsonify(stalls)
-
-
-# ── Get stall ─────────────────────────────────────────────────────────────────
-
-@stalls_bp.get('/api/stalls/<stall_id>')
-@require_auth
-def get_stall_route(stall_id):
-    """
-    Get stall details.
-    ---
-    tags: [Stalls]
-    security: [{BearerAuth: []}]
-    parameters:
-      - in: path
-        name: stall_id
-        required: true
-        schema: {type: string}
-    responses:
-      200:
-        description: Stall details
-      404:
-        description: Stall not found
-    """
-    stall = get_stall(stall_id)
-    if not stall:
-        return jsonify({'error': 'Stall not found'}), 404
-    return jsonify(stall)
 
 
 # ── Public catalog (for scanning) ─────────────────────────────────────────────
@@ -551,6 +562,144 @@ def stall_transactions(stall_id):
     txns = get_stall_transactions(stall_id)
     return jsonify(list(reversed(txns)))
 
+# ── Join request ──────────────────────────────────────────────────────────────
+
+@stalls_bp.post('/api/stalls/<stall_id>/join-request')
+@require_auth
+def request_join(stall_id):
+    """
+    Request to join a stall. Stall admins must approve.
+    ---
+    tags: [Stalls]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: Request submitted
+      400:
+        description: Already a member or request pending
+      404:
+        description: Stall not found
+    """
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+
+    caller = g.user['userId']
+    if caller in stall.get('members', []):
+        return jsonify({'error': 'Already a member'}), 400
+
+    requests = stall.get('joinRequests', [])
+    if any(r['userId'] == caller and r['status'] == 'pending' for r in requests):
+        return jsonify({'error': 'Join request already pending'}), 400
+
+    profile = get_profile(caller) or {}
+    requests.append({
+        'userId': caller,
+        'userName': profile.get('name') or profile.get('phone', ''),
+        'requestedAt': _utc_now(),
+        'status': 'pending',
+    })
+    stall['joinRequests'] = requests
+    save_stall(stall_id, stall)
+    return jsonify({'message': 'Join request submitted'})
+
+
+@stalls_bp.get('/api/stalls/<stall_id>/join-requests')
+@require_auth
+def list_join_requests(stall_id):
+    """
+    List pending join requests for a stall. Members only.
+    ---
+    tags: [Stalls]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: Pending requests
+    """
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+    if not _is_member(stall, g.user['userId']):
+        return jsonify({'error': 'Not a stall member'}), 403
+    pending = [r for r in stall.get('joinRequests', []) if r['status'] == 'pending']
+    return jsonify(pending)
+
+
+@stalls_bp.put('/api/stalls/<stall_id>/join-requests/<user_id>')
+@require_auth
+def handle_join_request(stall_id, user_id):
+    """
+    Approve or reject a join request. Members only.
+    ---
+    tags: [Stalls]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+      - in: path
+        name: user_id
+        required: true
+        schema: {type: string}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [action]
+            properties:
+              action:
+                type: string
+                enum: [approve, reject]
+    responses:
+      200:
+        description: Updated stall
+      400:
+        description: Invalid action
+      403:
+        description: Not a stall member
+      404:
+        description: Stall or request not found
+    """
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+    if not _is_member(stall, g.user['userId']):
+        return jsonify({'error': 'Not a stall member'}), 403
+
+    body = request.get_json(silent=True) or {}
+    action = body.get('action')
+    if action not in ('approve', 'reject'):
+        return jsonify({'error': 'action must be approve or reject'}), 400
+
+    requests = stall.get('joinRequests', [])
+    req = next((r for r in requests if r['userId'] == user_id and r['status'] == 'pending'), None)
+    if not req:
+        return jsonify({'error': 'Pending join request not found'}), 404
+
+    req['status'] = action + 'd'
+    req['handledBy'] = g.user['userId']
+    req['handledAt'] = _utc_now()
+
+    if action == 'approve' and user_id not in stall['members']:
+        stall['members'].append(user_id)
+
+    stall['joinRequests'] = requests
+    save_stall(stall_id, stall)
+    return jsonify(stall)
+
 
 # ── Search users for typeahead ────────────────────────────────────────────────
 
@@ -584,3 +733,32 @@ def search_users():
         if len(results) >= 10:
             break
     return jsonify(results)
+
+
+# ── Get stall ─────────────────────────────────────────────────────────────────
+
+@stalls_bp.get('/api/stalls/<stall_id>')
+@require_auth
+def get_stall_route(stall_id):
+    """
+    Get stall details.
+    ---
+    tags: [Stalls]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: Stall details
+      404:
+        description: Stall not found
+    """
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+    return jsonify(stall)
+
+

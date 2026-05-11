@@ -7,8 +7,9 @@ import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card } from '../common/ProfileSections';
+import { BrowseStallsTab, StallsTab } from '../common/StallsTab';
 
-const TABS = ['Home', 'Profile', 'Edit', 'Kids', 'History'];
+const TABS = ['Home', 'Profile', 'Edit', 'Kids', 'Stalls', 'Browse', 'History'];
 
 function TabBar({ tabs, active, onChange }) {
   return (
@@ -87,7 +88,7 @@ function UserDashboard() {
             {/* QR code */}
             <section style={card}>
               <div style={{ fontWeight: 700, color: '#374151' }}>📲 Your Payment QR</div>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Vendors scan this to charge you</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Stalls scan this to charge you</div>
               {qrPayload && (
                 <PrintableQR title="" qrValue={qrPayload} subtitle={`PIN: ${balance.pin}`} />
               )}
@@ -128,6 +129,8 @@ function UserDashboard() {
         {tab === 'Kids' && (
           <KidsTab profile={profile} kids={kids} onReload={load} setStatus={setStatus} />
         )}
+        {tab === 'Stalls' && <StallsTab />}
+        {tab === 'Browse' && <BrowseStallsTab />}
         {tab === 'History' && (
           <HistoryTab transactions={transactions} />
         )}

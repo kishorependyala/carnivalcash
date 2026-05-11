@@ -172,7 +172,7 @@ function VendorChargePage() {
 
             {myStalls.length === 0 && (
               <section style={card}>
-                <div style={{ color: '#6b7280' }}>You don't have any stalls yet. Create one from the Vendor dashboard.</div>
+                <div style={{ color: '#6b7280' }}>You don't have any stalls yet. Create one from the Stall dashboard.</div>
                 <button onClick={() => navigate('/vendor')}
                   style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
                   Go to Dashboard

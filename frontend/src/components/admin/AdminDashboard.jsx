@@ -1,44 +1,83 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import adminApi from '../../api/admin';
+import stallsApi from '../../api/stalls';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
-import { HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, StallTab, card, inp } from '../common/ProfileSections';
+import PrintableQR from '../common/PrintableQR';
+import { BrowseStallsTab, StallsTab, TYPE_META } from '../common/StallsTab';
+import { HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card, inp } from '../common/ProfileSections';
 
-/* ── shared styles ── */
 const btn = (variant = 'primary') => ({
-  padding: '0.5rem 1rem', borderRadius: '0.65rem', border: 'none', cursor: 'pointer', fontWeight: 600,
+  padding: '0.5rem 1rem',
+  borderRadius: '0.65rem',
+  border: 'none',
+  cursor: 'pointer',
+  fontWeight: 600,
   background: variant === 'primary' ? '#f59e0b' : variant === 'danger' ? '#fee2e2' : '#f3f4f6',
   color: variant === 'primary' ? '#fff' : variant === 'danger' ? '#dc2626' : '#374151',
 });
 
-const TABS = ['Overview', 'Users', 'Vendors', 'Admins', 'Profile', 'Edit', 'Kids', 'History'];
-// 'Stall' tab is injected dynamically when user also has vendor role
+const TABS = ['Home', 'Overview', 'Users', 'Stalls', 'Admins', 'My Stalls', 'Browse', 'Profile', 'Edit', 'Kids', 'History'];
 
-/* ── inline token loader per user row ── */
+function TabBar({ tabs, active, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      {tabs.map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          onClick={() => onChange(tab)}
+          style={{
+            padding: '0.5rem 1.1rem',
+            borderRadius: '2rem',
+            border: 'none',
+            cursor: 'pointer',
+            background: active === tab ? '#f59e0b' : '#f3f4f6',
+            color: active === tab ? '#fff' : '#374151',
+            fontWeight: active === tab ? 700 : 400,
+          }}
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function TokenRow({ user, tokenRate, onDone, setStatus }) {
   const [open, setOpen] = useState(false);
   const [dollars, setDollars] = useState('');
   const tokens = dollars > 0 ? Math.floor(parseFloat(dollars) * tokenRate) : null;
 
   const doAdd = async () => {
-    if (!tokens) return;
+    if (!tokens) {
+      return;
+    }
     try {
       await adminApi.addTokens({ phone: user.phone, amount: tokens });
       setStatus(`✅ Added ${tokens} tokens to ${user.name || user.phone}`);
-      setOpen(false); setDollars('');
+      setOpen(false);
+      setDollars('');
       onDone();
-    } catch (e) { setStatus(e.response?.data?.error || 'Failed to add tokens.'); }
+    } catch (error) {
+      setStatus(error.response?.data?.error || 'Failed to add tokens.');
+    }
   };
 
   const doZero = async () => {
-    if (!window.confirm(`Zero out balance for ${user.name || user.phone}?`)) return;
+    if (!window.confirm(`Zero out balance for ${user.name || user.phone}?`)) {
+      return;
+    }
     try {
       await adminApi.zeroBalance(user.userId);
       setStatus(`✅ Balance zeroed for ${user.name || user.phone}`);
       onDone();
-    } catch (e) { setStatus(e.response?.data?.error || 'Failed to zero balance.'); }
+    } catch (error) {
+      setStatus(error.response?.data?.error || 'Failed to zero balance.');
+    }
   };
 
   return (
@@ -52,7 +91,7 @@ function TokenRow({ user, tokenRate, onDone, setStatus }) {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '0.4rem' }}>
-          <button style={btn('secondary')} onClick={() => { setOpen(o => !o); setDollars(''); }}>
+          <button style={btn('secondary')} onClick={() => { setOpen((value) => !value); setDollars(''); }}>
             {open ? 'Cancel' : '🪙 Add Tokens'}
           </button>
           <button style={btn('danger')} onClick={doZero}>⬛ Zero</button>
@@ -61,8 +100,7 @@ function TokenRow({ user, tokenRate, onDone, setStatus }) {
       {open && (
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <span>$</span>
-          <input type="number" min="1" style={{ ...inp, maxWidth: '100px' }} value={dollars}
-            placeholder="Dollars" onChange={e => setDollars(e.target.value)} autoFocus />
+          <input type="number" min="1" style={{ ...inp, maxWidth: '100px' }} value={dollars} placeholder="Dollars" onChange={(event) => setDollars(event.target.value)} autoFocus />
           {tokens != null && <span style={{ color: '#b45309', fontWeight: 700 }}>= {tokens} tokens</span>}
           <button style={btn()} onClick={doAdd} disabled={!tokens}>Confirm</button>
         </div>
@@ -71,45 +109,32 @@ function TokenRow({ user, tokenRate, onDone, setStatus }) {
   );
 }
 
-/* ── typeahead to pick a user ── */
 function UserTypeahead({ allUsers, onSelect, placeholder }) {
   const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
 
   const matches = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    if (!q) return [];
-    return allUsers.filter(u =>
-      u.phone?.includes(q) || u.name?.toLowerCase().includes(q)
-    ).slice(0, 8);
-  }, [query, allUsers]);
-
-  useEffect(() => {
-    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, []);
+    const normalized = query.toLowerCase().trim();
+    if (!normalized) {
+      return [];
+    }
+    return allUsers.filter((user) => user.phone?.includes(normalized) || user.name?.toLowerCase().includes(normalized)).slice(0, 8);
+  }, [allUsers, query]);
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <input style={inp} placeholder={placeholder || 'Search by phone or name…'}
-        value={query} onChange={e => { setQuery(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)} />
-      {open && matches.length > 0 && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-          background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.75rem',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '220px', overflowY: 'auto',
-        }}>
-          {matches.map(u => (
-            <div key={u.userId} onClick={() => { onSelect(u); setQuery(''); setOpen(false); }}
-              style={{ padding: '0.6rem 1rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#fffbeb'}
-              onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-              <strong>{u.name || '—'}</strong>
-              <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.5rem' }}>{u.phone}</span>
-            </div>
+    <div style={{ display: 'grid', gap: '0.5rem' }}>
+      <input style={inp} placeholder={placeholder || 'Search by phone or name…'} value={query} onChange={(event) => setQuery(event.target.value)} />
+      {matches.length > 0 && (
+        <div style={{ display: 'grid', gap: '0.35rem' }}>
+          {matches.map((user) => (
+            <button
+              key={user.userId}
+              type="button"
+              onClick={() => { onSelect(user); setQuery(''); }}
+              style={{ textAlign: 'left', padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', background: '#fffbeb', cursor: 'pointer' }}
+            >
+              <strong>{user.name || '—'}</strong>
+              <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.5rem' }}>{user.phone}</span>
+            </button>
           ))}
         </div>
       )}
@@ -117,114 +142,178 @@ function UserTypeahead({ allUsers, onSelect, placeholder }) {
   );
 }
 
-/* ── main dashboard ── */
 function AdminDashboard() {
   const { user: me } = useAuth();
-  const isVendor = me?.roles?.includes('vendor');
-  const allTabs = [...TABS, ...(isVendor ? ['Stall'] : [])];
+  const navigate = useNavigate();
+  const isAdmin = me?.roles?.includes('admin');
 
-  const [tab, setTab] = useState('Overview');
+  const [tab, setTab] = useState('Home');
   const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
   const [event, setEvent] = useState(null);
   const [users, setUsers] = useState([]);
-  const [vendors, setVendors] = useState([]);
   const [status, setStatus] = useState('');
   const [rate, setRate] = useState(2);
   const [editingRate, setEditingRate] = useState(false);
   const [rateInput, setRateInput] = useState(2);
   const [eventName, setEventName] = useState('Carnival 2026');
-
-  // own profile/kids/history state (same as UserDashboard)
   const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
   const [balance, setBalance] = useState({ tokenBalance: 0, pin: '' });
   const [kids, setKids] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [qrPayload, setQrPayload] = useState('');
+  const [allStalls, setAllStalls] = useState([]);
+  const [stallsLoaded, setStallsLoaded] = useState(false);
 
   const loadAdmin = async () => {
     const [statsRes, eventRes, usersRes] = await Promise.all([
-      adminApi.getStats(), adminApi.getEvent(), adminApi.listUsers(),
+      adminApi.getStats(),
+      adminApi.getEvent(),
+      adminApi.listUsers(),
     ]);
     setStats(statsRes);
     setEvent(eventRes);
-    const r = eventRes?.tokenRate ?? 2;
-    setRate(r);
-    setRateInput(r);
+    const currentRate = eventRes?.tokenRate ?? 2;
+    setRate(currentRate);
+    setRateInput(currentRate);
+    setEventName(eventRes?.name || 'Carnival 2026');
     setUsers(usersRes);
   };
 
   const loadProfile = async () => {
-    const [p, b, k, t] = await Promise.all([
+    const [p, b, k, t, qr] = await Promise.all([
       userApi.getProfile(),
       userApi.getBalance(),
       userApi.getKids(),
       userApi.getTransactions(),
+      userApi.getQr(),
     ]);
     setProfile(p);
     setBalance(b);
     setKids(k);
     setTransactions(t);
+    setQrPayload(qr.qrPayload);
   };
 
-  const load = async () => { await Promise.all([loadAdmin(), loadProfile()]); };
-
-  const loadVendors = async () => {
-    const v = await adminApi.listVendors();
-    setVendors(v);
+  const loadStalls = async () => {
+    const result = await stallsApi.listAll();
+    setAllStalls(result);
+    setStallsLoaded(true);
   };
 
-  useEffect(() => { load().catch(() => setStatus('Unable to load dashboard.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (tab === 'Vendors') loadVendors(); }, [tab]);
-
-  const changeTab = (t) => { setStatus(''); setTab(t); };
-
-  const run = async (action, msg) => {
-    try { await action(); await loadAdmin(); setStatus(msg); }
-    catch (e) { setStatus(e.response?.data?.error || 'Action failed.'); }
+  const load = async () => {
+    await Promise.all([loadAdmin(), loadProfile()]);
   };
 
-  const admins = users.filter(u => u.roles?.includes('admin'));
-  const nonAdminUsers = users.filter(u => !u.roles?.includes('admin'));
+  useEffect(() => {
+    load().catch(() => setStatus('Unable to load dashboard.'));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const grantAdmin = async (u) => {
-    const newRoles = Array.from(new Set([...(u.roles || []), 'admin']));
+  useEffect(() => {
+    if (tab === 'Stalls' && !stallsLoaded) {
+      loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'));
+    }
+  }, [tab, stallsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const changeTab = (nextTab) => {
+    setStatus('');
+    setTab(nextTab);
+  };
+
+  const run = async (action, message) => {
     try {
-      await adminApi.setUserRoles(u.userId, newRoles);
+      await action();
       await loadAdmin();
-      setStatus(`✅ ${u.name || u.phone} is now an admin.`);
-    } catch (e) { setStatus(e.response?.data?.error || 'Failed.'); }
+      setStatus(message);
+    } catch (error) {
+      setStatus(error.response?.data?.error || 'Action failed.');
+    }
   };
 
-  const revokeAdmin = async (u) => {
-    if (!window.confirm(`Remove admin from ${u.name || u.phone}?`)) return;
-    const newRoles = (u.roles || []).filter(r => r !== 'admin');
+  const admins = users.filter((user) => user.roles?.includes('admin'));
+  const nonAdminUsers = users.filter((user) => !user.roles?.includes('admin'));
+  const userCount = users.filter((user) => user.roles?.includes('user')).length;
+
+  const grantAdmin = async (user) => {
+    const newRoles = Array.from(new Set([...(user.roles || []), 'admin']));
     try {
-      await adminApi.setUserRoles(u.userId, newRoles);
+      await adminApi.setUserRoles(user.userId, newRoles);
       await loadAdmin();
-      setStatus(`✅ Admin removed from ${u.name || u.phone}.`);
-    } catch (e) { setStatus(e.response?.data?.error || 'Failed.'); }
+      setStatus(`✅ ${user.name || user.phone} is now an admin.`);
+    } catch (error) {
+      setStatus(error.response?.data?.error || 'Failed.');
+    }
+  };
+
+  const revokeAdmin = async (user) => {
+    if (!window.confirm(`Remove admin from ${user.name || user.phone}?`)) {
+      return;
+    }
+    const newRoles = (user.roles || []).filter((role) => role !== 'admin');
+    try {
+      await adminApi.setUserRoles(user.userId, newRoles);
+      await loadAdmin();
+      setStatus(`✅ Admin removed from ${user.name || user.phone}.`);
+    } catch (error) {
+      setStatus(error.response?.data?.error || 'Failed.');
+    }
   };
 
   return (
     <Layout>
       <div style={{ display: 'grid', gap: '1rem' }}>
-        {/* Tab bar */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {allTabs.map(t => (
-            <button key={t} type="button" onClick={() => changeTab(t)}
-              style={{
-                padding: '0.5rem 1.1rem', borderRadius: '2rem', border: 'none', cursor: 'pointer',
-                background: tab === t ? '#f59e0b' : '#f3f4f6',
-                color: tab === t ? '#fff' : '#374151',
-                fontWeight: tab === t ? 700 : 400,
-              }}>
-              {t}
-            </button>
-          ))}
-        </div>
-
+        <TabBar tabs={TABS} active={tab} onChange={changeTab} />
         {status && <p style={{ margin: 0, color: '#92400e', background: '#fffbeb', padding: '0.6rem 1rem', borderRadius: '0.75rem' }}>{status}</p>}
 
-        {/* ── OVERVIEW ── */}
+        {tab === 'Home' && (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <section style={{ ...card, textAlign: 'center', background: 'linear-gradient(135deg,#fffbeb,#fed7aa)' }}>
+              <div style={{ fontSize: '0.8rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>
+                {profile.name || 'Token Balance'}
+              </div>
+              <div style={{ fontSize: '3rem', fontWeight: 900, color: '#b45309', lineHeight: 1 }}>{balance.tokenBalance}</div>
+              <div style={{ fontSize: '0.9rem', color: '#78350f' }}>tokens remaining</div>
+            </section>
+
+            <section style={card}>
+              <div style={{ fontWeight: 700, color: '#374151' }}>📲 Your Payment QR</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Stalls scan this to charge you</div>
+              {qrPayload && <PrintableQR title="" qrValue={qrPayload} subtitle={`PIN: ${balance.pin}`} />}
+            </section>
+
+            <button
+              onClick={() => navigate('/scan')}
+              style={{
+                background: '#f59e0b',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '1rem',
+                padding: '1rem',
+                fontSize: '1.1rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              📷 Pay a Stall
+            </button>
+
+            {kids.length > 0 && (
+              <section style={card}>
+                <div style={{ fontWeight: 700 }}>👦 Kids</div>
+                {kids.map((kid) => (
+                  <div key={kid.kidId} style={{ display: 'flex', justifyContent: 'space-between', background: '#fffbeb', borderRadius: '0.65rem', padding: '0.6rem 0.9rem' }}>
+                    <span>{kid.name}</span>
+                    <span style={{ color: '#b45309', fontWeight: 700 }}>{kid.spendingLimit - kid.spent} tokens left</span>
+                  </div>
+                ))}
+              </section>
+            )}
+          </div>
+        )}
+
         {tab === 'Overview' && (
           <>
             <section style={{ ...card, background: 'linear-gradient(135deg,#fffbeb,#fed7aa)' }}>
@@ -238,8 +327,8 @@ function AdminDashboard() {
                   <div style={{ fontSize: '0.8rem', color: '#92400e' }}>Tokens Spent</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#b45309' }}>{stats.vendors.length}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#92400e' }}>Vendors</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#b45309' }}>{stallsLoaded ? allStalls.length : '—'}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#92400e' }}>Stalls</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#b45309' }}>{stats.users.length}</div>
@@ -256,7 +345,7 @@ function AdminDashboard() {
                   {event?.status || 'closed'}
                 </span>
               </p>
-              <input style={inp} value={eventName} placeholder="Event name" onChange={e => setEventName(e.target.value)} />
+              <input style={inp} value={eventName} placeholder="Event name" onChange={(eventValue) => setEventName(eventValue.target.value)} />
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button style={btn()} onClick={() => run(() => adminApi.manageEvent({ action: 'open', name: eventName }), 'Event opened.')}>Open Event</button>
                 <button style={btn('danger')} onClick={() => run(() => adminApi.manageEvent({ action: 'close' }), 'Event closed.')}>Close Event</button>
@@ -271,19 +360,14 @@ function AdminDashboard() {
                     <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>Current Rate</div>
                     <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#b45309' }}>$1 = {rate} tokens</div>
                   </div>
-                  <button style={btn('secondary')} onClick={() => { setRateInput(rate); setEditingRate(true); }}>
-                    ✏️ Edit
-                  </button>
+                  <button style={btn('secondary')} onClick={() => { setRateInput(rate); setEditingRate(true); }}>✏️ Edit</button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 600 }}>$1 =</span>
-                  <input style={{ ...inp, maxWidth: '100px' }} type="number" min="1" value={rateInput}
-                    onChange={e => setRateInput(Number(e.target.value))} autoFocus />
+                  <input style={{ ...inp, maxWidth: '100px' }} type="number" min="1" value={rateInput} onChange={(eventValue) => setRateInput(Number(eventValue.target.value))} autoFocus />
                   <span style={{ fontWeight: 600 }}>tokens</span>
-                  <button style={btn()} onClick={() => run(() => adminApi.setRate({ tokenRate: rateInput }), 'Rate updated.').then(() => setEditingRate(false))}>
-                    Save
-                  </button>
+                  <button style={btn()} onClick={() => run(() => adminApi.setRate({ tokenRate: rateInput }), 'Rate updated.').then(() => setEditingRate(false))}>Save</button>
                   <button style={btn('secondary')} onClick={() => setEditingRate(false)}>Cancel</button>
                 </div>
               )}
@@ -291,89 +375,73 @@ function AdminDashboard() {
           </>
         )}
 
-        {/* ── USERS ── */}
         {tab === 'Users' && (
           <section style={card}>
-            <h2 style={{ margin: 0 }}>👥 Users ({users.filter(u => u.roles?.includes('user')).length})</h2>
+            <h2 style={{ margin: 0 }}>👥 Users ({userCount})</h2>
             <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Rate: {rate} tokens / $1</div>
             <div style={{ display: 'grid', gap: '0.5rem' }}>
-              {users.filter(u => u.roles?.includes('user')).map(u => (
-                <TokenRow key={u.userId} user={u} tokenRate={rate} onDone={load} setStatus={setStatus} />
+              {users.filter((user) => user.roles?.includes('user')).map((user) => (
+                <TokenRow key={user.userId} user={user} tokenRate={rate} onDone={load} setStatus={setStatus} />
               ))}
             </div>
           </section>
         )}
 
-        {/* ── VENDORS ── */}
-        {tab === 'Vendors' && (
+        {tab === 'Stalls' && (
           <section style={card}>
-            <h2 style={{ margin: 0 }}>🏪 Vendors ({vendors.length})</h2>
-            {vendors.length === 0 && <p style={{ color: '#6b7280' }}>No vendors yet.</p>}
-            {vendors.map(v => (
-              <div key={v.userId} style={{ background: '#fffbeb', borderRadius: '0.85rem', padding: '1rem', display: 'grid', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  <div>
-                    <strong>{v.name || '—'}</strong>
-                    <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.5rem' }}>{v.phone}</span>
-                  </div>
-                  <div style={{ fontSize: '0.85rem' }}>
-                    <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: '1rem', padding: '0.15rem 0.6rem', marginRight: '0.4rem' }}>{v.totalReceived} tokens received</span>
-                    <span style={{ background: '#e0e7ff', color: '#3730a3', borderRadius: '1rem', padding: '0.15rem 0.6rem' }}>{v.transactionCount} txns</span>
-                  </div>
-                </div>
-                {v.items?.length > 0 && (
-                  <div style={{ fontSize: '0.85rem', color: '#374151' }}>
-                    <strong>Items:</strong>{' '}
-                    {v.items.filter(i => i.active).map(i => `${i.name} (${i.tokenPrice}🪙)`).join(' · ')}
-                  </div>
-                )}
-                {v.recentTransactions?.length > 0 && (
-                  <details style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                    <summary style={{ cursor: 'pointer' }}>Recent transactions ({v.recentTransactions.length})</summary>
-                    <div style={{ paddingTop: '0.4rem', display: 'grid', gap: '0.2rem' }}>
-                      {v.recentTransactions.map((tx, i) => (
-                        <div key={i}>{tx.itemName} × {tx.qty} — {tx.amount} tokens — {tx.timestamp?.slice(0, 10)}</div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </div>
-            ))}
-          </section>
-        )}
-
-        {/* ── ADMINS ── */}
-        {tab === 'Admins' && (
-          <section style={card}>
-            <h2 style={{ margin: 0 }}>🛡️ Admins ({admins.length})</h2>
-
-            {/* current admins */}
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              {admins.map(u => {
-                const isMe = u.userId === me?.userId;
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0 }}>🎪 Stalls ({allStalls.length})</h2>
+              <button style={btn('secondary')} onClick={() => loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'))}>Refresh</button>
+            </div>
+            {allStalls.length === 0 && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {allStalls.map((stall) => {
+                const typeMeta = TYPE_META[stall.stallType] || TYPE_META.game;
                 return (
-                  <div key={u.userId} style={{ background: isMe ? '#fffbeb' : '#f9fafb', border: isMe ? '2px solid #f59e0b' : '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    <div>
-                      <strong>{u.name || '—'}</strong>
-                      {isMe && <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', color: '#b45309' }}>(you)</span>}
-                      <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.5rem' }}>{u.phone}</span>
+                  <div key={stall.stallId} style={{ background: '#fffbeb', borderRadius: '0.85rem', padding: '1rem', display: 'grid', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <strong>{stall.stallName}</strong>
+                      <span style={{ background: typeMeta.bg, color: typeMeta.color, borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{typeMeta.icon} {typeMeta.label}</span>
                     </div>
-                    {!isMe && (
-                      <button style={btn('danger')} onClick={() => revokeAdmin(u)}>Remove Admin</button>
-                    )}
+                    <div style={{ color: '#6b7280', fontSize: '0.9rem' }}>{stall.stallId}</div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ background: '#e0e7ff', color: '#3730a3', borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{stall.memberCount} members</span>
+                      <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{stall.tokenBalance} tokens</span>
+                    </div>
                   </div>
                 );
               })}
             </div>
+          </section>
+        )}
 
-            {/* add admin typeahead */}
+        {tab === 'Admins' && (
+          <section style={card}>
+            <h2 style={{ margin: 0 }}>🛡️ Admins ({admins.length})</h2>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              {admins.map((user) => {
+                const isMe = user.userId === me?.userId;
+                return (
+                  <div key={user.userId} style={{ background: isMe ? '#fffbeb' : '#f9fafb', border: isMe ? '2px solid #f59e0b' : '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    <div>
+                      <strong>{user.name || '—'}</strong>
+                      {isMe && <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', color: '#b45309' }}>(you)</span>}
+                      <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.5rem' }}>{user.phone}</span>
+                    </div>
+                    {!isMe && <button style={btn('danger')} onClick={() => revokeAdmin(user)}>Remove Admin</button>}
+                  </div>
+                );
+              })}
+            </div>
             <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '1rem', display: 'grid', gap: '0.5rem' }}>
               <div style={{ fontWeight: 600 }}>+ Add Admin</div>
               <UserTypeahead
                 allUsers={nonAdminUsers}
                 placeholder="Search by phone or name…"
-                onSelect={u => {
-                  if (window.confirm(`Grant admin to ${u.name || u.phone}?`)) grantAdmin(u);
+                onSelect={(user) => {
+                  if (window.confirm(`Grant admin to ${user.name || user.phone}?`)) {
+                    grantAdmin(user);
+                  }
                 }}
               />
               <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Start typing to find a user — select to grant admin role</div>
@@ -381,24 +449,12 @@ function AdminDashboard() {
           </section>
         )}
 
-        {/* ── PROFILE / EDIT / KIDS / HISTORY (same as user dashboard) ── */}
-        {tab === 'Profile' && (
-          <ProfileViewTab profile={profile} balance={balance} event={event} isAdmin setStatus={setStatus} onReload={load} />
-        )}
-        {tab === 'Edit' && (
-          <ProfileEditTab profile={profile} setProfile={setProfile} setStatus={setStatus} onTabChange={changeTab} />
-        )}
-        {tab === 'Kids' && (
-          <KidsTab profile={profile} kids={kids} onReload={load} setStatus={setStatus} />
-        )}
-        {tab === 'History' && (
-          <HistoryTab transactions={transactions} />
-        )}
-
-        {/* ── STALL (only if admin is also a vendor) ── */}
-        {tab === 'Stall' && isVendor && (
-          <StallTab setStatus={setStatus} />
-        )}
+        {tab === 'My Stalls' && <StallsTab />}
+        {tab === 'Browse' && <BrowseStallsTab />}
+        {tab === 'Profile' && <ProfileViewTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} />}
+        {tab === 'Edit' && <ProfileEditTab profile={profile} setProfile={setProfile} setStatus={setStatus} onTabChange={changeTab} />}
+        {tab === 'Kids' && <KidsTab profile={profile} kids={kids} onReload={load} setStatus={setStatus} />}
+        {tab === 'History' && <HistoryTab transactions={transactions} />}
       </div>
     </Layout>
   );

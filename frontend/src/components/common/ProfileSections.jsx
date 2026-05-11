@@ -228,7 +228,7 @@ export function HistoryTab({ transactions }) {
         <div key={`${tx.txId}-${tx.itemId}`}
           style={{ background: '#fffbeb', borderRadius: '0.75rem', padding: '0.75rem', fontSize: '0.9rem' }}>
           <div style={{ fontWeight: 700 }}>{tx.itemName} × {tx.qty}</div>
-          <div style={{ color: '#6b7280' }}>at {tx.vendorName} · <strong style={{ color: '#b45309' }}>{tx.amount} tokens</strong></div>
+          <div style={{ color: '#6b7280' }}>at {tx.stallName || tx.vendorName || 'Stall'} · <strong style={{ color: '#b45309' }}>{tx.amount} tokens</strong></div>
           {tx.kidName && <div style={{ color: '#7c3aed', fontSize: '0.8rem' }}>👦 {tx.kidName}</div>}
           <div style={{ color: '#9ca3af', fontSize: '0.75rem' }}>{tx.timestamp}</div>
         </div>

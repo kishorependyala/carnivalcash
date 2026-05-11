@@ -25,6 +25,14 @@ const adminApi = {
     const response = await api.delete(`/api/admin/balance/${userId}`);
     return response.data;
   },
+  async listUsers() {
+    const response = await api.get('/api/admin/users');
+    return response.data;
+  },
+  async setUserRoles(userId, roles) {
+    const response = await api.put(`/api/admin/users/${userId}/roles`, { roles });
+    return response.data;
+  },
 };
 
 export default adminApi;

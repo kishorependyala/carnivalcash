@@ -49,7 +49,7 @@ def get_user_profile():
 @require_auth
 def update_profile():
     """
-    Update user profile (name, emails). Archives previous version.
+    Update user profile (name, emails, socials). Archives previous version.
     ---
     tags: [User]
     security: [{BearerAuth: []}]
@@ -62,6 +62,13 @@ def update_profile():
             properties:
               name: {type: string, example: "Kishore"}
               emails: {type: array, items: {type: string}, example: ["k@example.com"]}
+              socials:
+                type: object
+                properties:
+                  gmail: {type: string}
+                  yahoo: {type: string}
+                  instagram: {type: string}
+                  facebook: {type: string}
     responses:
       200:
         description: Updated profile
@@ -76,6 +83,10 @@ def update_profile():
     archive_profile(profile['userId'], archive_timestamp(), profile)
     profile['name'] = payload.get('name', profile.get('name', ''))
     profile['emails'] = payload.get('emails', profile.get('emails', []))
+    if 'socials' in payload:
+        allowed = {'gmail', 'yahoo', 'instagram', 'facebook'}
+        incoming = payload['socials'] or {}
+        profile['socials'] = {k: str(v).strip() for k, v in incoming.items() if k in allowed}
     save_profile(profile['userId'], profile)
     return jsonify(profile)
 

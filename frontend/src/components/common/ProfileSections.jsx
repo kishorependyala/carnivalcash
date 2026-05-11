@@ -168,6 +168,8 @@ export function ProfileEditTab({ profile, setProfile, onSave, setStatus, onTabCh
 /* ── Kids tab ── */
 export function KidsTab({ profile, kids, onReload, setStatus }) {
   const [form, setForm] = useState({ name: '', spendingLimit: 25 });
+  const [editingKid, setEditingKid] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   const addKid = async () => {
     try {
@@ -181,6 +183,20 @@ export function KidsTab({ profile, kids, onReload, setStatus }) {
   const deleteKid = async (kidId) => {
     try { await userApi.deleteKid(kidId); await onReload(); setStatus('Kid removed.'); }
     catch (e) { setStatus(e.response?.data?.error || 'Unable to remove kid.'); }
+  };
+
+  const startEdit = (kid) => {
+    setEditingKid(kid.kidId);
+    setEditForm({ name: kid.name, spendingLimit: kid.spendingLimit });
+  };
+
+  const saveEdit = async (kidId) => {
+    try {
+      await userApi.updateKid(kidId, editForm);
+      setEditingKid(null);
+      await onReload();
+      setStatus('Kid updated.');
+    } catch (e) { setStatus(e.response?.data?.error || 'Unable to update kid.'); }
   };
 
   return (
@@ -197,21 +213,48 @@ export function KidsTab({ profile, kids, onReload, setStatus }) {
 
       {kids.map(kid => (
         <div key={kid.kidId} style={{ background: '#fffbeb', borderRadius: '1rem', padding: '1rem', display: 'grid', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong>{kid.name}</strong>
-            <button onClick={() => deleteKid(kid.kidId)}
-              style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
-              Remove
-            </button>
-          </div>
-          <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-            Limit: {kid.spendingLimit} tokens &nbsp;·&nbsp; Spent: {kid.spent}
-          </div>
-          <PrintableQR
-            title={`${kid.name}'s Wristband`}
-            qrValue={`CARNIVAL_KID:${profile.userId}:${kid.kidId}`}
-            subtitle={`Limit ${kid.spendingLimit} tokens`}
-          />
+          {editingKid === kid.kidId ? (
+            <>
+              <input style={inp} value={editForm.name} placeholder="Kid name"
+                onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+              <input style={inp} type="number" value={editForm.spendingLimit} placeholder="Spending limit (tokens)"
+                onChange={e => setEditForm(f => ({ ...f, spendingLimit: Number(e.target.value) }))} />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => saveEdit(kid.kidId)}
+                  style={{ flex: 1, background: '#059669', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                  Save
+                </button>
+                <button onClick={() => setEditingKid(null)}
+                  style={{ flex: 1, background: '#f3f4f6', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.8rem', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>{kid.name}</strong>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button onClick={() => startEdit(kid)}
+                    style={{ background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.7rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                    Edit
+                  </button>
+                  <button onClick={() => deleteKid(kid.kidId)}
+                    style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                Limit: {kid.spendingLimit} tokens &nbsp;·&nbsp; Spent: {kid.spent}
+              </div>
+              <PrintableQR
+                title={`${kid.name}'s Wristband`}
+                qrValue={`CARNIVAL_KID:${profile.userId}:${kid.kidId}`}
+                subtitle={`Limit ${kid.spendingLimit} tokens`}
+              />
+            </>
+          )}
         </div>
       ))}
     </section>
@@ -231,6 +274,63 @@ export function HistoryTab({ transactions }) {
           <div style={{ color: '#6b7280' }}>at {tx.stallName || tx.vendorName || 'Stall'} · <strong style={{ color: '#b45309' }}>{tx.amount} tokens</strong></div>
           {tx.kidName && <div style={{ color: '#7c3aed', fontSize: '0.8rem' }}>👦 {tx.kidName}</div>}
           <div style={{ color: '#9ca3af', fontSize: '0.75rem' }}>{tx.timestamp}</div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+export function FamilyTab({ setStatus }) {
+  const [family, setFamily] = useState([]);
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    userApi.getFamily().then(setFamily).catch(() => {}).finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const link = async () => {
+    try {
+      await userApi.linkFamily(phone);
+      const updated = await userApi.getFamily();
+      setFamily(updated);
+      setPhone('');
+      setStatus('Family member linked.');
+    } catch (e) { setStatus(e.response?.data?.error || 'Unable to link.'); }
+  };
+
+  const unlink = async (userId) => {
+    try {
+      await userApi.unlinkFamily(userId);
+      setFamily(f => f.filter(m => m.userId !== userId));
+      setStatus('Unlinked.');
+    } catch (e) { setStatus(e.response?.data?.error || 'Unable to unlink.'); }
+  };
+
+  return (
+    <section style={card}>
+      <h2 style={{ margin: 0 }}>👨‍👩‍👧 Family Links</h2>
+      <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>Link adult family members to share stall admin rights for kids.</p>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <input style={{ ...inp, flex: 1 }} value={phone} placeholder="Phone number of family member"
+          onChange={e => setPhone(e.target.value)} />
+        <button onClick={link}
+          style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem 1rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          + Link
+        </button>
+      </div>
+      {loading && <p style={{ color: '#6b7280', margin: 0 }}>Loading…</p>}
+      {!loading && family.length === 0 && <p style={{ color: '#6b7280', margin: 0 }}>No family members linked yet.</p>}
+      {family.map(m => (
+        <div key={m.userId} style={{ background: '#fffbeb', borderRadius: '0.75rem', padding: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontWeight: 700 }}>{m.name || m.phone}</div>
+            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{m.phone}</div>
+          </div>
+          <button onClick={() => unlink(m.userId)}
+            style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
+            Unlink
+          </button>
         </div>
       ))}
     </section>

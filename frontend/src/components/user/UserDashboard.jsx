@@ -6,10 +6,10 @@ import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
-import { HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card } from '../common/ProfileSections';
+import { FamilyTab, HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card } from '../common/ProfileSections';
 import { BrowseStallsTab, StallsTab } from '../common/StallsTab';
 
-const TABS = ['Home', 'Profile', 'Edit', 'Kids', 'Stalls', 'Browse', 'History'];
+const TABS = ['Home', 'Profile', 'Edit', 'Kids', 'Family', 'Stalls', 'Browse', 'History'];
 
 function TabBar({ tabs, active, onChange }) {
   return (
@@ -129,6 +129,7 @@ function UserDashboard() {
         {tab === 'Kids' && (
           <KidsTab profile={profile} kids={kids} onReload={load} setStatus={setStatus} />
         )}
+        {tab === 'Family' && <FamilyTab setStatus={setStatus} />}
         {tab === 'Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}
         {tab === 'History' && (

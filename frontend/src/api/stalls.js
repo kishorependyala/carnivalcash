@@ -16,11 +16,14 @@ const stallsApi = {
   async catalog(stallId) {
     return (await api.get(`/api/stalls/${stallId}/catalog`)).data;
   },
-  async addMember(stallId, memberId) {
-    return (await api.post(`/api/stalls/${stallId}/members`, { memberId })).data;
+  async addMember(stallId, memberId, isAdmin = false) {
+    return (await api.post(`/api/stalls/${stallId}/members`, { memberId, isAdmin })).data;
   },
   async removeMember(stallId, userId) {
     return (await api.delete(`/api/stalls/${stallId}/members/${userId}`)).data;
+  },
+  async toggleAdmin(stallId, memberId, admin) {
+    return (await api.put(`/api/stalls/${stallId}/members/${memberId}/admin`, { admin })).data;
   },
   async addItem(stallId, payload) {
     return (await api.post(`/api/stalls/${stallId}/items`, payload)).data;

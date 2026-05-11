@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { BrowseStallsTab, StallsTab, TYPE_META } from '../common/StallsTab';
-import { HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card, inp } from '../common/ProfileSections';
+import { FamilyTab, HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card, inp } from '../common/ProfileSections';
 
 const btn = (variant = 'primary') => ({
   padding: '0.5rem 1rem',
@@ -20,7 +20,7 @@ const btn = (variant = 'primary') => ({
   color: variant === 'primary' ? '#fff' : variant === 'danger' ? '#dc2626' : '#374151',
 });
 
-const TABS = ['Home', 'Overview', 'Users', 'Stalls', 'Admins', 'My Stalls', 'Browse', 'Profile', 'Edit', 'Kids', 'History'];
+const TABS = ['Home', 'Overview', 'Users', 'Stalls', 'Admins', 'Family', 'My Stalls', 'Browse', 'Profile', 'Edit', 'Kids', 'History'];
 
 function TabBar({ tabs, active, onChange }) {
   return (
@@ -449,6 +449,7 @@ function AdminDashboard() {
           </section>
         )}
 
+        {tab === 'Family' && <FamilyTab setStatus={setStatus} />}
         {tab === 'My Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}
         {tab === 'Profile' && <ProfileViewTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} />}

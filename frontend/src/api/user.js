@@ -33,6 +33,18 @@ const userApi = {
     const response = await api.delete(`/api/user/kids/${kidId}`);
     return response.data;
   },
+  async updateKid(kidId, data) {
+    return (await api.put(`/api/users/kids/${kidId}`, data)).data;
+  },
+  async getFamily() {
+    return (await api.get('/api/users/family')).data;
+  },
+  async linkFamily(phone) {
+    return (await api.post('/api/users/link-family', { phone })).data;
+  },
+  async unlinkFamily(userId) {
+    return (await api.delete(`/api/users/link-family/${userId}`)).data;
+  },
 };
 
 export default userApi;

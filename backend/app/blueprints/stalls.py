@@ -100,7 +100,10 @@ def create_stall_route():
     if stall_type not in ('food', 'game'):
         return jsonify({'error': 'stallType must be food or game'}), 400
 
-    stall = create_stall(stall_name, stall_type, tokens_per_item, description, g.user['userId'])
+    creator_id = g.user['userId']
+    creator_profile = get_profile(creator_id) or {}
+    creator_name = creator_profile.get('name') or creator_profile.get('phone', '')
+    stall = create_stall(stall_name, stall_type, tokens_per_item, description, creator_id, creator_name)
     return jsonify(stall), 201
 
 
@@ -120,6 +123,49 @@ def my_stalls():
     """
     stalls = list_user_stalls(g.user['userId'])
     return jsonify(stalls)
+
+
+
+@stalls_bp.put('/api/stalls/<stall_id>/members/<member_id>/admin')
+@require_auth
+def toggle_stall_admin(stall_id, member_id):
+    """Toggle admin status for a stall member. Caller must be a stall admin."""
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+
+    caller = g.user['userId']
+    caller_is_admin = caller in stall.get('stallAdmins', [stall.get('createdBy')]) or 'admin' in (g.user.get('roles') or [])
+    if not caller_is_admin:
+        return jsonify({'error': 'Must be a stall admin'}), 403
+    if member_id not in stall.get('members', []):
+        return jsonify({'error': 'Not a stall member'}), 404
+
+    if 'stallAdmins' not in stall:
+        stall['stallAdmins'] = [stall.get('createdBy', '')]
+
+    body = request.get_json(silent=True) or {}
+    make_admin = body.get('admin', True)
+    if make_admin:
+        if member_id not in stall['stallAdmins']:
+            stall['stallAdmins'].append(member_id)
+        if member_id.startswith('KID:'):
+            parts = member_id.split(':')
+            parent_id = parts[1] if len(parts) == 3 else None
+            if parent_id and parent_id not in stall['stallAdmins']:
+                stall['stallAdmins'].append(parent_id)
+                if parent_id not in stall['members']:
+                    stall['members'].append(parent_id)
+                    parent_prof = get_profile(parent_id)
+                    if parent_prof:
+                        stall.setdefault('memberNames', {})[parent_id] = parent_prof.get('name') or parent_prof.get('phone', '')
+    else:
+        if member_id == stall.get('createdBy'):
+            return jsonify({'error': 'Cannot remove stall creator admin status'}), 400
+        stall['stallAdmins'] = [admin_id for admin_id in stall['stallAdmins'] if admin_id != member_id]
+
+    save_stall(stall_id, stall)
+    return jsonify(stall)
 
 
 # ── Public catalog (for scanning) ─────────────────────────────────────────────
@@ -299,9 +345,27 @@ def add_member(stall_id):
 
     if 'memberNames' not in stall:
         stall['memberNames'] = {}
+    if 'stallAdmins' not in stall:
+        stall['stallAdmins'] = [stall.get('createdBy', '')]
+
     if new_user_id not in stall['members']:
         stall['members'].append(new_user_id)
     stall['memberNames'][new_user_id] = display_name
+
+    is_admin = body.get('isAdmin', False)
+    if is_admin and new_user_id not in stall['stallAdmins']:
+        stall['stallAdmins'].append(new_user_id)
+        if new_user_id.startswith('KID:'):
+            parts = new_user_id.split(':')
+            parent_id = parts[1] if len(parts) == 3 else None
+            if parent_id and parent_id not in stall['stallAdmins']:
+                stall['stallAdmins'].append(parent_id)
+                if parent_id not in stall['members']:
+                    stall['members'].append(parent_id)
+                    parent_prof = get_profile(parent_id)
+                    if parent_prof:
+                        stall['memberNames'][parent_id] = parent_prof.get('name') or parent_prof.get('phone', '')
+
     save_stall(stall_id, stall)
     return jsonify(stall)
 
@@ -340,6 +404,8 @@ def remove_member(stall_id, user_id):
         return jsonify({'error': 'Only the stall creator can remove other members'}), 403
 
     stall['members'] = [m for m in stall['members'] if m != user_id]
+    if 'stallAdmins' in stall:
+        stall['stallAdmins'] = [admin_id for admin_id in stall['stallAdmins'] if admin_id != user_id]
     save_stall(stall_id, stall)
     return jsonify(stall)
 

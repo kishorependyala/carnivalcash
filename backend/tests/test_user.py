@@ -54,3 +54,44 @@ def test_delete_kid_removes_it(client, seed_profile, auth_header):
 
     assert response.status_code == 200
     assert kids_response.get_json() == []
+
+
+
+def test_update_kid_updates_name_and_limit(client, seed_profile, auth_header):
+    user = seed_profile('5551000001')
+    save_user_kids(
+        user['userId'],
+        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 50, 'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
+    )
+
+    response = client.put(
+        '/api/users/kids/kid-1',
+        json={'name': 'Alice Updated', 'spendingLimit': 75},
+        headers=auth_header(user),
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()['name'] == 'Alice Updated'
+    assert response.get_json()['spendingLimit'] == 75
+
+
+def test_family_link_and_unlink_updates_both_profiles(client, seed_profile, auth_header):
+    user = seed_profile('5551000001', name='Parent One')
+    other = seed_profile('5551000002', name='Parent Two')
+
+    link_response = client.post(
+        '/api/users/link-family',
+        json={'phone': other['phone']},
+        headers=auth_header(user),
+    )
+    family_response = client.get('/api/users/family', headers=auth_header(user))
+
+    assert link_response.status_code == 200
+    assert family_response.status_code == 200
+    assert family_response.get_json() == [{'userId': other['userId'], 'name': 'Parent Two', 'phone': other['phone']}]
+
+    unlink_response = client.delete(f"/api/users/link-family/{other['userId']}", headers=auth_header(user))
+    family_after_unlink = client.get('/api/users/family', headers=auth_header(user))
+
+    assert unlink_response.status_code == 200
+    assert family_after_unlink.get_json() == []

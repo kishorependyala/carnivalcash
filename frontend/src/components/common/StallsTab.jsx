@@ -91,6 +91,7 @@ function MemberAdder({ stallId, onUpdated }) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
   const [status, setStatus] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const search = async (value) => {
     setQ(value);
@@ -107,9 +108,10 @@ function MemberAdder({ stallId, onUpdated }) {
 
   const add = async (user) => {
     try {
-      const updated = await stallsApi.addMember(stallId, user.userId);
+      const updated = await stallsApi.addMember(stallId, user.userId, isAdmin);
       setResults([]);
       setQ('');
+      setIsAdmin(false);
       setStatus('');
       onUpdated(updated);
     } catch (error) {
@@ -120,6 +122,10 @@ function MemberAdder({ stallId, onUpdated }) {
   return (
     <div style={{ display: 'grid', gap: '0.4rem' }}>
       <input style={inp} placeholder="Search by phone or name…" value={q} onChange={(event) => search(event.target.value)} />
+      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+        <input type="checkbox" checked={isAdmin} onChange={e => setIsAdmin(e.target.checked)} />
+        Make stall admin
+      </label>
       {results.map((user) => (
         <button
           key={user.userId}
@@ -209,6 +215,15 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
       setStatus('');
     } catch (error) {
       setStatus(error.response?.data?.error || 'Failed.');
+    }
+  };
+
+  const toggleAdmin = async (memberId, makeAdmin) => {
+    try {
+      const updated = await stallsApi.toggleAdmin(stall.stallId, memberId, makeAdmin);
+      setStall(updated);
+    } catch (error) {
+      setStatus(error.response?.data?.error || 'Failed to update admin.');
     }
   };
 
@@ -379,16 +394,28 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
 
           <div>
             <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Members</div>
-            {stall.members.map((uid) => (
-              <div key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0' }}>
-                <span style={{ fontSize: '0.9rem' }}>
-                  {uid === myUserId ? '👤 You' : (uid.startsWith('KID:') ? `👦 ${stall.memberNames?.[uid] || uid}` : `👤 ${stall.memberNames?.[uid] || `…${uid.slice(-8)}`}`)}
-                </span>
-                {(isCreator || uid === myUserId) && uid !== stall.createdBy && (
-                  <button onClick={() => removeMember(uid)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.8rem' }}>Remove</button>
-                )}
-              </div>
-            ))}
+            {stall.members.map((uid) => {
+              const isKid = uid.startsWith('KID:');
+              const isStallAdmin = (stall.stallAdmins || []).includes(uid);
+              const displayName = uid === myUserId ? 'You' : (stall.memberNames?.[uid] || (isKid ? uid : `…${uid.slice(-8)}`));
+              return (
+                <div key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0' }}>
+                  <span style={{ fontSize: '0.9rem' }}>
+                    {isKid ? '👦' : '👤'} {displayName} {isStallAdmin && <span style={{ background: '#fef3c7', color: '#92400e', borderRadius: '0.5rem', padding: '0.1rem 0.4rem', fontSize: '0.75rem', fontWeight: 700 }}>👑 Admin</span>}
+                  </span>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    {isCreator && uid !== stall.createdBy && (
+                      <button onClick={() => toggleAdmin(uid, !isStallAdmin)} style={{ background: isStallAdmin ? '#fef3c7' : '#f3f4f6', border: 'none', borderRadius: '0.5rem', padding: '0.2rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#92400e' }}>
+                        {isStallAdmin ? 'Revoke Admin' : 'Make Admin'}
+                      </button>
+                    )}
+                    {(isCreator || uid === myUserId) && uid !== stall.createdBy && (
+                      <button onClick={() => removeMember(uid)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.8rem' }}>Remove</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
             <div style={{ marginTop: '0.6rem' }}>
               <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>Add member</div>
               <MemberAdder stallId={stall.stallId} onUpdated={setStall} />

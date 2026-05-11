@@ -56,7 +56,7 @@ def list_user_stalls(user_id):
     return [s for s in list_stalls() if user_id in s.get('members', [])]
 
 
-def create_stall(stall_name, stall_type, tokens_per_item, description, creator_id):
+def create_stall(stall_name, stall_type, tokens_per_item, description, creator_id, creator_name=''):
     stall_id = _generate_stall_id()
     stall = {
         'stallId': stall_id,
@@ -65,6 +65,8 @@ def create_stall(stall_name, stall_type, tokens_per_item, description, creator_i
         'tokensPerItem': int(tokens_per_item),
         'description': description or '',
         'members': [creator_id],
+        'stallAdmins': [creator_id],
+        'memberNames': {creator_id: creator_name or creator_id},
         'createdBy': creator_id,
         'createdAt': _utc_now(),
         'tokenBalance': 0,

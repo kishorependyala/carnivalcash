@@ -5,6 +5,7 @@ from flask import Blueprint, g, jsonify, request
 
 from app.storage.user_store import (
     archive_profile,
+    find_profile_by_phone,
     get_profile,
     get_user_kids,
     get_user_transactions,
@@ -226,3 +227,79 @@ def delete_kid_profile(kid_id):
     next_kids = [kid for kid in kids if kid.get('kidId') != kid_id]
     save_user_kids(g.user['userId'], next_kids)
     return jsonify({'status': 'ok'})
+
+
+@user_bp.put('/api/users/kids/<kid_id>')
+@require_auth
+def update_kid(kid_id):
+    user_id = g.user['userId']
+    kids = get_user_kids(user_id)
+    kid = next((entry for entry in kids if entry['kidId'] == kid_id), None)
+    if not kid:
+        return jsonify({'error': 'Kid not found'}), 404
+
+    body = request.get_json(silent=True) or {}
+    if 'name' in body and str(body['name']).strip():
+        kid['name'] = str(body['name']).strip()
+    if 'spendingLimit' in body:
+        kid['spendingLimit'] = int(body['spendingLimit'])
+
+    save_user_kids(user_id, kids)
+    return jsonify(kid)
+
+
+@user_bp.post('/api/users/link-family')
+@require_auth
+def link_family():
+    """Link another adult user as family. Body: {phone}"""
+    body = request.get_json(silent=True) or {}
+    phone = (body.get('phone') or '').strip()
+    other = find_profile_by_phone(phone)
+    if not other:
+        return jsonify({'error': 'User not found'}), 404
+
+    my_id = g.user['userId']
+    other_id = other['userId']
+    if my_id == other_id:
+        return jsonify({'error': 'Cannot link yourself'}), 400
+
+    me = get_profile(my_id) or {}
+    my_links = me.get('familyLinks', [])
+    if other_id not in my_links:
+        my_links.append(other_id)
+    me['familyLinks'] = my_links
+    save_profile(my_id, me)
+
+    them = get_profile(other_id) or {}
+    their_links = them.get('familyLinks', [])
+    if my_id not in their_links:
+        their_links.append(my_id)
+    them['familyLinks'] = their_links
+    save_profile(other_id, them)
+    return jsonify({'message': 'Family linked', 'familyLinks': my_links})
+
+
+@user_bp.delete('/api/users/link-family/<other_id>')
+@require_auth
+def unlink_family(other_id):
+    my_id = g.user['userId']
+    me = get_profile(my_id) or {}
+    me['familyLinks'] = [uid for uid in me.get('familyLinks', []) if uid != other_id]
+    save_profile(my_id, me)
+
+    them = get_profile(other_id) or {}
+    them['familyLinks'] = [uid for uid in them.get('familyLinks', []) if uid != my_id]
+    save_profile(other_id, them)
+    return jsonify({'message': 'Unlinked'})
+
+
+@user_bp.get('/api/users/family')
+@require_auth
+def get_family():
+    me = get_profile(g.user['userId']) or {}
+    family = []
+    for uid in me.get('familyLinks', []):
+        profile = get_profile(uid)
+        if profile:
+            family.append({'userId': uid, 'name': profile.get('name', ''), 'phone': profile.get('phone', '')})
+    return jsonify(family)

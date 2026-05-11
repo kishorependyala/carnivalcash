@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import stallsApi from '../../api/stalls';
-import userApi from '../../api/user';
 import Layout from '../common/Layout';
 
 const card = {

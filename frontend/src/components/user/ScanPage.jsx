@@ -26,13 +26,6 @@ function ScanPage() {
   const [manualValue, setManualValue] = useState('');
   const [status, setStatus] = useState('Scan a stall QR code or paste the payload manually.');
 
-  const handleResult = (rawValue) => {
-    const parsed = parseQRCode(rawValue);
-    if (!parsed) { setStatus('That QR code is not a CarnivalCash stall QR.'); return; }
-    if (parsed.type === 'stall') navigate(`/scan/stall/${parsed.id}`);
-    else navigate(`/scan/items/${parsed.id}`);
-  };
-
   useEffect(() => {
     let mounted = true;
 
@@ -48,7 +41,10 @@ function ScanPage() {
         }
         html5Scanner.current = new Html5QrcodeScanner('vendor-qr-reader', { fps: 5, qrbox: 220 }, false);
         html5Scanner.current.render((decodedText) => {
-          handleResult(decodedText);
+          const parsed = parseQRCode(decodedText);
+          if (!parsed) { setStatus('That QR code is not a CarnivalCash stall QR.'); return; }
+          if (parsed.type === 'stall') navigate(`/scan/stall/${parsed.id}`);
+          else navigate(`/scan/items/${parsed.id}`);
         }, () => {});
       } catch (error) {
         setStatus('Camera scanning is unavailable here. Paste the QR payload manually.');

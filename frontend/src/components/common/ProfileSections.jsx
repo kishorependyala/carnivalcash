@@ -261,7 +261,7 @@ export function StallTab({ setStatus }) {
     } catch (e) { setStatus('Unable to load stall info.'); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async () => {
     try {

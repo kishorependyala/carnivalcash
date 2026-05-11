@@ -6,7 +6,7 @@ import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
-import { HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card, inp } from '../common/ProfileSections';
+import { HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card } from '../common/ProfileSections';
 
 const TABS = ['Home', 'Profile', 'Edit', 'Kids', 'History'];
 
@@ -60,7 +60,7 @@ function UserDashboard() {
     }
   };
 
-  useEffect(() => { load().catch(() => setStatus('Unable to load dashboard.')); }, []);
+  useEffect(() => { load().catch(() => setStatus('Unable to load dashboard.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const changeTab = (t) => { setStatus(''); setTab(t); };
 

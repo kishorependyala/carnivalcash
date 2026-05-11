@@ -172,7 +172,7 @@ function AdminDashboard() {
     setVendors(v);
   };
 
-  useEffect(() => { load().catch(() => setStatus('Unable to load dashboard.')); }, []);
+  useEffect(() => { load().catch(() => setStatus('Unable to load dashboard.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'Vendors') loadVendors(); }, [tab]);
 
   const changeTab = (t) => { setStatus(''); setTab(t); };

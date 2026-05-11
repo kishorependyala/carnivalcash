@@ -4,9 +4,9 @@ import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import { BrowseStallsTab, StallsTab } from '../common/StallsTab';
-import { HistoryTab, ProfileEditTab, ProfileViewTab } from '../common/ProfileSections';
+import { HistoryTab, ProfileTab } from '../common/ProfileSections';
 
-const TABS = ['Stalls', 'Browse', 'Profile', 'Edit', 'History'];
+const TABS = ['Stalls', 'Browse', 'Profile', 'History'];
 
 function TabBar({ tabs, active, onChange }) {
   return (
@@ -72,8 +72,7 @@ function VendorDashboard() {
 
         {tab === 'Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}
-        {tab === 'Profile' && <ProfileViewTab profile={profile} balance={balance} event={null} isAdmin={isAdmin} setStatus={setStatus} onReload={load} />}
-        {tab === 'Edit' && <ProfileEditTab profile={profile} setProfile={setProfile} setStatus={setStatus} onTabChange={changeTab} />}
+        {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={null} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={[]} setProfile={setProfile} />}
         {tab === 'History' && <HistoryTab transactions={transactions} />}
       </div>
     </Layout>

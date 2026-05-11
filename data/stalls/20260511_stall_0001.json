@@ -1,0 +1,24 @@
+{
+  "stallId": "20260511_stall_0001",
+  "stallName": "Ice gola",
+  "stallType": "food",
+  "tokensPerItem": 2,
+  "description": "Ice gola",
+  "members": [
+    "202605100000000002",
+    "KID:202605100000000002:b92749d5-dde1-4e11-81a3-570f54376a98"
+  ],
+  "stallAdmins": [
+    "202605100000000002",
+    "KID:202605100000000002:b92749d5-dde1-4e11-81a3-570f54376a98"
+  ],
+  "memberNames": {
+    "202605100000000002": "kishore pendyala",
+    "KID:202605100000000002:b92749d5-dde1-4e11-81a3-570f54376a98": "Krithi (child of kishore pendyala)"
+  },
+  "createdBy": "202605100000000002",
+  "createdAt": "2026-05-11T23:09:07Z",
+  "tokenBalance": 0,
+  "items": [],
+  "joinRequests": []
+}

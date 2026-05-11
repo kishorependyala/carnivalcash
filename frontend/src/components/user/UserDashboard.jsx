@@ -6,10 +6,10 @@ import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
-import { FamilyTab, HistoryTab, KidsTab, ProfileEditTab, ProfileViewTab, card } from '../common/ProfileSections';
+import { HistoryTab, ProfileTab, card } from '../common/ProfileSections';
 import { BrowseStallsTab, StallsTab } from '../common/StallsTab';
 
-const TABS = ['Home', 'Profile', 'Edit', 'Kids', 'Family', 'Stalls', 'Browse', 'History'];
+const TABS = ['Home', 'Profile', 'Stalls', 'Browse', 'History'];
 
 function TabBar({ tabs, active, onChange }) {
   return (
@@ -121,15 +121,8 @@ function UserDashboard() {
         )}
 
         {tab === 'Profile' && (
-          <ProfileViewTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} />
+          <ProfileTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={kids} setProfile={setProfile} />
         )}
-        {tab === 'Edit' && (
-          <ProfileEditTab profile={profile} setProfile={setProfile} setStatus={setStatus} onTabChange={changeTab} />
-        )}
-        {tab === 'Kids' && (
-          <KidsTab profile={profile} kids={kids} onReload={load} setStatus={setStatus} />
-        )}
-        {tab === 'Family' && <FamilyTab setStatus={setStatus} />}
         {tab === 'Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}
         {tab === 'History' && (

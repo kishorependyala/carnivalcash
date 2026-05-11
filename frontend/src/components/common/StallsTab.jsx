@@ -284,8 +284,9 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
           <span style={{ fontSize: '1.4rem' }}>{typeMeta.icon}</span>
           <div>
             <div style={{ fontWeight: 900 }}>{stall.stallName}</div>
-            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-              🪙 {stall.tokensPerItem}/item · {stall.memberNames
+            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>🪙 {stall.tokensPerItem}/item</div>
+            <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>
+              👥 {stall.memberNames && Object.keys(stall.memberNames).length > 0
                 ? Object.values(stall.memberNames).join(', ')
                 : `${stall.members.length} member${stall.members.length !== 1 ? 's' : ''}`}
             </div>

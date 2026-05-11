@@ -16,8 +16,8 @@ const stallsApi = {
   async catalog(stallId) {
     return (await api.get(`/api/stalls/${stallId}/catalog`)).data;
   },
-  async addMember(stallId, phone) {
-    return (await api.post(`/api/stalls/${stallId}/members`, { phone })).data;
+  async addMember(stallId, memberId) {
+    return (await api.post(`/api/stalls/${stallId}/members`, { memberId })).data;
   },
   async removeMember(stallId, userId) {
     return (await api.delete(`/api/stalls/${stallId}/members/${userId}`)).data;

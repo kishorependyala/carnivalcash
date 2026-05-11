@@ -12,7 +12,7 @@ from app.storage.stall_store import (
     save_stall,
     save_stall_transactions,
 )
-from app.storage.user_store import find_profile_by_phone, get_profile, get_user_transactions, save_user_transactions
+from app.storage.user_store import find_profile_by_phone, get_profile, get_user_kids, get_user_transactions, save_user_transactions
 from app.utils.auth_middleware import require_auth
 
 stalls_bp = Blueprint('stalls', __name__)
@@ -259,17 +259,50 @@ def add_member(stall_id):
     if not _is_member(stall, g.user['userId']):
         return jsonify({'error': 'Not a stall member'}), 403
 
+    from app.storage.user_store import get_user_kids
     body = request.get_json(silent=True) or {}
+    member_id = (body.get('memberId') or '').strip()
     phone = (body.get('phone') or '').strip()
-    new_user = find_profile_by_phone(phone)
-    if not new_user:
-        return jsonify({'error': 'User with that phone not found'}), 404
 
-    new_user_id = new_user['userId']
+    display_name = ''
+    if member_id.startswith('KID:'):
+        # KID:<parentUserId>:<kidId>
+        parts = member_id.split(':')
+        if len(parts) != 3:
+            return jsonify({'error': 'Invalid kid member ID'}), 400
+        parent_id, kid_id = parts[1], parts[2]
+        parent = get_profile(parent_id)
+        if not parent:
+            return jsonify({'error': 'Parent user not found'}), 404
+        kids = get_user_kids(parent_id)
+        kid = next((k for k in kids if k.get('kidId') == kid_id), None)
+        if not kid:
+            return jsonify({'error': 'Kid not found'}), 404
+        parent_name = parent.get('name') or parent.get('phone', '')
+        display_name = f"{kid['name']} (child of {parent_name})"
+        new_user_id = member_id
+    elif member_id:
+        new_user = get_profile(member_id)
+        if not new_user:
+            return jsonify({'error': 'User not found'}), 404
+        new_user_id = member_id
+        display_name = new_user.get('name') or new_user.get('phone', '')
+    elif phone:
+        # fallback: look up by phone
+        new_user = find_profile_by_phone(phone)
+        if not new_user:
+            return jsonify({'error': 'User with that phone not found'}), 404
+        new_user_id = new_user['userId']
+        display_name = new_user.get('name') or phone
+    else:
+        return jsonify({'error': 'memberId or phone required'}), 400
+
+    if 'memberNames' not in stall:
+        stall['memberNames'] = {}
     if new_user_id not in stall['members']:
         stall['members'].append(new_user_id)
-        save_stall(stall_id, stall)
-
+    stall['memberNames'][new_user_id] = display_name
+    save_stall(stall_id, stall)
     return jsonify(stall)
 
 
@@ -720,7 +753,7 @@ def search_users():
       200:
         description: Matching users (phone + name)
     """
-    from app.storage.user_store import list_profiles
+    from app.storage.user_store import list_profiles, get_user_kids
     q = (request.args.get('q') or '').strip()
     if len(q) < 3:
         return jsonify([])
@@ -728,11 +761,24 @@ def search_users():
     for p in list_profiles():
         phone = p.get('phone', '')
         name = p.get('name', '')
+        parent_id = p['userId']
+        # match adult user
         if q in phone or q.lower() in name.lower():
-            results.append({'userId': p['userId'], 'phone': phone, 'name': name})
-        if len(results) >= 10:
+            results.append({'userId': parent_id, 'phone': phone, 'name': name or phone, 'isKid': False})
+        # match kids belonging to this user
+        for kid in get_user_kids(parent_id):
+            kid_name = kid.get('name', '')
+            if q.lower() in kid_name.lower() or q in phone:
+                display = f"{kid_name} (child of {name or phone})"
+                results.append({
+                    'userId': f"KID:{parent_id}:{kid['kidId']}",
+                    'phone': phone,
+                    'name': display,
+                    'isKid': True,
+                })
+        if len(results) >= 15:
             break
-    return jsonify(results)
+    return jsonify(results[:15])
 
 
 # ── Get stall ─────────────────────────────────────────────────────────────────

@@ -107,7 +107,7 @@ function MemberAdder({ stallId, onUpdated }) {
 
   const add = async (user) => {
     try {
-      const updated = await stallsApi.addMember(stallId, user.phone);
+      const updated = await stallsApi.addMember(stallId, user.userId);
       setResults([]);
       setQ('');
       setStatus('');
@@ -136,7 +136,7 @@ function MemberAdder({ stallId, onUpdated }) {
             fontSize: '0.9rem',
           }}
         >
-          📱 {user.phone}{user.name ? ` — ${user.name}` : ''}
+          {user.isKid ? `👦 ${user.name}` : `👤 ${user.name || user.phone}${user.phone ? ` · ${user.phone}` : ''}`}
         </button>
       ))}
       {status && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>{status}</p>}
@@ -270,7 +270,9 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
           <div>
             <div style={{ fontWeight: 900 }}>{stall.stallName}</div>
             <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-              🪙 {stall.tokensPerItem}/item · {stall.members.length} member{stall.members.length !== 1 ? 's' : ''}
+              🪙 {stall.tokensPerItem}/item · {stall.memberNames
+                ? Object.values(stall.memberNames).join(', ')
+                : `${stall.members.length} member${stall.members.length !== 1 ? 's' : ''}`}
             </div>
           </div>
         </div>
@@ -379,7 +381,9 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
             <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Members</div>
             {stall.members.map((uid) => (
               <div key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0' }}>
-                <span style={{ fontSize: '0.9rem' }}>{uid === myUserId ? '👤 You' : `👤 …${uid.slice(-8)}`}</span>
+                <span style={{ fontSize: '0.9rem' }}>
+                  {uid === myUserId ? '👤 You' : (uid.startsWith('KID:') ? `👦 ${stall.memberNames?.[uid] || uid}` : `👤 ${stall.memberNames?.[uid] || `…${uid.slice(-8)}`}`)}
+                </span>
                 {(isCreator || uid === myUserId) && uid !== stall.createdBy && (
                   <button onClick={() => removeMember(uid)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.8rem' }}>Remove</button>
                 )}

@@ -4,6 +4,7 @@ from flask_cors import CORS
 
 from .blueprints.admin import admin_bp
 from .blueprints.auth import auth_bp
+from .blueprints.bootstrap import bootstrap_bp
 from .blueprints.transactions import transactions_bp
 from .blueprints.user import user_bp
 from .blueprints.vendor import vendor_bp
@@ -42,6 +43,7 @@ def create_app():
         return redirect('/apidocs/')
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(bootstrap_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(vendor_bp)

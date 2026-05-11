@@ -260,3 +260,84 @@ def get_stats():
             'users': users,
         }
     )
+
+
+VALID_ROLES = {'admin', 'user', 'vendor'}
+
+
+@admin_bp.put('/api/admin/users/<user_id>/roles')
+@require_auth
+@require_role('admin')
+def set_user_roles(user_id):
+    """
+    Set roles for any user. Admin only.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: user_id
+        required: true
+        schema: {type: string}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [roles]
+            properties:
+              roles:
+                type: array
+                items:
+                  type: string
+                  enum: [admin, user, vendor]
+                example: [admin, user]
+    responses:
+      200:
+        description: Updated profile with new roles
+      400:
+        description: Invalid roles
+      404:
+        description: User not found
+    """
+    payload = request.get_json(silent=True) or {}
+    roles = payload.get('roles', [])
+
+    invalid = [r for r in roles if r not in VALID_ROLES]
+    if invalid:
+        return jsonify({'error': f'Invalid roles: {invalid}. Valid: {sorted(VALID_ROLES)}'}), 400
+
+    profile = get_profile(user_id)
+    if profile is None:
+        return jsonify({'error': 'User not found'}), 404
+
+    profile['roles'] = list(set(roles))
+    save_profile(user_id, profile)
+    return jsonify({'userId': user_id, 'phone': profile.get('phone'), 'roles': profile['roles']})
+
+
+@admin_bp.get('/api/admin/users')
+@require_auth
+@require_role('admin')
+def list_users():
+    """
+    List all users with their roles.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of all user profiles with roles
+    """
+    profiles = list_profiles()
+    return jsonify([
+        {
+            'userId': p['userId'],
+            'phone': p.get('phone', ''),
+            'name': p.get('name', ''),
+            'roles': p.get('roles', []),
+            'tokenBalance': int(p.get('tokenBalance', 0)),
+        }
+        for p in profiles
+    ])

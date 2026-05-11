@@ -1,5 +1,5 @@
 from flasgger import Swagger
-from flask import Flask
+from flask import Flask, redirect
 from flask_cors import CORS
 
 from .blueprints.admin import admin_bp
@@ -36,6 +36,10 @@ def create_app():
     CORS(app)
 
     Swagger(app, config=SWAGGER_CONFIG, merge=True)
+
+    @app.get('/')
+    def index():
+        return redirect('/apidocs/')
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)

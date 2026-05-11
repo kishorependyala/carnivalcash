@@ -27,6 +27,20 @@ def utc_now():
 @transactions_bp.get('/api/transactions/catalog/<vendor_id>')
 @require_auth
 def vendor_catalog(vendor_id):
+    """
+    Get a vendor's active items (for the scan/pay flow).
+    ---
+    tags: [Transactions]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: vendor_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: Vendor ID and active item list
+    """
     items = [item for item in get_vendor_items(vendor_id) if item.get('active', True)]
     return jsonify({'vendorId': vendor_id, 'items': items})
 
@@ -34,6 +48,49 @@ def vendor_catalog(vendor_id):
 @transactions_bp.post('/api/transactions/transfer')
 @require_auth
 def transfer():
+    """
+    Transfer tokens from user to vendor. Optionally attribute to a kid token.
+    ---
+    tags: [Transactions]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [vendorId, items]
+            properties:
+              vendorId:
+                type: string
+                example: "20260510000000000002"
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    itemId: {type: string}
+                    qty: {type: integer}
+              kidId:
+                type: string
+                nullable: true
+                example: null
+    responses:
+      200:
+        description: Transfer result
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                txId: {type: string}
+                totalTokens: {type: integer}
+                newBalance: {type: integer}
+      400:
+        description: No items / insufficient balance / kid limit exceeded
+      404:
+        description: Profile or item not found
+    """
     payload = request.get_json(silent=True) or {}
     vendor_id = payload.get('vendorId')
     requested_items = payload.get('items', [])

@@ -36,6 +36,15 @@ def default_event(token_rate=10):
 @require_auth
 @require_role('admin')
 def current_event():
+    """
+    Get the current event.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Current event object
+    """
     return jsonify(get_event() or default_event())
 
 
@@ -43,6 +52,27 @@ def current_event():
 @require_auth
 @require_role('admin')
 def create_tokens():
+    """
+    Add tokens to a user account by phone number.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [phone, amount]
+            properties:
+              phone: {type: string, example: "5551234567"}
+              amount: {type: integer, example: 100}
+    responses:
+      200:
+        description: Updated token balance
+      404:
+        description: User not found
+    """
     payload = request.get_json(silent=True) or {}
     phone = str(payload.get('phone', '')).strip()
     amount = int(payload.get('amount', 0))
@@ -60,6 +90,24 @@ def create_tokens():
 @require_auth
 @require_role('admin')
 def set_rate():
+    """
+    Set the token-to-dollar rate for the current event.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [tokenRate]
+            properties:
+              tokenRate: {type: integer, example: 10}
+    responses:
+      200:
+        description: Updated event with new token rate
+    """
     payload = request.get_json(silent=True) or {}
     token_rate = int(payload.get('tokenRate', 0))
     event = get_event() or default_event(token_rate=token_rate or 10)
@@ -72,6 +120,29 @@ def set_rate():
 @require_auth
 @require_role('admin')
 def create_event():
+    """
+    Open or close an event.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [action]
+            properties:
+              action: {type: string, enum: [open, close]}
+              name: {type: string, example: "Carnival 2026"}
+    responses:
+      200:
+        description: Event object
+      400:
+        description: Unsupported action
+      404:
+        description: No active event (on close)
+    """
     payload = request.get_json(silent=True) or {}
     action = payload.get('action')
     current = get_event()
@@ -105,6 +176,22 @@ def create_event():
 @require_auth
 @require_role('admin')
 def zero_balance(user_id):
+    """
+    Zero out a user's token balance.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: user_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: Balance zeroed
+      404:
+        description: User not found
+    """
     profile = get_profile(user_id)
     if profile is None:
         return jsonify({'error': 'User not found'}), 404
@@ -117,6 +204,24 @@ def zero_balance(user_id):
 @require_auth
 @require_role('admin')
 def get_stats():
+    """
+    Get full stats: tokens issued, spent, per-vendor breakdown, all users.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Stats summary
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                totalTokensIssued: {type: integer}
+                totalTokensSpent: {type: integer}
+                vendors: {type: array, items: {type: object}}
+                users: {type: array, items: {type: object}}
+    """
     profiles = list_profiles()
     user_profiles = [profile for profile in profiles if 'user' in profile.get('roles', [])]
     vendor_profiles = [profile for profile in profiles if 'vendor' in profile.get('roles', [])]

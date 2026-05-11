@@ -3,3 +3,4 @@ flask-cors
 pyjwt
 filelock
 gunicorn
+flasgger

@@ -18,6 +18,34 @@ def utc_now():
 
 @auth_bp.post('/api/auth/request-code')
 def request_code():
+    """
+    Request a login code (no-op — code equals phone number).
+    ---
+    tags: [Auth]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [phone]
+            properties:
+              phone:
+                type: string
+                example: "5551234567"
+    responses:
+      200:
+        description: Code sent (creates account if new phone)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: {type: string, example: ok}
+                message: {type: string, example: Code sent}
+      400:
+        description: Phone is required
+    """
     payload = request.get_json(silent=True) or {}
     phone = str(payload.get('phone', '')).strip()
 
@@ -45,6 +73,46 @@ def request_code():
 
 @auth_bp.post('/api/auth/verify')
 def verify():
+    """
+    Verify code and receive JWT token. Code must equal the phone number.
+    ---
+    tags: [Auth]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [phone, code]
+            properties:
+              phone:
+                type: string
+                example: "5551234567"
+              code:
+                type: string
+                example: "5551234567"
+    responses:
+      200:
+        description: JWT token and user info
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token: {type: string}
+                user:
+                  type: object
+                  properties:
+                    userId: {type: string}
+                    phone: {type: string}
+                    roles: {type: array, items: {type: string}}
+                    name: {type: string}
+                    pin: {type: string}
+      401:
+        description: Invalid code
+      404:
+        description: Profile not found
+    """
     payload = request.get_json(silent=True) or {}
     phone = str(payload.get('phone', '')).strip()
     code = str(payload.get('code', '')).strip()

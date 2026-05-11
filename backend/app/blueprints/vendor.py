@@ -15,6 +15,21 @@ vendor_bp = Blueprint('vendor', __name__)
 @require_auth
 @require_role('vendor')
 def get_qr():
+    """
+    Get the vendor's unique QR payload string.
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: QR payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qrPayload: {type: string, example: "CARNIVAL_VENDOR:20260510000000000001"}
+    """
     return jsonify({'qrPayload': f"CARNIVAL_VENDOR:{g.user['userId']}"})
 
 
@@ -22,6 +37,15 @@ def get_qr():
 @require_auth
 @require_role('vendor')
 def list_items():
+    """
+    List all stall items for the vendor.
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of items
+    """
     return jsonify(get_vendor_items(g.user['userId']))
 
 
@@ -29,6 +53,26 @@ def list_items():
 @require_auth
 @require_role('vendor')
 def create_item():
+    """
+    Add a new stall item.
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [name, tokenPrice, stallType]
+            properties:
+              name: {type: string, example: "Cotton Candy"}
+              tokenPrice: {type: integer, example: 5}
+              stallType: {type: string, enum: [food, game, both]}
+    responses:
+      201:
+        description: Item created
+    """
     from uuid import uuid4
 
     payload = request.get_json(silent=True) or {}
@@ -49,6 +93,33 @@ def create_item():
 @require_auth
 @require_role('vendor')
 def update_item(item_id):
+    """
+    Update a stall item.
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: item_id
+        required: true
+        schema: {type: string}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name: {type: string}
+              tokenPrice: {type: integer}
+              stallType: {type: string, enum: [food, game, both]}
+              active: {type: boolean}
+    responses:
+      200:
+        description: Updated item
+      404:
+        description: Item not found
+    """
     payload = request.get_json(silent=True) or {}
     items = get_vendor_items(g.user['userId'])
 
@@ -67,6 +138,22 @@ def update_item(item_id):
 @require_auth
 @require_role('vendor')
 def delete_item(item_id):
+    """
+    Deactivate a stall item (sets active=false).
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: item_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: Item deactivated
+      404:
+        description: Item not found
+    """
     items = get_vendor_items(g.user['userId'])
 
     for item in items:
@@ -82,6 +169,15 @@ def delete_item(item_id):
 @require_auth
 @require_role('vendor')
 def list_transactions():
+    """
+    Get all transactions received by the vendor.
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of transactions
+    """
     return jsonify(get_vendor_transactions(g.user['userId']))
 
 
@@ -89,6 +185,26 @@ def list_transactions():
 @require_auth
 @require_role('vendor')
 def poll_transactions():
+    """
+    Poll for new transactions since a given timestamp.
+    ---
+    tags: [Vendor]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: query
+        name: since
+        schema: {type: string}
+        description: ISO 8601 timestamp — returns count of transactions after this time
+    responses:
+      200:
+        description: New transaction count
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newTransactions: {type: integer}
+    """
     since = request.args.get('since', '')
     transactions = get_vendor_transactions(g.user['userId'])
     count = len([tx for tx in transactions if tx.get('timestamp', '') > since]) if since else len(transactions)

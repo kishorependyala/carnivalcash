@@ -28,6 +28,17 @@ def archive_timestamp():
 @user_bp.get('/api/user/profile')
 @require_auth
 def get_user_profile():
+    """
+    Get logged-in user's profile.
+    ---
+    tags: [User]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: User profile
+      404:
+        description: Profile not found
+    """
     profile = get_profile(g.user['userId'])
     if profile is None:
         return jsonify({'error': 'Profile not found'}), 404
@@ -37,6 +48,26 @@ def get_user_profile():
 @user_bp.put('/api/user/profile')
 @require_auth
 def update_profile():
+    """
+    Update user profile (name, emails). Archives previous version.
+    ---
+    tags: [User]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name: {type: string, example: "Kishore"}
+              emails: {type: array, items: {type: string}, example: ["k@example.com"]}
+    responses:
+      200:
+        description: Updated profile
+      404:
+        description: Profile not found
+    """
     profile = get_profile(g.user['userId'])
     if profile is None:
         return jsonify({'error': 'Profile not found'}), 404
@@ -52,6 +83,24 @@ def update_profile():
 @user_bp.get('/api/user/balance')
 @require_auth
 def get_balance():
+    """
+    Get logged-in user's token balance and PIN.
+    ---
+    tags: [User]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Balance and PIN
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tokenBalance: {type: integer}
+                pin: {type: string}
+      404:
+        description: Profile not found
+    """
     profile = get_profile(g.user['userId'])
     if profile is None:
         return jsonify({'error': 'Profile not found'}), 404
@@ -61,18 +110,55 @@ def get_balance():
 @user_bp.get('/api/user/transactions')
 @require_auth
 def list_transactions():
+    """
+    List all transactions for the logged-in user (includes kid transactions).
+    ---
+    tags: [User]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of transactions
+    """
     return jsonify(get_user_transactions(g.user['userId']))
 
 
 @user_bp.get('/api/user/kids')
 @require_auth
 def list_kids():
+    """
+    List all kid QR tokens for the logged-in user.
+    ---
+    tags: [User]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of kid tokens
+    """
     return jsonify(get_user_kids(g.user['userId']))
 
 
 @user_bp.post('/api/user/kids')
 @require_auth
 def create_kid_profile():
+    """
+    Create a new kid QR token with a spending limit.
+    ---
+    tags: [User]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [name, spendingLimit]
+            properties:
+              name: {type: string, example: "Alice"}
+              spendingLimit: {type: integer, example: 50}
+    responses:
+      201:
+        description: Kid token created with QR payload
+    """
     payload = request.get_json(silent=True) or {}
     kids = get_user_kids(g.user['userId'])
     kid = {
@@ -90,6 +176,20 @@ def create_kid_profile():
 @user_bp.delete('/api/user/kids/<kid_id>')
 @require_auth
 def delete_kid_profile(kid_id):
+    """
+    Delete a kid QR token.
+    ---
+    tags: [User]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: kid_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: Kid token deleted
+    """
     kids = get_user_kids(g.user['userId'])
     next_kids = [kid for kid in kids if kid.get('kidId') != kid_id]
     save_user_kids(g.user['userId'], next_kids)

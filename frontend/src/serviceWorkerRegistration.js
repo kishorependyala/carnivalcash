@@ -72,6 +72,11 @@ function registerValidSW(swUrl, config) {
                   'tabs for this page are closed. See https://cra.link/PWA.'
               );
 
+              // Force the new service worker to activate immediately
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                installingWorker.postMessage({ type: 'SKIP_WAITING' });
+              }
+
               // Execute callback
               if (config && config.onUpdate) {
                 config.onUpdate(registration);

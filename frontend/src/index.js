@@ -18,4 +18,13 @@ root.render(
   </React.StrictMode>
 );
 
-serviceWorkerRegistration.register();
+serviceWorkerRegistration.register({
+  onUpdate: () => {
+    // Auto-reload when a new service worker takes over
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
+  },
+});

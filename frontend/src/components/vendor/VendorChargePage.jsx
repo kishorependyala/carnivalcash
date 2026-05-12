@@ -25,6 +25,7 @@ function VendorChargePage() {
   const [quantities, setQuantities] = useState({});
   const [customerLabel, setCustomerLabel] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [status, setStatus] = useState('');
   const [result, setResult] = useState(null);
   const [pin, setPin] = useState('');
@@ -58,6 +59,7 @@ function VendorChargePage() {
             if (p) {
               setCustomerLabel(`👦 Kid of ${p.name || p.phone}`);
               setCustomerName(`kid (parent: ${p.name || p.phone})`);
+              setCustomerPhone(p.phone || '');
             }
           })
           .catch(() => {});
@@ -69,6 +71,7 @@ function VendorChargePage() {
           if (p) {
             setCustomerLabel(`👤 ${p.name || p.phone}`);
             setCustomerName(p.name || p.phone);
+            setCustomerPhone(p.phone || '');
           }
         })
         .catch(() => {});
@@ -119,9 +122,12 @@ function VendorChargePage() {
         {/* customer info */}
         <section style={{ ...card, background: '#fffbeb' }}>
           <div style={{ fontWeight: 700 }}>Customer</div>
-          <div style={{ color: '#374151', fontSize: '0.95rem' }}>
-            {customerLabel || (isKid ? '👦 Kid' : `ID: ${decodedUserId}`)}
+          <div style={{ color: '#374151', fontSize: '0.95rem', fontWeight: 600 }}>
+            {customerLabel || (isKid ? '👦 Kid' : '👤 Customer')}
           </div>
+          {customerPhone && (
+            <div style={{ fontSize: '0.88rem', color: '#6b7280' }}>{customerPhone}</div>
+          )}
           {isKid && (
             <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>
               Tokens deducted from parent's balance.

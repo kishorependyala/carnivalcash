@@ -327,3 +327,12 @@ def get_family():
         if profile:
             family.append({'userId': uid, 'name': profile.get('name', ''), 'phone': profile.get('phone', '')})
     return jsonify(family)
+
+
+@user_bp.get('/api/user/public/<user_id>')
+def get_public_profile(user_id):
+    """Return minimal public info (name, phone) for a user — used by vendor charge screen."""
+    profile = get_profile(user_id)
+    if not profile:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify({'name': profile.get('name', ''), 'phone': profile.get('phone', '')})

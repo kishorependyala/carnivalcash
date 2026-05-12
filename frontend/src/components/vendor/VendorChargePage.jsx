@@ -124,7 +124,7 @@ function VendorChargePage() {
           </div>
           {isKid && (
             <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>
-              Tokens deducted from parent's balance. PIN = kid's birth year (or parent's if kid has none set).
+              Tokens deducted from parent's balance.
             </div>
           )}
         </section>
@@ -204,13 +204,13 @@ function VendorChargePage() {
                   <div style={{ display: 'grid', gap: '0.35rem' }}>
                     <label style={{ fontWeight: 700, color: '#92400e' }}>
                       {customerName
-                        ? `Hi ${customerName}, please enter your birth year as PIN`
-                        : isKid ? 'Ask kid (or parent) to enter their birth year as PIN' : 'Ask customer to enter their birth year as PIN'}
+                        ? `Hi ${customerName}, please enter your PIN`
+                        : 'Ask customer to enter their PIN'}
                     </label>
                     <input
                       type="password"
                       maxLength={4}
-                      placeholder="Birth year (e.g. 2015) or 0000"
+                      placeholder="Enter PIN"
                       value={pin}
                       onChange={e => setPin(e.target.value)}
                       style={{ padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', fontSize: '0.95rem' }}

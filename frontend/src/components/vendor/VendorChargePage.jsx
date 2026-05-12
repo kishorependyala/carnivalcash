@@ -24,6 +24,7 @@ function VendorChargePage() {
   const [userProfile, setUserProfile] = useState(null);
   const [status, setStatus] = useState('');
   const [result, setResult] = useState(null);
+  const [pin, setPin] = useState('');
 
   useEffect(() => {
     stallsApi.mine()
@@ -61,10 +62,12 @@ function VendorChargePage() {
   const handleCharge = async () => {
     if (!selectedStall || !totalTokens) return;
     try {
-      const res = await stallsApi.charge(selectedStall.stallId, {
+      const res = await stallsApi.charge(
+        selectedStall.stallId,
         userId,
-        items: (catalog?.items || []).map(item => ({ itemId: item.itemId, qty: quantities[item.itemId] || 0 })),
-      });
+        (catalog?.items || []).map(item => ({ itemId: item.itemId, qty: quantities[item.itemId] || 0 })),
+        pin.trim(),
+      );
       setResult(res);
       setStatus('');
     } catch (e) {
@@ -160,12 +163,25 @@ function VendorChargePage() {
                   </div>
                 ))}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #fed7aa', paddingTop: '0.75rem' }}>
-                  <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#b45309' }}>Total: {totalTokens} 🪙</div>
-                  <button onClick={handleCharge} disabled={!totalTokens}
-                    style={{ background: totalTokens ? '#f59e0b' : '#d1d5db', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem 1.4rem', fontWeight: 700, cursor: totalTokens ? 'pointer' : 'default', fontSize: '1rem' }}>
-                    Charge
-                  </button>
+                <div style={{ display: 'grid', gap: '0.75rem', borderTop: '1px solid #fed7aa', paddingTop: '0.75rem' }}>
+                  <div style={{ display: 'grid', gap: '0.35rem' }}>
+                    <label style={{ fontWeight: 700, color: '#92400e' }}>Ask user to enter their birth year as PIN</label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      placeholder="User's birth year (PIN)"
+                      value={pin}
+                      onChange={e => setPin(e.target.value)}
+                      style={{ padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', fontSize: '0.95rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#b45309' }}>Total: {totalTokens} 🪙</div>
+                    <button onClick={handleCharge} disabled={!totalTokens || pin.trim().length !== 4}
+                      style={{ background: totalTokens && pin.trim().length === 4 ? '#f59e0b' : '#d1d5db', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem 1.4rem', fontWeight: 700, cursor: totalTokens && pin.trim().length === 4 ? 'pointer' : 'default', fontSize: '1rem' }}>
+                      Charge
+                    </button>
+                  </div>
                 </div>
               </section>
             )}

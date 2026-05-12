@@ -45,7 +45,7 @@ def client(app):
 def seed_profile():
     created = {'value': 0}
 
-    def _seed_profile(phone, roles=None, token_balance=0, name='', user_id=None):
+    def _seed_profile(phone, roles=None, token_balance=0, name='', user_id=None, birth_year='0000'):
         roles = roles or ['user']
         created['value'] += 1
         user_id = user_id or f"20260510{created['value']:010d}"
@@ -56,6 +56,7 @@ def seed_profile():
             'emails': [],
             'roles': roles,
             'pin': generate_pin(phone),
+            'birthYear': birth_year,
             'tokenBalance': token_balance,
             'createdAt': '2026-05-10T10:00:00Z',
         }

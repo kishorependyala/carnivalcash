@@ -31,8 +31,8 @@ const stallsApi = {
   async updateItem(stallId, itemId, payload) {
     return (await api.put(`/api/stalls/${stallId}/items/${itemId}`, payload)).data;
   },
-  async charge(stallId, payload) {
-    return (await api.post(`/api/stalls/${stallId}/charge`, payload)).data;
+  async charge(stallId, userId, items, pin) {
+    return (await api.post(`/api/stalls/${stallId}/charge`, { userId, items, pin })).data;
   },
   async transactions(stallId) {
     return (await api.get(`/api/stalls/${stallId}/transactions`)).data;

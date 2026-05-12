@@ -17,6 +17,9 @@ const userApi = {
     const response = await api.get('/api/user/balance');
     return response.data;
   },
+  async updateBirthYear(birthYear) {
+    return (await api.put('/api/users/birth-year', { birthYear })).data;
+  },
   async getTransactions() {
     const response = await api.get('/api/user/transactions');
     return response.data;

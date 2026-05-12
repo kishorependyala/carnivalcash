@@ -84,7 +84,7 @@ def test_toggle_stall_admin_updates_membership(client, seed_profile, auth_header
 
 def test_stall_charge_splits_tokens_to_charities(client, seed_profile, auth_header):
     creator = seed_profile('5551000003', name='Creator')
-    customer = seed_profile('5551000004', token_balance=40, name='Customer')
+    customer = seed_profile('5551000004', token_balance=40, name='Customer', birth_year='1990')
     charity, _ = add_charity('School Fund', 'Books', '', creator['userId'])
 
     stall_response = client.post(
@@ -101,7 +101,7 @@ def test_stall_charge_splits_tokens_to_charities(client, seed_profile, auth_head
 
     charge_response = client.post(
         f'/api/stalls/{stall_id}/charge',
-        json={'userId': customer['userId'], 'items': [{'itemId': 'default', 'qty': 2}]},
+        json={'userId': customer['userId'], 'items': [{'itemId': 'default', 'qty': 2}], 'pin': '1990'},
         headers=auth_header(creator),
     )
 
@@ -109,3 +109,25 @@ def test_stall_charge_splits_tokens_to_charities(client, seed_profile, auth_head
     assert charge_response.get_json()['stallBalance'] == 15
     assert get_charity(charity['charityId'])['tokenBalance'] == 5
     assert get_stall(stall_id)['tokenBalance'] == 15
+
+
+
+def test_stall_charge_rejects_invalid_birth_year_pin(client, seed_profile, auth_header):
+    creator = seed_profile('5551000003', name='Creator')
+    customer = seed_profile('5551000004', token_balance=40, name='Customer', birth_year='1990')
+
+    stall_response = client.post(
+        '/api/stalls',
+        json={'stallName': 'Ring Toss', 'stallType': 'game', 'tokensPerItem': 10},
+        headers=auth_header(creator),
+    )
+    stall_id = stall_response.get_json()['stallId']
+
+    charge_response = client.post(
+        f'/api/stalls/{stall_id}/charge',
+        json={'userId': customer['userId'], 'items': [{'itemId': 'default', 'qty': 1}], 'pin': '0000'},
+        headers=auth_header(creator),
+    )
+
+    assert charge_response.status_code == 403
+    assert charge_response.get_json()['error'] == 'Invalid PIN'

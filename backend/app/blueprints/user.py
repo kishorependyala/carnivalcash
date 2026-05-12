@@ -137,7 +137,25 @@ def get_balance():
     profile = get_profile(g.user['userId'])
     if profile is None:
         return jsonify({'error': 'Profile not found'}), 404
-    return jsonify({'tokenBalance': profile.get('tokenBalance', 0), 'pin': profile.get('pin', '')})
+    return jsonify({
+        'tokenBalance': profile.get('tokenBalance', 0),
+        'pin': profile.get('pin', ''),
+        'birthYear': profile.get('birthYear', '0000'),
+    })
+
+
+@user_bp.put('/api/users/birth-year')
+@require_auth
+def update_birth_year():
+    body = request.get_json(silent=True) or {}
+    year = str(body.get('birthYear', '0000')).strip()
+    if year != '0000' and (not year.isdigit() or len(year) != 4):
+        return jsonify({'error': 'birthYear must be a 4-digit year or 0000'}), 400
+
+    profile = get_profile(g.user['userId']) or {}
+    profile['birthYear'] = year
+    save_profile(g.user['userId'], profile)
+    return jsonify({'birthYear': year})
 
 
 @user_bp.get('/api/user/transactions')

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import adminApi from '../../api/admin';
 import userApi from '../../api/user';
@@ -34,9 +34,10 @@ function UserDashboard() {
   const navigate = useNavigate();
   const isAdmin = user?.roles?.includes('admin');
 
-  const [tab, setTab] = useState('Home');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') || 'Home');
   const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
-  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '' });
+  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
   const [kids, setKids] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [qrPayload, setQrPayload] = useState('');
@@ -63,7 +64,11 @@ function UserDashboard() {
 
   useEffect(() => { load().catch(() => setStatus('Unable to load dashboard.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const changeTab = (t) => { setStatus(''); setTab(t); };
+  const changeTab = (t) => {
+    setStatus('');
+    setTab(t);
+    setSearchParams({ tab: t }, { replace: true });
+  };
 
   return (
     <Layout>
@@ -90,7 +95,7 @@ function UserDashboard() {
               <div style={{ fontWeight: 700, color: '#374151' }}>📲 Your Payment QR</div>
               <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Stalls scan this to charge you</div>
               {qrPayload && (
-                <PrintableQR title="" qrValue={qrPayload} subtitle={`PIN: ${balance.pin}`} />
+                <PrintableQR title="" qrValue={qrPayload} subtitle={`PIN: ${balance.birthYear || '0000'}`} />
               )}
             </section>
 

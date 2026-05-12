@@ -16,6 +16,7 @@ def test_request_code_creates_new_user_if_phone_not_found(client):
     created = profiles[0].read_text(encoding='utf-8')
     assert '5551234567' in created
     assert '"pin":' in created
+    assert '"birthYear": "0000"' in created
 
 
 def test_verify_with_matching_phone_code_returns_jwt(client):

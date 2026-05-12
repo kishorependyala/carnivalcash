@@ -27,6 +27,45 @@ def test_update_profile_archives_old_version(client, seed_profile, auth_header):
     assert response.get_json()['name'] == 'New Name'
 
 
+def test_get_balance_returns_birth_year(client, seed_profile, auth_header):
+    user = seed_profile('5551000001', birth_year='1990')
+
+    response = client.get('/api/user/balance', headers=auth_header(user))
+
+    assert response.status_code == 200
+    assert response.get_json()['birthYear'] == '1990'
+
+
+
+def test_update_birth_year_updates_profile(client, seed_profile, auth_header):
+    user = seed_profile('5551000001')
+
+    response = client.put(
+        '/api/users/birth-year',
+        json={'birthYear': '1988'},
+        headers=auth_header(user),
+    )
+    balance_response = client.get('/api/user/balance', headers=auth_header(user))
+
+    assert response.status_code == 200
+    assert response.get_json() == {'birthYear': '1988'}
+    assert balance_response.get_json()['birthYear'] == '1988'
+
+
+
+def test_update_birth_year_rejects_invalid_year(client, seed_profile, auth_header):
+    user = seed_profile('5551000001')
+
+    response = client.put(
+        '/api/users/birth-year',
+        json={'birthYear': 'ninety'},
+        headers=auth_header(user),
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()['error'] == 'birthYear must be a 4-digit year or 0000'
+
+
 def test_add_kid_creates_kid_with_qr_payload(client, seed_profile, auth_header):
     user = seed_profile('5551000001')
 

@@ -96,6 +96,10 @@ export function ProfileViewTab({ profile, balance, event, isAdmin, setStatus, on
           <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>PIN</div>
           <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#78350f' }}>{balance?.pin}</div>
         </div>
+        <div>
+          <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>Birth Year</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#78350f' }}>{balance?.birthYear === '0000' ? 'Not set' : balance?.birthYear}</div>
+        </div>
       </div>
 
       {isAdmin && (
@@ -341,8 +345,11 @@ export function FamilyTab({ setStatus }) {
 /* ── Combined Profile tab (profile view/edit + kids + family) ── */
 export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onReload, kids, setProfile }) {
   const [editing, setEditing] = useState(false);
+  const [birthYear, setBirthYear] = useState(balance?.birthYear || '0000');
+  const [editBY, setEditBY] = useState('');
   const [editForm, setEditForm] = useState({
     name: profile.name || '',
+    birthYear: balance?.birthYear || '0000',
     socials: { gmail: '', yahoo: '', instagram: '', facebook: '', ...(profile.socials || {}) },
   });
   const [kidForm, setKidForm] = useState({ name: '', spendingLimit: 25 });
@@ -356,7 +363,19 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
 
   useEffect(() => {
     userApi.getFamily().then(setFamily).catch(() => {}).finally(() => setFamilyLoading(false));
+    userApi.getBalance().then(b => setBirthYear(b.birthYear || '0000')).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const nextBirthYear = balance?.birthYear || '0000';
+    setBirthYear(nextBirthYear);
+    setEditBY(nextBirthYear);
+    setEditForm({
+      name: profile.name || '',
+      birthYear: nextBirthYear,
+      socials: { gmail: '', yahoo: '', instagram: '', facebook: '', ...(profile.socials || {}) },
+    });
+  }, [profile, balance]);
 
   const searchFamily = async (val) => {
     setFamilyQ(val);
@@ -386,8 +405,15 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
 
   const saveProfile = async () => {
     try {
+      const nextBirthYear = String(editForm.birthYear || '0000').trim() || '0000';
       const updated = await userApi.updateProfile({ name: editForm.name, socials: editForm.socials });
+      if (nextBirthYear !== birthYear) {
+        const birthYearRes = await userApi.updateBirthYear(nextBirthYear);
+        setBirthYear(birthYearRes.birthYear || '0000');
+        setEditBY(birthYearRes.birthYear || '0000');
+      }
       setProfile(updated);
+      await onReload();
       setEditing(false);
       setStatus('Profile updated.');
     } catch (e) { setStatus(e.response?.data?.error || 'Unable to update profile.'); }
@@ -460,6 +486,10 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
             <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>PIN</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#78350f' }}>{balance?.pin}</div>
           </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>Birth Year</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#78350f' }}>{birthYear === '0000' ? 'Not set' : birthYear}</div>
+          </div>
         </div>
 
         {editing && (
@@ -478,6 +508,16 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
                 </div>
               );
             })}
+            <label style={{ fontWeight: 600 }}>Birth Year (used as transaction PIN)</label>
+            <input
+              style={inp}
+              placeholder="e.g. 1990 or 0000 to skip"
+              value={editForm.birthYear || editBY}
+              onChange={e => {
+                setEditBY(e.target.value);
+                setEditForm(f => ({ ...f, birthYear: e.target.value }));
+              }}
+            />
             <button onClick={saveProfile}
               style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
               Save Profile

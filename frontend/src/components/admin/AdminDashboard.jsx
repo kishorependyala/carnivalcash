@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import adminApi from '../../api/admin';
 import charitiesApi from '../../api/charities';
@@ -148,7 +148,8 @@ function AdminDashboard() {
   const navigate = useNavigate();
   const isAdmin = me?.roles?.includes('admin');
 
-  const [tab, setTab] = useState('Home');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') || 'Home');
   const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
   const [event, setEvent] = useState(null);
   const [users, setUsers] = useState([]);
@@ -158,7 +159,7 @@ function AdminDashboard() {
   const [rateInput, setRateInput] = useState(2);
   const [eventName, setEventName] = useState('Carnival 2026');
   const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
-  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '' });
+  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
   const [kids, setKids] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [qrPayload, setQrPayload] = useState('');
@@ -226,6 +227,7 @@ function AdminDashboard() {
   const changeTab = (nextTab) => {
     setStatus('');
     setTab(nextTab);
+    setSearchParams({ tab: nextTab }, { replace: true });
   };
 
   const run = async (action, message) => {
@@ -286,7 +288,7 @@ function AdminDashboard() {
             <section style={card}>
               <div style={{ fontWeight: 700, color: '#374151' }}>📲 Your Payment QR</div>
               <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Stalls scan this to charge you</div>
-              {qrPayload && <PrintableQR title="" qrValue={qrPayload} subtitle={`PIN: ${balance.pin}`} />}
+              {qrPayload && <PrintableQR title="" qrValue={qrPayload} subtitle={`PIN: ${balance.birthYear || '0000'}`} />}
             </section>
 
             <button

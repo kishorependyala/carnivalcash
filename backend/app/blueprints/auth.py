@@ -62,6 +62,7 @@ def request_code():
             'emails': [],
             'roles': ['user'],
             'pin': generate_pin(phone),
+            'birthYear': '0000',
             'tokenBalance': 0,
             'createdAt': utc_now(),
         }

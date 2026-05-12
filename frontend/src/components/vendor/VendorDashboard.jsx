@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
@@ -37,9 +38,10 @@ function VendorDashboard() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes('admin');
 
-  const [tab, setTab] = useState('Stalls');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') || 'Stalls');
   const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
-  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '' });
+  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
   const [transactions, setTransactions] = useState([]);
   const [status, setStatus] = useState('');
 
@@ -61,6 +63,7 @@ function VendorDashboard() {
   const changeTab = (nextTab) => {
     setStatus('');
     setTab(nextTab);
+    setSearchParams({ tab: nextTab }, { replace: true });
   };
 
   return (

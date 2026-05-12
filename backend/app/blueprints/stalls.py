@@ -582,6 +582,11 @@ def charge_user(stall_id):
     if not user_profile:
         return jsonify({'error': 'User not found'}), 404
 
+    pin = (body.get('pin') or '').strip()
+    user_birth_year = str(user_profile.get('birthYear', '0000'))
+    if pin != user_birth_year:
+        return jsonify({'error': 'Invalid PIN'}), 403
+
     # Build item map from stall catalog (including default item)
     stall_items = {item['itemId']: item for item in stall.get('items', []) if item.get('active', True)}
     # Always allow the default item

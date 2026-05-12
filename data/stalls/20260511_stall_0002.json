@@ -1,0 +1,28 @@
+{
+  "stallId": "20260511_stall_0002",
+  "stallName": "Coin toss",
+  "stallType": "game",
+  "tokensPerItem": 2,
+  "description": "",
+  "members": [
+    "202605110000000001"
+  ],
+  "stallAdmins": [
+    "202605110000000001"
+  ],
+  "memberNames": {
+    "202605110000000001": "404-450-4937"
+  },
+  "createdBy": "202605110000000001",
+  "createdAt": "2026-05-12T01:27:53Z",
+  "tokenBalance": 0,
+  "items": [],
+  "joinRequests": [],
+  "charities": [
+    {
+      "charityId": "ch_e1349eea6d72",
+      "name": "Make A Wish Foundation - New Jersey",
+      "percentage": 100
+    }
+  ]
+}

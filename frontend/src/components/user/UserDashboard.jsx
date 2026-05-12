@@ -8,8 +8,9 @@ import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { HistoryTab, ProfileTab, card } from '../common/ProfileSections';
 import { BrowseStallsTab, StallsTab } from '../common/StallsTab';
+import CharitiesTab from './CharitiesTab';
 
-const TABS = ['Home', 'Profile', 'Stalls', 'Browse', 'History'];
+const TABS = ['Home', 'Profile', 'Stalls', 'Browse', 'Charities', 'History'];
 
 function TabBar({ tabs, active, onChange }) {
   return (
@@ -40,22 +41,25 @@ function UserDashboard() {
   const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
   const [kids, setKids] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [userOrders, setUserOrders] = useState([]);
   const [qrPayload, setQrPayload] = useState('');
   const [event, setEvent] = useState(null);
   const [status, setStatus] = useState('');
 
   const load = async () => {
-    const [p, b, k, t, qr] = await Promise.all([
+    const [p, b, k, t, qr, orders] = await Promise.all([
       userApi.getProfile(),
       userApi.getBalance(),
       userApi.getKids(),
       userApi.getTransactions(),
       userApi.getQr(),
+      userApi.getMyOrders().catch(() => []),
     ]);
     setProfile(p);
     setBalance(b);
     setKids(k);
     setTransactions(t);
+    setUserOrders(orders);
     setQrPayload(qr.qrPayload);
     // Sync default tab from profile (no URL override)
     if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
@@ -117,6 +121,31 @@ function UserDashboard() {
               📷 Pay a Stall
             </button>
 
+            {userOrders.length > 0 && (
+              <section style={{ ...card, background: '#fffbeb' }}>
+                <div style={{ fontWeight: 700 }}>📋 Your Orders</div>
+                {userOrders.map(order => {
+                  const isReady = order.status === 'ready';
+                  const readyMsg = order.stallType === 'game' ? '🎯 Your turn!' : '🍕 Ready for pickup!';
+                  return (
+                    <div key={order.orderId} style={{ background: isReady ? '#d1fae5' : '#f9fafb', border: `1px solid ${isReady ? '#6ee7b7' : '#e5e7eb'}`, borderRadius: '0.75rem', padding: '0.75rem', display: 'grid', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{order.stallName}</span>
+                        {isReady
+                          ? <span style={{ background: '#059669', color: '#fff', borderRadius: '999px', padding: '0.15rem 0.5rem', fontSize: '0.75rem', fontWeight: 700 }}>{readyMsg}</span>
+                          : <span style={{ color: '#6b7280', fontSize: '0.82rem' }}>#{order.position} in queue</span>
+                        }
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                        {order.items.map(i => `${i.itemName} × ${i.qty}`).join(', ')}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#b45309' }}>🪙 {order.totalTokens} tokens</div>
+                    </div>
+                  );
+                })}
+              </section>
+            )}
+
             {/* kids quick view */}
             {kids.length > 0 && (
               <section style={card}>
@@ -137,6 +166,7 @@ function UserDashboard() {
         )}
         {tab === 'Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}
+        {tab === 'Charities' && <CharitiesTab />}
         {tab === 'History' && (
           <HistoryTab transactions={transactions} />
         )}

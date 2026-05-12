@@ -273,6 +273,8 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
   const [form, setForm] = useState({});
   const [txns, setTxns] = useState([]);
   const [showTxns, setShowTxns] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', tokenPrice: initialStall.tokensPerItem });
   const [addingItem, setAddingItem] = useState(false);
   const [status, setStatus] = useState('');
@@ -281,10 +283,13 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
   const [joinRequestsLoading, setJoinRequestsLoading] = useState(false);
   const typeMeta = TYPE_META[stall.stallType] || {};
   const isCreator = stall.createdBy === myUserId;
+  const isAdmin = (stall.stallAdmins || []).includes(myUserId);
 
   useEffect(() => {
     setStall(initialStall);
     setNewItem({ name: '', tokenPrice: initialStall.tokensPerItem });
+    setOrders([]);
+    setOrdersLoaded(false);
   }, [initialStall]);
 
   useEffect(() => {
@@ -302,6 +307,20 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
       })
       .finally(() => setJoinRequestsLoading(false));
   }, [expanded, joinRequestsLoaded, stall.stallId]);
+
+  useEffect(() => {
+    if (!expanded || ordersLoaded || !isAdmin) {
+      return;
+    }
+    stallsApi.getStallOrders(stall.stallId)
+      .then((result) => {
+        setOrders(result);
+        setOrdersLoaded(true);
+      })
+      .catch(() => {
+        setStatus('Failed to load orders.');
+      });
+  }, [expanded, ordersLoaded, isAdmin, stall.stallId]);
 
   const startEdit = () => {
     setForm({
@@ -561,6 +580,67 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
               </div>
             ))}
           </div>
+
+          {isAdmin && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div style={{ fontWeight: 700 }}>
+                  📋 Open Orders
+                  {orders.filter(o => o.status === 'pending').length > 0 && (
+                    <span style={{ background: '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.1rem 0.5rem', fontSize: '0.8rem', marginLeft: '0.25rem' }}>
+                      {orders.filter(o => o.status === 'pending').length}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => stallsApi.getStallOrders(stall.stallId).then(result => { setOrders(result); setOrdersLoaded(true); }).catch(() => {})}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem' }}
+                >
+                  ↻ Refresh
+                </button>
+              </div>
+              {orders.filter(o => o.status === 'pending' || o.status === 'ready').length === 0 && (
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.85rem' }}>No open orders.</p>
+              )}
+              {orders.filter(o => o.status === 'pending' || o.status === 'ready').map((order, idx) => {
+                const isReady = order.status === 'ready';
+                const readyLabel = stall.stallType === 'game' ? 'Your Turn 🎯' : 'Ready for Pickup 🍕';
+                return (
+                  <div key={order.orderId} style={{ background: isReady ? '#d1fae5' : '#fffbeb', border: `1px solid ${isReady ? '#6ee7b7' : '#fed7aa'}`, borderRadius: '0.75rem', padding: '0.75rem', marginTop: '0.4rem', display: 'grid', gap: '0.3rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>#{idx + 1} · {order.kidName ? `${order.kidName} (via ${order.userName})` : order.userName}</span>
+                      <span style={{ background: isReady ? '#059669' : '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.15rem 0.5rem', fontSize: '0.75rem', fontWeight: 700 }}>{isReady ? 'Ready' : 'Pending'}</span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                      {order.items.map(i => `${i.itemName} × ${i.qty}`).join(', ')} · 🪙 {order.totalTokens}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                      {!isReady && (
+                        <button
+                          onClick={async () => {
+                            const updated = await stallsApi.updateOrder(stall.stallId, order.orderId, 'ready');
+                            setOrders(prev => prev.map(o => (o.orderId === order.orderId ? updated : o)));
+                          }}
+                          style={{ flex: 1, background: '#059669', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.45rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
+                        >
+                          {readyLabel}
+                        </button>
+                      )}
+                      <button
+                        onClick={async () => {
+                          await stallsApi.updateOrder(stall.stallId, order.orderId, 'complete');
+                          setOrders(prev => prev.filter(o => o.orderId !== order.orderId));
+                        }}
+                        style={{ flex: 1, background: '#374151', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.45rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
+                      >
+                        ✓ Complete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>

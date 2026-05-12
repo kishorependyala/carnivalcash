@@ -24,6 +24,9 @@ const userApi = {
     const response = await api.get('/api/user/transactions');
     return response.data;
   },
+  async getMyOrders() {
+    return (await api.get('/api/users/orders')).data;
+  },
   async getKids() {
     const response = await api.get('/api/user/kids');
     return response.data;

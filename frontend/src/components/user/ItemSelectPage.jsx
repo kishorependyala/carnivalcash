@@ -41,15 +41,18 @@ function ItemSelectPage({ mode }) {
   const updateQty = (itemId, delta) =>
     setQuantities(q => ({ ...q, [itemId]: Math.max(0, (q[itemId] || 0) + delta) }));
 
-  const handlePay = async () => {
+  const handleOrder = async () => {
     try {
-      const payload = mode === 'stall'
-        ? { stallId: targetId, items: catalog.items.map(i => ({ itemId: i.itemId, qty: quantities[i.itemId] || 0 })), kidId: kidId || null }
-        : { vendorId: targetId, items: catalog.items.map(i => ({ itemId: i.itemId, qty: quantities[i.itemId] || 0 })), kidId: kidId || null };
-      const res = await transactionsApi.transferTokens(payload);
+      const payload = {
+        items: catalog.items.map(i => ({ itemId: i.itemId, qty: quantities[i.itemId] || 0 })),
+        kidId: kidId || null,
+      };
+      const res = mode === 'stall'
+        ? await stallsApi.placeOrder(targetId, payload)
+        : await transactionsApi.transferTokens({ vendorId: targetId, ...payload });
       setResult(res);
-      setStatus('✅ Payment complete!');
-    } catch (e) { setStatus(e.response?.data?.error || 'Payment failed.'); }
+      setStatus('');
+    } catch (e) { setStatus(e.response?.data?.error || (mode === 'stall' ? 'Order failed.' : 'Payment failed.')); }
   };
 
   const stall = catalog.stall || {};
@@ -107,17 +110,23 @@ function ItemSelectPage({ mode }) {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #fed7aa', paddingTop: '0.75rem' }}>
               <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#b45309' }}>Total: {totalTokens} 🪙</div>
-              <button onClick={handlePay} disabled={!totalTokens}
+              <button onClick={handleOrder} disabled={!totalTokens}
                 style={{ background: totalTokens ? '#f59e0b' : '#d1d5db', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem 1.4rem', fontWeight: 700, cursor: totalTokens ? 'pointer' : 'default', fontSize: '1rem' }}>
-                Pay Now
+                {mode === 'stall' ? `${stall.stallType === 'game' ? 'Place Order 🎯' : 'Order 🍕'}` : 'Pay Now'}
               </button>
             </div>
           </section>
         ) : (
           <section style={{ ...card, background: '#d1fae5', border: '1px solid #6ee7b7' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#065f46' }}>✅ Payment Sent!</div>
-            <div style={{ color: '#047857' }}>Tokens charged: <strong>{result.totalTokens}</strong></div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#065f46' }}>
+              {mode === 'stall'
+                ? (stall.stallType === 'game' ? "🎯 You're in line!" : '🍕 Order placed!')
+                : '✅ Payment Sent!'}
+            </div>
+            {mode === 'stall' && <div style={{ color: '#047857' }}>Order #<strong>{result.orderId?.slice(-6).toUpperCase()}</strong></div>}
+            <div style={{ color: '#047857' }}>{mode === 'stall' ? 'Tokens:' : 'Tokens charged:'} <strong>{result.totalTokens} 🪙</strong></div>
             <div style={{ color: '#047857' }}>New balance: <strong>{result.newBalance}</strong></div>
+            {mode === 'stall' && result.position && <div style={{ color: '#047857', fontWeight: 700 }}>Position in queue: <strong>#{result.position}</strong></div>}
             <button onClick={() => navigate('/user')}
               style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
               Back Home

@@ -43,6 +43,16 @@ const stallsApi = {
   async listAll() {
     return (await api.get('/api/stalls')).data;
   },
+  async placeOrder(stallId, payload) {
+    return (await api.post(`/api/stalls/${stallId}/orders`, payload)).data;
+  },
+  async getStallOrders(stallId, status) {
+    const params = status ? { status } : {};
+    return (await api.get(`/api/stalls/${stallId}/orders`, { params })).data;
+  },
+  async updateOrder(stallId, orderId, status) {
+    return (await api.patch(`/api/stalls/${stallId}/orders/${orderId}`, { status })).data;
+  },
   async requestJoin(stallId) {
     return (await api.post(`/api/stalls/${stallId}/join-request`)).data;
   },

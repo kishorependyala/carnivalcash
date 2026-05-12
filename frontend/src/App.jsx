@@ -30,8 +30,8 @@ function App() {
       <Route path="/scan/items/:vendorId" element={<ProtectedRoute roles={['user', 'admin']}><ItemSelectPage mode="vendor" /></ProtectedRoute>} />
       <Route path="/scan/stall/:stallId" element={<ProtectedRoute roles={['user', 'admin']}><ItemSelectPage mode="stall" /></ProtectedRoute>} />
       <Route path="/vendor" element={<ProtectedRoute roles={['vendor']}><VendorDashboard /></ProtectedRoute>} />
-      <Route path="/vendor/scan" element={<ProtectedRoute roles={['vendor']}><VendorScanPage /></ProtectedRoute>} />
-      <Route path="/vendor/charge/:userId" element={<ProtectedRoute roles={['vendor']}><VendorChargePage /></ProtectedRoute>} />
+      <Route path="/vendor/scan" element={<ProtectedRoute roles={['vendor', 'user', 'admin']}><VendorScanPage /></ProtectedRoute>} />
+      <Route path="/vendor/charge/:userId" element={<ProtectedRoute roles={['vendor', 'user', 'admin']}><VendorChargePage /></ProtectedRoute>} />
     </Routes>
   );
 }

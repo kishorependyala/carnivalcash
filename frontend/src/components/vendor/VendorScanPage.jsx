@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Layout from '../common/Layout';
 
@@ -8,18 +8,34 @@ const card = {
   padding: '1.25rem', display: 'grid', gap: '1rem',
 };
 
-function parseUserId(rawValue) {
-  const parts = String(rawValue || '').split(':');
-  if (parts[0] === 'CARNIVAL_USER' && parts[1]) return parts[1];
+function parseQRPayload(raw) {
+  const val = String(raw || '').trim();
+  if (val.startsWith('CARNIVAL_USER:')) {
+    const userId = val.split(':')[1];
+    return userId ? { userId } : null;
+  }
+  if (val.startsWith('CARNIVAL_KID:')) {
+    const parts = val.split(':');
+    if (parts.length === 3 && parts[1] && parts[2]) {
+      return { userId: `KID:${parts[1]}:${parts[2]}` };
+    }
+  }
   return null;
 }
 
 function VendorScanPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const stallId = searchParams.get('stallId') || '';
   const scannerRef = useRef(null);
   const html5Scanner = useRef(null);
   const [manualValue, setManualValue] = useState('');
   const [status, setStatus] = useState('Scan a customer QR code.');
+
+  const goToCharge = (userId) => {
+    const dest = `/vendor/charge/${encodeURIComponent(userId)}${stallId ? `?stallId=${stallId}` : ''}`;
+    navigate(dest);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -30,15 +46,15 @@ function VendorScanPage() {
         if (!mounted || !scannerRef.current) return;
         html5Scanner.current = new Html5QrcodeScanner('vendor-scan-reader', { fps: 5, qrbox: 220 }, false);
         html5Scanner.current.render((decodedText) => {
-          const userId = parseUserId(decodedText);
-          if (userId) {
-            navigate(`/vendor/charge/${userId}`);
+          const parsed = parseQRPayload(decodedText);
+          if (parsed) {
+            goToCharge(parsed.userId);
           } else {
-            setStatus('That is not a CarnivalCash customer QR code.');
+            setStatus('That is not a CarnivalCash customer or kid QR code.');
           }
         }, () => {});
       } catch {
-        setStatus('Camera unavailable. Enter the customer QR payload below.');
+        setStatus('Camera unavailable. Enter the QR payload below.');
       }
     }
     startScanner();
@@ -46,21 +62,26 @@ function VendorScanPage() {
       mounted = false;
       html5Scanner.current?.clear?.().catch(() => {});
     };
-  }, [navigate]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleManual = () => {
-    const userId = parseUserId(manualValue.trim());
-    if (!userId) {
-      setStatus('Enter a value like CARNIVAL_USER:<userId>.');
+    const parsed = parseQRPayload(manualValue.trim());
+    if (!parsed) {
+      setStatus('Enter a value like CARNIVAL_USER:<userId> or CARNIVAL_KID:<parentId>:<kidId>.');
       return;
     }
-    navigate(`/vendor/charge/${userId}`);
+    goToCharge(parsed.userId);
   };
 
   return (
     <Layout>
       <div style={{ display: 'grid', gap: '1rem' }}>
         <div style={{ fontWeight: 900, fontSize: '1.3rem' }}>📷 Scan Customer QR</div>
+        {stallId && (
+          <div style={{ background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: '0.75rem', padding: '0.6rem 1rem', fontSize: '0.9rem', color: '#92400e' }}>
+            🎪 Charging for stall · Scan user or kid QR
+          </div>
+        )}
         <section style={card}>
           <div id="vendor-scan-reader" ref={scannerRef} />
           <hr style={{ border: 'none', borderTop: '1px solid #fed7aa' }} />
@@ -68,7 +89,7 @@ function VendorScanPage() {
           <input
             value={manualValue}
             onChange={e => setManualValue(e.target.value)}
-            placeholder="CARNIVAL_USER:userId"
+            placeholder="CARNIVAL_USER:userId  or  CARNIVAL_KID:parentId:kidId"
             style={{ padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', fontSize: '0.95rem' }}
           />
           <button onClick={handleManual}

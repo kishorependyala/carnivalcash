@@ -575,16 +575,35 @@ def charge_user(stall_id):
         return jsonify({'error': 'Not a stall member'}), 403
 
     body = request.get_json(silent=True) or {}
-    target_user_id = body.get('userId')
+    target_user_id = body.get('userId', '')
     requested_items = body.get('items', [])
 
-    user_profile = get_profile(target_user_id)
+    # Support KID:<parentId>:<kidId> composite IDs
+    kid_record = None
+    billing_user_id = target_user_id
+    if target_user_id.startswith('KID:'):
+        parts = target_user_id.split(':')
+        if len(parts) != 3:
+            return jsonify({'error': 'Invalid kid ID format'}), 400
+        billing_user_id = parts[1]
+        kid_id = parts[2]
+        kids = get_user_kids(billing_user_id)
+        kid_record = next((k for k in kids if k.get('kidId') == kid_id), None)
+        if not kid_record:
+            return jsonify({'error': 'Kid not found'}), 404
+
+    user_profile = get_profile(billing_user_id)
     if not user_profile:
         return jsonify({'error': 'User not found'}), 404
 
     pin = (body.get('pin') or '').strip()
-    user_birth_year = str(user_profile.get('birthYear', '0000'))
-    if pin != user_birth_year:
+    if kid_record is not None:
+        # Use kid's own birthYear; fall back to parent's
+        kid_birth_year = str(kid_record.get('birthYear', '0000'))
+        expected_pin = kid_birth_year if kid_birth_year != '0000' else str(user_profile.get('birthYear', '0000'))
+    else:
+        expected_pin = str(user_profile.get('birthYear', '0000'))
+    if pin != expected_pin:
         return jsonify({'error': 'Invalid PIN'}), 403
 
     # Build item map from stall catalog (including default item)
@@ -616,10 +635,25 @@ def charge_user(stall_id):
     if int(user_profile.get('tokenBalance', 0)) < total_tokens:
         return jsonify({'error': 'Insufficient balance'}), 400
 
-    # Deduct from user
+    # Kid spending limit check
+    if kid_record is not None:
+        limit = int(kid_record.get('spendingLimit', 0))
+        spent = int(kid_record.get('spent', 0))
+        if limit > 0 and spent + total_tokens > limit:
+            return jsonify({'error': f"Exceeds kid's spending limit ({limit - spent} tokens remaining)"}), 400
+
+    # Deduct from parent/user balance
     user_profile['tokenBalance'] = int(user_profile.get('tokenBalance', 0)) - total_tokens
     from app.storage.user_store import save_profile
-    save_profile(target_user_id, user_profile)
+    save_profile(billing_user_id, user_profile)
+
+    # Update kid's spent tracker
+    if kid_record is not None:
+        kid_record['spent'] = int(kid_record.get('spent', 0)) + total_tokens
+        from app.storage.user_store import save_user_kids
+        kids = get_user_kids(billing_user_id)
+        updated_kids = [k if k.get('kidId') != kid_record['kidId'] else kid_record for k in kids]
+        save_user_kids(billing_user_id, updated_kids)
 
     # Split tokens to configured charities
     charity_total = 0
@@ -637,9 +671,12 @@ def charge_user(stall_id):
     timestamp = _utc_now()
     member_profile = get_profile(g.user['userId']) or {}
     member_name = member_profile.get('name') or member_profile.get('phone', '')
-    user_name = user_profile.get('name') or user_profile.get('phone', '')
+    if kid_record is not None:
+        user_name = f"{kid_record['name']} (child of {user_profile.get('name') or user_profile.get('phone', '')})"
+    else:
+        user_name = user_profile.get('name') or user_profile.get('phone', '')
 
-    user_txns = get_user_transactions(target_user_id)
+    user_txns = get_user_transactions(billing_user_id)
     stall_txns = get_stall_transactions(stall_id)
 
     for li in line_items:
@@ -650,6 +687,7 @@ def charge_user(stall_id):
             'chargedBy': g.user['userId'], 'chargedByName': member_name,
             'itemId': item['itemId'], 'itemName': item['name'],
             'qty': li['qty'], 'timestamp': timestamp,
+            **(({'kidId': kid_record['kidId'], 'kidName': kid_record['name']}) if kid_record else {}),
         })
         stall_txns.append({
             'txId': tx_id, 'userId': target_user_id, 'userName': user_name,
@@ -658,7 +696,7 @@ def charge_user(stall_id):
             'qty': li['qty'], 'amount': li['amount'], 'timestamp': timestamp,
         })
 
-    save_user_transactions(target_user_id, user_txns)
+    save_user_transactions(billing_user_id, user_txns)
     save_stall_transactions(stall_id, stall_txns)
 
     return jsonify({

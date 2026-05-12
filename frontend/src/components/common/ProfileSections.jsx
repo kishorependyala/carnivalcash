@@ -172,14 +172,14 @@ export function ProfileEditTab({ profile, setProfile, onSave, setStatus, onTabCh
 
 /* ── Kids tab ── */
 export function KidsTab({ profile, kids, onReload, setStatus }) {
-  const [form, setForm] = useState({ name: '', spendingLimit: 25 });
+  const [form, setForm] = useState({ name: '', spendingLimit: 25, birthYear: '' });
   const [editingKid, setEditingKid] = useState(null);
   const [editForm, setEditForm] = useState({});
 
   const addKid = async () => {
     try {
       await userApi.createKid(form);
-      setForm({ name: '', spendingLimit: 25 });
+      setForm({ name: '', spendingLimit: 25, birthYear: '' });
       await onReload();
       setStatus('Kid added.');
     } catch (e) { setStatus(e.response?.data?.error || 'Unable to add kid.'); }
@@ -192,7 +192,7 @@ export function KidsTab({ profile, kids, onReload, setStatus }) {
 
   const startEdit = (kid) => {
     setEditingKid(kid.kidId);
-    setEditForm({ name: kid.name, spendingLimit: kid.spendingLimit });
+    setEditForm({ name: kid.name, spendingLimit: kid.spendingLimit, birthYear: kid.birthYear || '' });
   };
 
   const saveEdit = async (kidId) => {
@@ -211,6 +211,8 @@ export function KidsTab({ profile, kids, onReload, setStatus }) {
         onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
       <input style={inp} type="number" value={form.spendingLimit} placeholder="Spending limit (tokens)"
         onChange={e => setForm(f => ({ ...f, spendingLimit: Number(e.target.value) }))} />
+      <input style={inp} value={form.birthYear} placeholder="Birth year for PIN (e.g. 2015, or leave blank)"
+        maxLength={4} onChange={e => setForm(f => ({ ...f, birthYear: e.target.value }))} />
       <button onClick={addKid}
         style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
         + Add Kid
@@ -224,6 +226,8 @@ export function KidsTab({ profile, kids, onReload, setStatus }) {
                 onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
               <input style={inp} type="number" value={editForm.spendingLimit} placeholder="Spending limit (tokens)"
                 onChange={e => setEditForm(f => ({ ...f, spendingLimit: Number(e.target.value) }))} />
+              <input style={inp} value={editForm.birthYear || ''} placeholder="Birth year for PIN (e.g. 2015)"
+                maxLength={4} onChange={e => setEditForm(f => ({ ...f, birthYear: e.target.value }))} />
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={() => saveEdit(kid.kidId)}
                   style={{ flex: 1, background: '#059669', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.8rem', fontWeight: 700, cursor: 'pointer' }}>
@@ -252,6 +256,7 @@ export function KidsTab({ profile, kids, onReload, setStatus }) {
               </div>
               <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
                 Limit: {kid.spendingLimit} tokens &nbsp;·&nbsp; Spent: {kid.spent}
+                {kid.birthYear && kid.birthYear !== '0000' && <>&nbsp;·&nbsp; PIN: {kid.birthYear}</>}
               </div>
               <PrintableQR
                 title={`${kid.name}'s Wristband`}

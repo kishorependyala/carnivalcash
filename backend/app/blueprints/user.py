@@ -217,6 +217,7 @@ def create_kid_profile():
         'name': payload.get('name', ''),
         'spendingLimit': int(payload.get('spendingLimit', 0)),
         'spent': 0,
+        'birthYear': str(payload.get('birthYear', '0000')).strip() or '0000',
         'createdAt': utc_now(),
     }
     kids.append(kid)
@@ -261,6 +262,9 @@ def update_kid(kid_id):
         kid['name'] = str(body['name']).strip()
     if 'spendingLimit' in body:
         kid['spendingLimit'] = int(body['spendingLimit'])
+    if 'birthYear' in body:
+        year = str(body['birthYear']).strip()
+        kid['birthYear'] = year if (year == '0000' or (year.isdigit() and len(year) == 4)) else '0000'
 
     save_user_kids(user_id, kids)
     return jsonify(kid)

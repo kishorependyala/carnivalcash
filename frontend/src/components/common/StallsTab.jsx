@@ -428,7 +428,7 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
         </span>
         {onScanCustomer && (
           <button onClick={() => onScanCustomer()} style={actionBtn}>
-            📷 Scan Customer
+            🛒 Create Order
           </button>
         )}
       </div>
@@ -629,7 +629,7 @@ export function StallsTab() {
           key={stall.stallId}
           stall={stall}
           myUserId={user?.userId}
-          onScanCustomer={user?.roles?.includes('vendor') ? () => navigate('/vendor/scan') : undefined}
+          onScanCustomer={() => navigate(`/vendor/scan?stallId=${stall.stallId}`)}
         />
       ))}
     </div>

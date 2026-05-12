@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import stallsApi from '../../api/stalls';
 import Layout from '../common/Layout';
@@ -16,30 +16,55 @@ const TYPE_META = {
 
 function VendorChargePage() {
   const { userId } = useParams();
+  const [searchParams] = useSearchParams();
+  const preselectedStallId = searchParams.get('stallId') || '';
   const navigate = useNavigate();
   const [myStalls, setMyStalls] = useState([]);
   const [selectedStall, setSelectedStall] = useState(null);
   const [catalog, setCatalog] = useState(null);
   const [quantities, setQuantities] = useState({});
-  const [userProfile, setUserProfile] = useState(null);
+  const [customerLabel, setCustomerLabel] = useState('');
   const [status, setStatus] = useState('');
   const [result, setResult] = useState(null);
   const [pin, setPin] = useState('');
+
+  // Decode kid vs regular user
+  const isKid = userId.startsWith('KID%3A') || userId.startsWith('KID:');
+  const decodedUserId = decodeURIComponent(userId);
 
   useEffect(() => {
     stallsApi.mine()
       .then(stalls => {
         setMyStalls(stalls);
-        if (stalls.length === 1) pickStall(stalls[0]);
+        // Pre-select stall from URL param, or auto-select if only one
+        if (preselectedStallId) {
+          const found = stalls.find(s => s.stallId === preselectedStallId);
+          if (found) pickStall(found);
+        } else if (stalls.length === 1) {
+          pickStall(stalls[0]);
+        }
       })
       .catch(() => setStatus('Unable to load your stalls.'));
 
-    // Load target user info
-    fetch(`/api/user/public/${userId}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(p => { if (p) setUserProfile(p); })
-      .catch(() => {});
-  }, [userId]);
+    // Load customer display name
+    if (isKid) {
+      // KID:<parentId>:<kidId> — fetch parent profile to get kid name
+      const parts = decodedUserId.split(':');
+      if (parts.length === 3) {
+        fetch(`/api/user/public/${parts[1]}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(p => {
+            if (p) setCustomerLabel(`👦 Kid of ${p.name || p.phone}`);
+          })
+          .catch(() => {});
+      }
+    } else {
+      fetch(`/api/user/public/${decodedUserId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(p => { if (p) setCustomerLabel(`👤 ${p.name || p.phone}`); })
+        .catch(() => {});
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickStall = async (stall) => {
     setSelectedStall(stall);
@@ -64,7 +89,7 @@ function VendorChargePage() {
     try {
       const res = await stallsApi.charge(
         selectedStall.stallId,
-        userId,
+        decodedUserId,
         (catalog?.items || []).map(item => ({ itemId: item.itemId, qty: quantities[item.itemId] || 0 })),
         pin.trim(),
       );
@@ -83,14 +108,17 @@ function VendorChargePage() {
         <div style={{ fontWeight: 900, fontSize: '1.3rem' }}>💳 Charge Customer</div>
 
         {/* customer info */}
-        {userId && (
-          <section style={{ ...card, background: '#fffbeb' }}>
-            <div style={{ fontWeight: 700 }}>👤 Customer</div>
-            <div style={{ color: '#374151', fontSize: '0.95rem' }}>
-              {userProfile ? (userProfile.name || userProfile.phone) : `ID: ${userId}`}
+        <section style={{ ...card, background: '#fffbeb' }}>
+          <div style={{ fontWeight: 700 }}>Customer</div>
+          <div style={{ color: '#374151', fontSize: '0.95rem' }}>
+            {customerLabel || (isKid ? '👦 Kid' : `ID: ${decodedUserId}`)}
+          </div>
+          {isKid && (
+            <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>
+              Tokens deducted from parent's balance. PIN = kid's birth year (or parent's if kid has none set).
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         {status && !result && (
           <p style={{ margin: 0, color: '#92400e', background: '#fffbeb', padding: '0.6rem 1rem', borderRadius: '0.75rem' }}>{status}</p>
@@ -102,15 +130,15 @@ function VendorChargePage() {
             <div style={{ color: '#047857' }}>Tokens charged: <strong>{result.totalTokens}</strong></div>
             <div style={{ color: '#047857' }}>Customer's new balance: <strong>{result.newBalance}</strong></div>
             <div style={{ color: '#047857' }}>Stall total: <strong>{result.stallBalance}</strong> tokens</div>
-            <button onClick={() => navigate('/vendor')}
+            <button onClick={() => navigate(-1)}
               style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
               Done
             </button>
           </section>
         ) : (
           <>
-            {/* stall selector (if multiple stalls) */}
-            {myStalls.length > 1 && (
+            {/* stall selector (if multiple stalls and no preselection) */}
+            {!preselectedStallId && myStalls.length > 1 && (
               <section style={card}>
                 <div style={{ fontWeight: 700 }}>Select Stall</div>
                 {myStalls.map(stall => {
@@ -165,11 +193,13 @@ function VendorChargePage() {
 
                 <div style={{ display: 'grid', gap: '0.75rem', borderTop: '1px solid #fed7aa', paddingTop: '0.75rem' }}>
                   <div style={{ display: 'grid', gap: '0.35rem' }}>
-                    <label style={{ fontWeight: 700, color: '#92400e' }}>Ask user to enter their birth year as PIN</label>
+                    <label style={{ fontWeight: 700, color: '#92400e' }}>
+                      {isKid ? "Ask kid (or parent) to enter their birth year as PIN" : "Ask customer to enter their birth year as PIN"}
+                    </label>
                     <input
                       type="password"
                       maxLength={4}
-                      placeholder="User's birth year (PIN)"
+                      placeholder="Birth year (e.g. 2015) or 0000"
                       value={pin}
                       onChange={e => setPin(e.target.value)}
                       style={{ padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', fontSize: '0.95rem' }}
@@ -177,8 +207,8 @@ function VendorChargePage() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#b45309' }}>Total: {totalTokens} 🪙</div>
-                    <button onClick={handleCharge} disabled={!totalTokens || pin.trim().length !== 4}
-                      style={{ background: totalTokens && pin.trim().length === 4 ? '#f59e0b' : '#d1d5db', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem 1.4rem', fontWeight: 700, cursor: totalTokens && pin.trim().length === 4 ? 'pointer' : 'default', fontSize: '1rem' }}>
+                    <button onClick={handleCharge} disabled={!totalTokens || pin.trim().length < 4}
+                      style={{ background: totalTokens && pin.trim().length >= 4 ? '#f59e0b' : '#d1d5db', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem 1.4rem', fontWeight: 700, cursor: totalTokens && pin.trim().length >= 4 ? 'pointer' : 'default', fontSize: '1rem' }}>
                       Charge
                     </button>
                   </div>
@@ -188,10 +218,10 @@ function VendorChargePage() {
 
             {myStalls.length === 0 && (
               <section style={card}>
-                <div style={{ color: '#6b7280' }}>You don't have any stalls yet. Create one from the Stall dashboard.</div>
-                <button onClick={() => navigate('/vendor')}
+                <div style={{ color: '#6b7280' }}>You don't have any stalls yet. Create one from the Stall tab.</div>
+                <button onClick={() => navigate(-1)}
                   style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
-                  Go to Dashboard
+                  Go Back
                 </button>
               </section>
             )}

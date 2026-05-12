@@ -1,6 +1,10 @@
 import api from './index';
 
 const userApi = {
+  async getPublicProfile(userId) {
+    const response = await api.get(`/api/user/public/${encodeURIComponent(userId)}`);
+    return response.data;
+  },
   async getQr() {
     const response = await api.get('/api/user/qr');
     return response.data;

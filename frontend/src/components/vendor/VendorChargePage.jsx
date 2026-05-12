@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import stallsApi from '../../api/stalls';
+import userApi from '../../api/user';
 import Layout from '../common/Layout';
 
 const card = {
@@ -50,29 +51,22 @@ function VendorChargePage() {
 
     // Load customer display name
     if (isKid) {
-      // KID:<parentId>:<kidId> — fetch parent profile to get kid name
       const parts = decodedUserId.split(':');
       if (parts.length === 3) {
-        fetch(`/api/user/public/${parts[1]}`)
-          .then(r => r.ok ? r.json() : null)
+        userApi.getPublicProfile(parts[1])
           .then(p => {
-            if (p) {
-              setCustomerLabel(`👦 Kid of ${p.name || p.phone}`);
-              setCustomerName(`kid (parent: ${p.name || p.phone})`);
-              setCustomerPhone(p.phone || '');
-            }
+            setCustomerLabel(`👦 Kid of ${p.name || p.phone}`);
+            setCustomerName(`kid (parent: ${p.name || p.phone})`);
+            setCustomerPhone(p.phone || '');
           })
           .catch(() => {});
       }
     } else {
-      fetch(`/api/user/public/${decodedUserId}`)
-        .then(r => r.ok ? r.json() : null)
+      userApi.getPublicProfile(decodedUserId)
         .then(p => {
-          if (p) {
-            setCustomerLabel(`👤 ${p.name || p.phone}`);
-            setCustomerName(p.name || p.phone);
-            setCustomerPhone(p.phone || '');
-          }
+          setCustomerLabel(`👤 ${p.name || p.phone}`);
+          setCustomerName(p.name || p.phone);
+          setCustomerPhone(p.phone || '');
         })
         .catch(() => {});
     }

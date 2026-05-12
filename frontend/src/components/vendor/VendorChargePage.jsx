@@ -24,6 +24,7 @@ function VendorChargePage() {
   const [catalog, setCatalog] = useState(null);
   const [quantities, setQuantities] = useState({});
   const [customerLabel, setCustomerLabel] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [status, setStatus] = useState('');
   const [result, setResult] = useState(null);
   const [pin, setPin] = useState('');
@@ -54,14 +55,22 @@ function VendorChargePage() {
         fetch(`/api/user/public/${parts[1]}`)
           .then(r => r.ok ? r.json() : null)
           .then(p => {
-            if (p) setCustomerLabel(`👦 Kid of ${p.name || p.phone}`);
+            if (p) {
+              setCustomerLabel(`👦 Kid of ${p.name || p.phone}`);
+              setCustomerName(`kid (parent: ${p.name || p.phone})`);
+            }
           })
           .catch(() => {});
       }
     } else {
       fetch(`/api/user/public/${decodedUserId}`)
         .then(r => r.ok ? r.json() : null)
-        .then(p => { if (p) setCustomerLabel(`👤 ${p.name || p.phone}`); })
+        .then(p => {
+          if (p) {
+            setCustomerLabel(`👤 ${p.name || p.phone}`);
+            setCustomerName(p.name || p.phone);
+          }
+        })
         .catch(() => {});
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -194,7 +203,9 @@ function VendorChargePage() {
                 <div style={{ display: 'grid', gap: '0.75rem', borderTop: '1px solid #fed7aa', paddingTop: '0.75rem' }}>
                   <div style={{ display: 'grid', gap: '0.35rem' }}>
                     <label style={{ fontWeight: 700, color: '#92400e' }}>
-                      {isKid ? "Ask kid (or parent) to enter their birth year as PIN" : "Ask customer to enter their birth year as PIN"}
+                      {customerName
+                        ? `Hi ${customerName}, please enter your birth year as PIN`
+                        : isKid ? 'Ask kid (or parent) to enter their birth year as PIN' : 'Ask customer to enter their birth year as PIN'}
                     </label>
                     <input
                       type="password"

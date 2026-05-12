@@ -149,7 +149,7 @@ function AdminDashboard() {
   const isAdmin = me?.roles?.includes('admin');
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [tab, setTab] = useState(searchParams.get('tab') || 'Home');
+  const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'Home');
   const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
   const [event, setEvent] = useState(null);
   const [users, setUsers] = useState([]);
@@ -196,6 +196,12 @@ function AdminDashboard() {
     setKids(k);
     setTransactions(t);
     setQrPayload(qr.qrPayload);
+    if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
+      localStorage.setItem('cc_defaultTab', p.defaultTab);
+      setTab(p.defaultTab);
+    } else if (p.defaultTab) {
+      localStorage.setItem('cc_defaultTab', p.defaultTab);
+    }
   };
 
   const loadStalls = async () => {
@@ -486,7 +492,7 @@ function AdminDashboard() {
             </div>
           </section>
         )}
-        {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={kids} setProfile={setProfile} />}
+        {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={kids} setProfile={setProfile} tabs={TABS} />}
         {tab === 'History' && <HistoryTab transactions={transactions} />}
       </div>
     </Layout>

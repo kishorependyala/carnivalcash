@@ -348,13 +348,14 @@ export function FamilyTab({ setStatus }) {
 }
 
 /* ── Combined Profile tab (profile view/edit + kids + family) ── */
-export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onReload, kids, setProfile }) {
+export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onReload, kids, setProfile, tabs }) {
   const [editing, setEditing] = useState(false);
   const [birthYear, setBirthYear] = useState(balance?.birthYear || '0000');
   const [editBY, setEditBY] = useState('');
   const [editForm, setEditForm] = useState({
     name: profile.name || '',
     birthYear: balance?.birthYear || '0000',
+    defaultTab: profile.defaultTab || '',
     socials: { gmail: '', yahoo: '', instagram: '', facebook: '', ...(profile.socials || {}) },
   });
   const [kidForm, setKidForm] = useState({ name: '', spendingLimit: 25 });
@@ -378,6 +379,7 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
     setEditForm({
       name: profile.name || '',
       birthYear: nextBirthYear,
+      defaultTab: profile.defaultTab || '',
       socials: { gmail: '', yahoo: '', instagram: '', facebook: '', ...(profile.socials || {}) },
     });
   }, [profile, balance]);
@@ -411,11 +413,16 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
   const saveProfile = async () => {
     try {
       const nextBirthYear = String(editForm.birthYear || '0000').trim() || '0000';
-      const updated = await userApi.updateProfile({ name: editForm.name, socials: editForm.socials });
+      const updated = await userApi.updateProfile({ name: editForm.name, socials: editForm.socials, defaultTab: editForm.defaultTab || '' });
       if (nextBirthYear !== birthYear) {
         const birthYearRes = await userApi.updateBirthYear(nextBirthYear);
         setBirthYear(birthYearRes.birthYear || '0000');
         setEditBY(birthYearRes.birthYear || '0000');
+      }
+      if (editForm.defaultTab) {
+        localStorage.setItem('cc_defaultTab', editForm.defaultTab);
+      } else {
+        localStorage.removeItem('cc_defaultTab');
       }
       setProfile(updated);
       await onReload();
@@ -495,6 +502,12 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
             <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>Birth Year</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#78350f' }}>{birthYear === '0000' ? 'Not set' : birthYear}</div>
           </div>
+          {profile.defaultTab && (
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>Start on</div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#78350f' }}>{profile.defaultTab}</div>
+            </div>
+          )}
         </div>
 
         {editing && (
@@ -523,6 +536,17 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
                 setEditForm(f => ({ ...f, birthYear: e.target.value }));
               }}
             />
+            {tabs && tabs.length > 0 && (
+              <>
+                <label style={{ fontWeight: 600 }}>Default landing tab</label>
+                <select style={{ ...inp, appearance: 'auto' }}
+                  value={editForm.defaultTab || ''}
+                  onChange={e => setEditForm(f => ({ ...f, defaultTab: e.target.value }))}>
+                  <option value="">— Role default —</option>
+                  {tabs.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </>
+            )}
             <button onClick={saveProfile}
               style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
               Save Profile

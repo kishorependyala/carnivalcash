@@ -35,7 +35,7 @@ function UserDashboard() {
   const isAdmin = user?.roles?.includes('admin');
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [tab, setTab] = useState(searchParams.get('tab') || 'Home');
+  const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'Home');
   const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
   const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
   const [kids, setKids] = useState([]);
@@ -57,6 +57,13 @@ function UserDashboard() {
     setKids(k);
     setTransactions(t);
     setQrPayload(qr.qrPayload);
+    // Sync default tab from profile (no URL override)
+    if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
+      localStorage.setItem('cc_defaultTab', p.defaultTab);
+      setTab(p.defaultTab);
+    } else if (p.defaultTab) {
+      localStorage.setItem('cc_defaultTab', p.defaultTab);
+    }
     if (isAdmin) {
       try { const ev = await adminApi.getEvent(); setEvent(ev); } catch (_) {}
     }
@@ -126,7 +133,7 @@ function UserDashboard() {
         )}
 
         {tab === 'Profile' && (
-          <ProfileTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={kids} setProfile={setProfile} />
+          <ProfileTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={kids} setProfile={setProfile} tabs={TABS} />
         )}
         {tab === 'Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}

@@ -105,6 +105,8 @@ def update_profile():
     archive_profile(profile['userId'], archive_timestamp(), profile)
     profile['name'] = payload.get('name', profile.get('name', ''))
     profile['emails'] = payload.get('emails', profile.get('emails', []))
+    if 'defaultTab' in payload:
+        profile['defaultTab'] = str(payload['defaultTab']).strip()
     if 'socials' in payload:
         allowed = {'gmail', 'yahoo', 'instagram', 'facebook'}
         incoming = payload['socials'] or {}

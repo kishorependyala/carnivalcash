@@ -44,7 +44,7 @@ function VendorScanPage() {
       try {
         const { Html5QrcodeScanner } = await import('html5-qrcode');
         if (!mounted || !scannerRef.current) return;
-        html5Scanner.current = new Html5QrcodeScanner('vendor-scan-reader', { fps: 5, qrbox: 220 }, false);
+        html5Scanner.current = new Html5QrcodeScanner('vendor-scan-reader', { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
         html5Scanner.current.render((decodedText) => {
           const parsed = parseQRPayload(decodedText);
           if (parsed) {

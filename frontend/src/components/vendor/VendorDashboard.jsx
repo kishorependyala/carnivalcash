@@ -39,7 +39,7 @@ function VendorDashboard() {
   const isAdmin = user?.roles?.includes('admin');
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [tab, setTab] = useState(searchParams.get('tab') || 'Stalls');
+  const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'Stalls');
   const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
   const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
   const [transactions, setTransactions] = useState([]);
@@ -54,6 +54,12 @@ function VendorDashboard() {
     setProfile(p);
     setBalance(b);
     setTransactions(t);
+    if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
+      localStorage.setItem('cc_defaultTab', p.defaultTab);
+      setTab(p.defaultTab);
+    } else if (p.defaultTab) {
+      localStorage.setItem('cc_defaultTab', p.defaultTab);
+    }
   };
 
   useEffect(() => {
@@ -75,7 +81,7 @@ function VendorDashboard() {
 
         {tab === 'Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}
-        {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={null} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={[]} setProfile={setProfile} />}
+        {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={null} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={[]} setProfile={setProfile} tabs={TABS} />}
         {tab === 'History' && <HistoryTab transactions={transactions} />}
       </div>
     </Layout>

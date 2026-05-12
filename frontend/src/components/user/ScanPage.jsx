@@ -39,7 +39,7 @@ function ScanPage() {
         if (!mounted || !scannerRef.current) {
           return;
         }
-        html5Scanner.current = new Html5QrcodeScanner('vendor-qr-reader', { fps: 5, qrbox: 220 }, false);
+        html5Scanner.current = new Html5QrcodeScanner('vendor-qr-reader', { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
         html5Scanner.current.render((decodedText) => {
           const parsed = parseQRCode(decodedText);
           if (!parsed) { setStatus('That QR code is not a CarnivalCash stall QR.'); return; }

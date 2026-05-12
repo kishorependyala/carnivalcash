@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import eventsApi from '../../api/events';
 import statsApi from '../../api/stats';
@@ -409,16 +410,45 @@ function BottomNav() {
   );
 }
 
+// Root dashboard paths — no back button shown here
+const ROOT_PATHS = ['/user', '/vendor', '/admin', '/'];
+
 function Layout({ children }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isSubPage = !ROOT_PATHS.includes(location.pathname);
+
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      // Fall back to role home
+      if (user?.roles?.includes('admin')) navigate('/admin');
+      else if (user?.roles?.includes('vendor')) navigate('/vendor');
+      else navigate('/user');
+    }
+  };
 
   return (
     <div style={shellStyle}>
       <header style={headerStyle}>
         <div style={headerInnerStyle}>
-          <div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800 }}>🎪 CarnivalCash</div>
-            <div style={{ opacity: 0.9, fontSize: '0.9rem' }}>{user?.phone || 'Carnival donations made easy'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {isSubPage && (
+              <button
+                type="button"
+                onClick={goBack}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '999px', padding: '0.45rem 0.9rem', fontWeight: 700, color: '#fff', cursor: 'pointer', fontSize: '1rem' }}
+                aria-label="Go back"
+              >
+                ← Back
+              </button>
+            )}
+            <div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800 }}>🎪 CarnivalCash</div>
+              <div style={{ opacity: 0.9, fontSize: '0.9rem' }}>{user?.phone || 'Carnival donations made easy'}</div>
+            </div>
           </div>
           {user ? (
             <button type="button" onClick={logout} style={{ border: 0, borderRadius: '999px', padding: '0.65rem 1rem', fontWeight: 700 }}>

@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from flask import Blueprint, g, jsonify, request
 
+from app.storage.charity_store import credit_charity
 from app.storage.stall_store import get_stall, get_stall_transactions, save_stall, save_stall_transactions
 from app.storage.user_store import (
     get_profile,
@@ -258,7 +259,14 @@ def transfer():
             kid['spent'] = int(kid.get('spent', 0)) + total_tokens
             save_user_kids(g.user['userId'], kids)
 
-        stall['tokenBalance'] = int(stall.get('tokenBalance', 0)) + total_tokens
+        charity_total = 0
+        for charity in stall.get('charities', []):
+            pct = int(charity.get('percentage', 0))
+            if pct > 0:
+                charity_tokens = max(1, int(total_tokens * pct / 100)) if total_tokens > 0 else 0
+                if charity_tokens > 0 and credit_charity(charity['charityId'], charity_tokens):
+                    charity_total += charity_tokens
+        stall['tokenBalance'] = int(stall.get('tokenBalance', 0)) + (total_tokens - charity_total)
         save_stall(stall_id, stall)
 
         tx_id = str(uuid4())

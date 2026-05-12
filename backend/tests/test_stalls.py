@@ -1,3 +1,5 @@
+from app.storage.charity_store import add_charity, get_charity
+from app.storage.stall_store import get_stall
 from app.storage.user_store import save_user_kids
 
 
@@ -77,3 +79,33 @@ def test_toggle_stall_admin_updates_membership(client, seed_profile, auth_header
     assert member['userId'] in promote_response.get_json()['stallAdmins']
     assert demote_response.status_code == 200
     assert member['userId'] not in demote_response.get_json()['stallAdmins']
+
+
+
+def test_stall_charge_splits_tokens_to_charities(client, seed_profile, auth_header):
+    creator = seed_profile('5551000003', name='Creator')
+    customer = seed_profile('5551000004', token_balance=40, name='Customer')
+    charity, _ = add_charity('School Fund', 'Books', '', creator['userId'])
+
+    stall_response = client.post(
+        '/api/stalls',
+        json={
+            'stallName': 'Ring Toss',
+            'stallType': 'game',
+            'tokensPerItem': 10,
+            'charities': [{'charityId': charity['charityId'], 'name': charity['name'], 'percentage': 25}],
+        },
+        headers=auth_header(creator),
+    )
+    stall_id = stall_response.get_json()['stallId']
+
+    charge_response = client.post(
+        f'/api/stalls/{stall_id}/charge',
+        json={'userId': customer['userId'], 'items': [{'itemId': 'default', 'qty': 2}]},
+        headers=auth_header(creator),
+    )
+
+    assert charge_response.status_code == 200
+    assert charge_response.get_json()['stallBalance'] == 15
+    assert get_charity(charity['charityId'])['tokenBalance'] == 5
+    assert get_stall(stall_id)['tokenBalance'] == 15

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import charitiesApi from '../../api/charities';
 import stallsApi from '../../api/stalls';
 import { useAuth } from '../../context/AuthContext';
 import PrintableQR from './PrintableQR';
@@ -22,7 +23,7 @@ const actionBtn = {
 };
 
 export function CreateStallForm({ onCreated }) {
-  const [form, setForm] = useState({ stallName: '', stallType: 'game', tokensPerItem: 3, description: '' });
+  const [form, setForm] = useState({ stallName: '', stallType: 'game', tokensPerItem: 3, description: '', charities: [] });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
@@ -37,7 +38,7 @@ export function CreateStallForm({ onCreated }) {
     try {
       const stall = await stallsApi.create({ ...form, tokensPerItem: Number(form.tokensPerItem) });
       onCreated(stall);
-      setForm({ stallName: '', stallType: 'game', tokensPerItem: 3, description: '' });
+      setForm({ stallName: '', stallType: 'game', tokensPerItem: 3, description: '', charities: [] });
     } catch (error) {
       setErr(error.response?.data?.error || 'Failed to create stall.');
     } finally {
@@ -80,9 +81,124 @@ export function CreateStallForm({ onCreated }) {
         value={form.description}
         onChange={(event) => set('description', event.target.value)}
       />
+      <CharityConfig charities={form.charities} onChange={(value) => setForm((current) => ({ ...current, charities: value }))} />
       <button onClick={submit} disabled={saving} style={actionBtn}>
         {saving ? 'Creating…' : '+ Create Stall'}
       </button>
+    </div>
+  );
+}
+
+function CharityConfig({ charities, onChange }) {
+  const [allCharities, setAllCharities] = useState([]);
+  const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [addingNew, setAddingNew] = useState(false);
+  const [pickId, setPickId] = useState('');
+
+  useEffect(() => {
+    charitiesApi.list().then(setAllCharities).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const totalPct = (charities || []).reduce((sum, charity) => sum + (charity.percentage || 0), 0);
+
+  const addExisting = () => {
+    if (!pickId) {
+      return;
+    }
+    if ((charities || []).some((charity) => charity.charityId === pickId)) {
+      return;
+    }
+    const found = allCharities.find((charity) => charity.charityId === pickId);
+    if (!found) {
+      return;
+    }
+    const remaining = Math.max(0, 100 - totalPct);
+    onChange([...(charities || []), { charityId: found.charityId, name: found.name, percentage: remaining }]);
+    setPickId('');
+  };
+
+  const addNew = async () => {
+    if (!newName.trim()) {
+      return;
+    }
+    try {
+      const created = await charitiesApi.add({ name: newName.trim(), description: newDesc.trim() });
+      setAllCharities((current) => (current.some((charity) => charity.charityId === created.charityId) ? current : [...current, created]));
+      const remaining = Math.max(0, 100 - totalPct);
+      onChange([...(charities || []), { charityId: created.charityId, name: created.name, percentage: remaining }]);
+      setNewName('');
+      setNewDesc('');
+      setAddingNew(false);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to add charity');
+    }
+  };
+
+  const remove = (charityId) => onChange((charities || []).filter((charity) => charity.charityId !== charityId));
+
+  const setPct = (charityId, pct) => onChange((charities || []).map((charity) => (
+    charity.charityId === charityId
+      ? { ...charity, percentage: Math.min(100, Math.max(0, parseInt(pct, 10) || 0)) }
+      : charity
+  )));
+
+  const unselectedCharities = allCharities.filter((charity) => !(charities || []).some((selected) => selected.charityId === charity.charityId));
+
+  return (
+    <div style={{ display: 'grid', gap: '0.5rem' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+        💝 Charities {totalPct > 0 && <span style={{ color: '#059669', fontSize: '0.8rem' }}>({totalPct}% of earnings donated)</span>}
+      </div>
+
+      {(charities || []).map((charity) => (
+        <div key={charity.charityId} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.65rem', padding: '0.5rem 0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <span style={{ flex: 1, fontWeight: 600, fontSize: '0.88rem' }}>💚 {charity.name}</span>
+          <input
+            type="number"
+            min="1"
+            max="100"
+            value={charity.percentage}
+            onChange={(event) => setPct(charity.charityId, event.target.value)}
+            style={{ width: '60px', padding: '0.3rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #d1d5db', textAlign: 'center' }}
+          />
+          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>%</span>
+          <button onClick={() => remove(charity.charityId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.9rem' }}>✕</button>
+        </div>
+      ))}
+
+      {totalPct > 100 && (
+        <div style={{ color: '#dc2626', fontSize: '0.82rem' }}>⚠️ Total exceeds 100% — please adjust.</div>
+      )}
+
+      {unselectedCharities.length > 0 && !addingNew && (
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <select value={pickId} onChange={(event) => setPickId(event.target.value)} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.65rem', border: '1px solid #d1d5db' }}>
+            <option value="">— Pick existing charity —</option>
+            {unselectedCharities.map((charity) => (
+              <option key={charity.charityId} value={charity.charityId}>{charity.name}</option>
+            ))}
+          </select>
+          <button onClick={addExisting} disabled={!pickId} style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 0.9rem', fontWeight: 700, cursor: pickId ? 'pointer' : 'default', opacity: pickId ? 1 : 0.5 }}>
+            Add
+          </button>
+        </div>
+      )}
+
+      {!addingNew ? (
+        <button onClick={() => setAddingNew(true)} style={{ background: 'none', border: '1px dashed #059669', color: '#059669', borderRadius: '0.65rem', padding: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+          + Add new charity
+        </button>
+      ) : (
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.65rem', padding: '0.75rem', display: 'grid', gap: '0.4rem' }}>
+          <input style={inp} placeholder="Charity name *" value={newName} onChange={(event) => setNewName(event.target.value)} />
+          <input style={inp} placeholder="Description (optional)" value={newDesc} onChange={(event) => setNewDesc(event.target.value)} />
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={addNew} style={{ flex: 1, background: '#059669', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem', fontWeight: 700, cursor: 'pointer' }}>Save & Add</button>
+            <button onClick={() => { setAddingNew(false); setNewName(''); setNewDesc(''); }} style={{ flex: 1, background: '#f3f4f6', border: 'none', borderRadius: '0.65rem', padding: '0.5rem', cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -193,6 +309,7 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
       stallType: stall.stallType,
       tokensPerItem: stall.tokensPerItem,
       description: stall.description,
+      charities: stall.charities || [],
     });
     setEditMode(true);
   };
@@ -290,6 +407,11 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
                 ? Object.values(stall.memberNames).join(', ')
                 : `${stall.members.length} member${stall.members.length !== 1 ? 's' : ''}`}
             </div>
+            {stall.charities && stall.charities.length > 0 && (
+              <div style={{ fontSize: '0.75rem', color: '#059669' }}>
+                💝 {stall.charities.map((charity) => `${charity.name} ${charity.percentage}%`).join(' · ')}
+              </div>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -344,6 +466,7 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
               </div>
               <input type="number" style={inp} placeholder="Tokens per item" value={form.tokensPerItem} onChange={(event) => setForm((current) => ({ ...current, tokensPerItem: event.target.value }))} />
               <textarea style={{ ...inp, minHeight: '3rem', resize: 'vertical' }} placeholder="Description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
+              <CharityConfig charities={form.charities} onChange={(value) => setForm((current) => ({ ...current, charities: value }))} />
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={saveEdit} style={{ ...actionBtn, flex: 1 }}>Save</button>
                 <button onClick={() => setEditMode(false)} style={{ flex: 1, background: '#f3f4f6', border: 'none', borderRadius: '0.65rem', padding: '0.6rem', cursor: 'pointer' }}>Cancel</button>

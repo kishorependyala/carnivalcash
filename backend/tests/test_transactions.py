@@ -1,3 +1,5 @@
+from app.storage.charity_store import add_charity, get_charity
+from app.storage.stall_store import get_stall
 from app.storage.user_store import get_profile, get_user_kids, get_vendor_items, get_vendor_transactions, save_user_kids
 
 
@@ -91,3 +93,33 @@ def test_transfer_fails_if_kid_limit_exceeded(client, seed_profile, auth_header)
 
     assert response.status_code == 400
     assert response.get_json()['error'] == 'Kid spending limit exceeded'
+
+
+
+def test_transfer_to_stall_splits_tokens_to_charity(client, seed_profile, auth_header):
+    user = seed_profile('5553000011', token_balance=50, name='Parent')
+    stall_owner = seed_profile('5553000012', name='Owner')
+    charity, _ = add_charity('Animal Rescue', 'Shelter', '', stall_owner['userId'])
+
+    stall_response = client.post(
+        '/api/stalls',
+        json={
+            'stallName': 'Prize Booth',
+            'stallType': 'game',
+            'tokensPerItem': 10,
+            'charities': [{'charityId': charity['charityId'], 'name': charity['name'], 'percentage': 30}],
+        },
+        headers=auth_header(stall_owner),
+    )
+    stall_id = stall_response.get_json()['stallId']
+
+    response = client.post(
+        '/api/transactions/transfer',
+        json={'stallId': stall_id, 'items': [{'itemId': 'default', 'qty': 2}], 'kidId': None},
+        headers=auth_header(user),
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()['newBalance'] == 30
+    assert get_charity(charity['charityId'])['tokenBalance'] == 6
+    assert get_stall(stall_id)['tokenBalance'] == 14

@@ -56,7 +56,7 @@ def list_user_stalls(user_id):
     return [s for s in list_stalls() if user_id in s.get('members', [])]
 
 
-def create_stall(stall_name, stall_type, tokens_per_item, description, creator_id, creator_name=''):
+def create_stall(stall_name, stall_type, tokens_per_item, description, creator_id, creator_name='', charities=None):
     stall_id = _generate_stall_id()
     stall = {
         'stallId': stall_id,
@@ -72,6 +72,7 @@ def create_stall(stall_name, stall_type, tokens_per_item, description, creator_i
         'tokenBalance': 0,
         'items': [],
         'joinRequests': [],
+        'charities': charities or [],
     }
     save_stall(stall_id, stall)
     return stall

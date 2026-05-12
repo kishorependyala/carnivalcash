@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from flask import Blueprint, g, jsonify, request
 
+from app.storage.charity_store import credit_charity
 from app.storage.stall_store import (
     create_stall,
     get_stall,
@@ -48,6 +49,7 @@ def list_all_stalls():
             'tokensPerItem': s['tokensPerItem'],
             'memberCount': len(s.get('members', [])),
             'tokenBalance': s.get('tokenBalance', 0),
+            'charities': s.get('charities', []),
             'isMember': caller in s.get('members', []),
             'hasPendingRequest': pending,
             'createdAt': s.get('createdAt', ''),
@@ -61,6 +63,25 @@ def _utc_now():
 
 def _is_member(stall, user_id):
     return user_id in stall.get('members', [])
+
+
+def _normalize_charities(charities):
+    normalized = []
+    for charity in charities or []:
+        charity_id = (charity.get('charityId') or '').strip()
+        name = (charity.get('name') or '').strip()
+        if not charity_id or not name:
+            continue
+        try:
+            percentage = int(charity.get('percentage', 0))
+        except (TypeError, ValueError):
+            percentage = 0
+        normalized.append({
+            'charityId': charity_id,
+            'name': name,
+            'percentage': max(0, min(100, percentage)),
+        })
+    return normalized
 
 
 # ── Create stall ──────────────────────────────────────────────────────────────
@@ -94,6 +115,7 @@ def create_stall_route():
     stall_type = body.get('stallType') or 'game'
     tokens_per_item = int(body.get('tokensPerItem') or 1)
     description = (body.get('description') or '').strip()
+    charities = _normalize_charities(body.get('charities'))
 
     if not stall_name:
         return jsonify({'error': 'stallName is required'}), 400
@@ -103,7 +125,7 @@ def create_stall_route():
     creator_id = g.user['userId']
     creator_profile = get_profile(creator_id) or {}
     creator_name = creator_profile.get('name') or creator_profile.get('phone', '')
-    stall = create_stall(stall_name, stall_type, tokens_per_item, description, creator_id, creator_name)
+    stall = create_stall(stall_name, stall_type, tokens_per_item, description, creator_id, creator_name, charities)
     return jsonify(stall), 201
 
 
@@ -264,6 +286,8 @@ def update_stall(stall_id):
         stall['tokensPerItem'] = int(body['tokensPerItem'])
     if 'description' in body:
         stall['description'] = body['description'].strip()
+    if 'charities' in body:
+        stall['charities'] = _normalize_charities(body.get('charities'))
 
     save_stall(stall_id, stall)
     return jsonify(stall)
@@ -592,8 +616,15 @@ def charge_user(stall_id):
     from app.storage.user_store import save_profile
     save_profile(target_user_id, user_profile)
 
-    # Credit stall
-    stall['tokenBalance'] = int(stall.get('tokenBalance', 0)) + total_tokens
+    # Split tokens to configured charities
+    charity_total = 0
+    for charity in stall.get('charities', []):
+        pct = int(charity.get('percentage', 0))
+        if pct > 0:
+            charity_tokens = max(1, int(total_tokens * pct / 100)) if total_tokens > 0 else 0
+            if charity_tokens > 0 and credit_charity(charity['charityId'], charity_tokens):
+                charity_total += charity_tokens
+    stall['tokenBalance'] = int(stall.get('tokenBalance', 0)) + (total_tokens - charity_total)
     save_stall(stall_id, stall)
 
     # Record transactions

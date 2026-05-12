@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import adminApi from '../../api/admin';
+import charitiesApi from '../../api/charities';
 import stallsApi from '../../api/stalls';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
@@ -20,7 +21,7 @@ const btn = (variant = 'primary') => ({
   color: variant === 'primary' ? '#fff' : variant === 'danger' ? '#dc2626' : '#374151',
 });
 
-const TABS = ['Home', 'Overview', 'Users', 'Stalls', 'Admins', 'My Stalls', 'Browse', 'Profile', 'History'];
+const TABS = ['Home', 'Overview', 'Users', 'Stalls', 'Admins', 'My Stalls', 'Browse', 'Charities', 'Profile', 'History'];
 
 function TabBar({ tabs, active, onChange }) {
   return (
@@ -163,6 +164,8 @@ function AdminDashboard() {
   const [qrPayload, setQrPayload] = useState('');
   const [allStalls, setAllStalls] = useState([]);
   const [stallsLoaded, setStallsLoaded] = useState(false);
+  const [charities, setCharities] = useState([]);
+  const [charitiesLoaded, setCharitiesLoaded] = useState(false);
 
   const loadAdmin = async () => {
     const [statsRes, eventRes, usersRes] = await Promise.all([
@@ -213,6 +216,12 @@ function AdminDashboard() {
       loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'));
     }
   }, [tab, stallsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (tab === 'Charities' && !charitiesLoaded) {
+      charitiesApi.list().then(setCharities).catch(() => {}).finally(() => setCharitiesLoaded(true));
+    }
+  }, [tab, charitiesLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const changeTab = (nextTab) => {
     setStatus('');
@@ -452,6 +461,29 @@ function AdminDashboard() {
         {tab === 'Family' && null}
         {tab === 'My Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}
+        {tab === 'Charities' && (
+          <section style={card}>
+            <h2 style={{ margin: 0 }}>💝 Charities</h2>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>Token balances accumulated from stall donations.</p>
+            {!charitiesLoaded && <p style={{ color: '#6b7280' }}>Loading…</p>}
+            {charitiesLoaded && charities.length === 0 && <p style={{ color: '#6b7280' }}>No charities yet. Stall owners can add them when configuring their stall.</p>}
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {charities.map((charity) => (
+                <div key={charity.charityId} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '1rem', padding: '1rem', display: 'grid', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1rem' }}>💚 {charity.name}</div>
+                    <div style={{ background: '#dcfce7', color: '#166534', borderRadius: '0.65rem', padding: '0.3rem 0.85rem', fontWeight: 700 }}>
+                      🪙 {charity.tokenBalance || 0} tokens
+                    </div>
+                  </div>
+                  {charity.description && <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>{charity.description}</div>}
+                  {charity.website && <a href={charity.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.82rem', color: '#059669' }}>{charity.website}</a>}
+                  <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Added {charity.addedAt?.slice(0, 10)}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={event} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={kids} setProfile={setProfile} />}
         {tab === 'History' && <HistoryTab transactions={transactions} />}
       </div>

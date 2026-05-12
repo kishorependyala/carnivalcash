@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from flask import Blueprint, jsonify, request
 
-from app.storage.user_store import ensure_user_storage, find_profile_by_phone, save_profile
+from app.storage.user_store import ensure_user_storage, find_profile_by_phone, normalize_phone, save_profile
 from app.utils.id_generator import generate_user_id
 from app.utils.pin_generator import generate_pin
 from config import get_jwt_secret
@@ -47,7 +47,7 @@ def request_code():
         description: Phone is required
     """
     payload = request.get_json(silent=True) or {}
-    phone = str(payload.get('phone', '')).strip()
+    phone = normalize_phone(str(payload.get('phone', '')).strip())
 
     if not phone:
         return jsonify({'error': 'Phone is required'}), 400
@@ -115,8 +115,8 @@ def verify():
         description: Profile not found
     """
     payload = request.get_json(silent=True) or {}
-    phone = str(payload.get('phone', '')).strip()
-    code = str(payload.get('code', '')).strip()
+    phone = normalize_phone(str(payload.get('phone', '')).strip())
+    code = normalize_phone(str(payload.get('code', '')).strip())
 
     if phone != code:
         return jsonify({'error': 'Invalid code'}), 401

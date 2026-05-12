@@ -30,9 +30,16 @@ def list_profiles():
     return [read_json(path) for path in sorted(profiles_dir().glob('*.json')) if read_json(path) is not None]
 
 
+def normalize_phone(phone):
+    """Strip all non-digit characters so 862-252-1855, (862) 252-1855, 8622521855 all match."""
+    import re
+    return re.sub(r'\D', '', str(phone))
+
+
 def find_profile_by_phone(phone):
+    normalized = normalize_phone(phone)
     for profile in list_profiles():
-        if profile.get('phone') == phone:
+        if normalize_phone(profile.get('phone', '')) == normalized:
             return profile
     return None
 

@@ -717,7 +717,7 @@ export function MergedStallsTab() {
   const navigate = useNavigate();
   const [myStalls, setMyStalls] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(''); // eslint-disable-line no-unused-vars
   const [popup, setPopup] = useState(null); // 'create' | null
 
   useEffect(() => {

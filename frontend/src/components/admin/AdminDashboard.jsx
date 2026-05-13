@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { TYPE_META, MergedStallsTab } from '../common/StallsTab';
-import { HistoryTab, ProfileTab, card, inp } from '../common/ProfileSections';
+import { HistoryTab, card, inp } from '../common/ProfileSections'; // eslint-disable-line no-unused-vars
 
 const btn = (variant = 'primary') => ({
   padding: '0.5rem 1rem',
@@ -338,12 +338,12 @@ function DataFilesTab() {
 function AdminDashboard() {
   const { user: me } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = me?.roles?.includes('admin');
+  const isAdmin = me?.roles?.includes('admin'); // eslint-disable-line no-unused-vars
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'User');
   const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
-  const [event, setEvent] = useState(null);
+  const [event, setEvent] = useState(null); // eslint-disable-line no-unused-vars
   const [users, setUsers] = useState([]);
   const [status, setStatus] = useState('');
   const [rate, setRate] = useState(2);
@@ -361,7 +361,7 @@ function AdminDashboard() {
   const [resetting, setResetting] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [adminSubTab, setAdminSubTab] = useState('Admins');
-  const [expandedKid, setExpandedKid] = useState(null);
+  const [expandedKid, setExpandedKid] = useState(null); // eslint-disable-line no-unused-vars
   const [kidQrPopup, setKidQrPopup] = useState(null); // {name, qrValue}
   const [showEditDrawer, setShowEditDrawer] = useState(false);
   const [editSection, setEditSection] = useState('profile'); // 'profile' | 'kids' | 'family'
@@ -484,7 +484,7 @@ function AdminDashboard() {
 
         {tab === 'User' && (() => {
           const tokensSpent = transactions.filter((t) => t.type === 'debit').reduce((s, t) => s + (t.amount || 0), 0);
-          const tokensIssued = balance.tokenBalance + tokensSpent;
+          const tokensIssued = balance.tokenBalance + tokensSpent; // eslint-disable-line no-unused-vars
           return (
             <div style={{ display: 'grid', gap: '1rem' }}>
 

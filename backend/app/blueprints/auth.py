@@ -145,6 +145,7 @@ def verify():
                 'roles': profile.get('roles', []),
                 'name': profile.get('name', ''),
                 'pin': profile.get('pin', ''),
+                'isNew': not bool(profile.get('name', '').strip()),
             },
         }
     )

@@ -717,27 +717,32 @@ export function MergedStallsTab() {
   const navigate = useNavigate();
   const [myStalls, setMyStalls] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [popup, setPopup] = useState(null); // 'create' | 'join' | null
-  const [popupTab, setPopupTab] = useState('create'); // 'create' | 'join'
+  const [popup, setPopup] = useState(null);
+  const [popupTab, setPopupTab] = useState('create');
   const [allStalls, setAllStalls] = useState([]);
   const [stallsLoading, setStallsLoading] = useState(false);
   const [joinQuery, setJoinQuery] = useState('');
   const [joinSelected, setJoinSelected] = useState(null);
   const [joinStatus, setJoinStatus] = useState('');
+  const [myKids, setMyKids] = useState([]);
+  const [selectedKids, setSelectedKids] = useState([]); // kidIds to include in request
 
   useEffect(() => {
     stallsApi.mine()
       .then((result) => { setMyStalls(result); })
       .catch(() => {})
       .finally(() => setLoading(false));
+    // Load kids once
+    import('../../api/user').then(m => m.default.getKids()).then(setMyKids).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openPopup = async () => {
-    setPopup('create');
+    setPopup('open');
     setPopupTab('create');
     setJoinQuery('');
     setJoinSelected(null);
     setJoinStatus('');
+    setSelectedKids([]);
     if (allStalls.length === 0) {
       setStallsLoading(true);
       try { setAllStalls(await stallsApi.listAll()); } catch { /* ignore */ }
@@ -754,10 +759,12 @@ export function MergedStallsTab() {
     if (!joinSelected) return;
     setJoinStatus('');
     try {
-      await stallsApi.requestJoin(joinSelected.stallId);
-      setJoinStatus('✅ Join request sent! Wait for approval.');
+      await stallsApi.requestJoin(joinSelected.stallId, selectedKids);
+      const kidCount = selectedKids.length;
+      setJoinStatus(`✅ Join request sent${kidCount > 0 ? ` for you + ${kidCount} kid${kidCount > 1 ? 's' : ''}` : ''}! Wait for approval.`);
       setJoinSelected(null);
       setJoinQuery('');
+      setSelectedKids([]);
     } catch (e) {
       setJoinStatus(e.response?.data?.error || '❌ Failed to send request.');
     }
@@ -865,7 +872,27 @@ export function MergedStallsTab() {
                 {joinSelected && (
                   <div style={{ background: '#fef3c7', borderRadius: '0.75rem', padding: '0.65rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ flex: 1, fontWeight: 600, fontSize: '0.9rem' }}>🎪 {joinSelected.stallName}</span>
-                    <button onClick={() => { setJoinSelected(null); setJoinQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '1rem' }}>✕</button>
+                    <button onClick={() => { setJoinSelected(null); setJoinQuery(''); setSelectedKids([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '1rem' }}>✕</button>
+                  </div>
+                )}
+                {/* Kids selection — shown once a stall is picked and user has kids */}
+                {joinSelected && myKids.length > 0 && (
+                  <div style={{ background: '#f9fafb', borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'grid', gap: '0.4rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', marginBottom: '0.1rem' }}>👦 Include kids in this request?</div>
+                    {myKids.map(kid => {
+                      const checked = selectedKids.includes(kid.kidId);
+                      return (
+                        <label key={kid.kidId} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.9rem', padding: '0.25rem 0' }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => setSelectedKids(prev => checked ? prev.filter(id => id !== kid.kidId) : [...prev, kid.kidId])}
+                            style={{ width: '1.1rem', height: '1.1rem', accentColor: '#f59e0b', cursor: 'pointer' }}
+                          />
+                          <span style={{ fontWeight: checked ? 700 : 400 }}>👦 {kid.name}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 )}
                 {joinStatus && (

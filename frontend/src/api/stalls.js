@@ -53,8 +53,8 @@ const stallsApi = {
   async updateOrder(stallId, orderId, status) {
     return (await api.patch(`/api/stalls/${stallId}/orders/${orderId}`, { status })).data;
   },
-  async requestJoin(stallId) {
-    return (await api.post(`/api/stalls/${stallId}/join-request`)).data;
+  async requestJoin(stallId, kidIds = []) {
+    return (await api.post(`/api/stalls/${stallId}/join-request`, { kidIds })).data;
   },
   async listJoinRequests(stallId) {
     return (await api.get(`/api/stalls/${stallId}/join-requests`)).data;

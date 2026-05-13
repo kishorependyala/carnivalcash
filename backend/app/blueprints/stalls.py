@@ -771,12 +771,34 @@ def request_join(stall_id):
         return jsonify({'error': 'Join request already pending'}), 400
 
     profile = get_profile(caller) or {}
+    caller_name = profile.get('name') or profile.get('phone', '')
     requests.append({
         'userId': caller,
-        'userName': profile.get('name') or profile.get('phone', ''),
+        'userName': caller_name,
         'requestedAt': _utc_now(),
         'status': 'pending',
     })
+
+    # Also add join requests for selected kids
+    from app.storage.user_store import get_user_kids
+    kid_ids_req = (request.get_json(silent=True) or {}).get('kidIds', [])
+    user_kids = {k['kidId']: k for k in get_user_kids(caller)}
+    for kid_id in kid_ids_req:
+        if kid_id not in user_kids:
+            continue
+        kid_user_id = f'KID:{caller}:{kid_id}'
+        if kid_user_id in stall.get('members', []):
+            continue
+        if any(r['userId'] == kid_user_id and r['status'] == 'pending' for r in requests):
+            continue
+        kid_name = user_kids[kid_id].get('name', kid_id)
+        requests.append({
+            'userId': kid_user_id,
+            'userName': f"{kid_name} (child of {caller_name})",
+            'requestedAt': _utc_now(),
+            'status': 'pending',
+        })
+
     stall['joinRequests'] = requests
     save_stall(stall_id, stall)
     return jsonify({'message': 'Join request submitted'})

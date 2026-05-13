@@ -163,7 +163,7 @@ def place_order(stall_id):
     tx_id = order['orderId']
     user_txns = get_user_transactions(caller_id)
     stall_txns = get_stall_transactions(stall_id)
-    user_name = f"{kid_record['name']} (child of {user_profile.get('name') or user_profile.get('phone', '')})" if kid_record else user_profile.get('name') or user_profile.get('phone', '')
+    user_name = kid_record['name'] if kid_record else user_profile.get('name') or user_profile.get('phone', '')
     for item in line_items:
         user_txns.append({
             'txId': tx_id,

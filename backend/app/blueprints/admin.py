@@ -11,6 +11,7 @@ from app.storage.user_store import (
     delete_profile,
     find_profile_by_phone,
     get_profile,
+    get_user_kids,
     get_vendor_items,
     get_vendor_transactions,
     list_profiles,
@@ -346,9 +347,35 @@ def list_users():
             'name': p.get('name', ''),
             'roles': p.get('roles', []),
             'tokenBalance': int(p.get('tokenBalance', 0)),
+            'kids': get_user_kids(p['userId']) if 'user' in p.get('roles', []) else [],
         }
         for p in profiles
     ])
+
+
+@admin_bp.get('/api/admin/pin-reset-requests')
+@require_auth
+@require_role('admin')
+def get_pin_reset_requests():
+    users = list_profiles()
+    requests_list = [
+        {'userId': u['userId'], 'name': u.get('name', ''), 'phone': u.get('phone', '')}
+        for u in users if u.get('pinResetRequested')
+    ]
+    return jsonify(requests_list)
+
+
+@admin_bp.post('/api/admin/users/<user_id>/reset-pin')
+@require_auth
+@require_role('admin')
+def reset_user_pin(user_id):
+    profile = get_profile(user_id)
+    if not profile:
+        return jsonify({'error': 'User not found'}), 404
+    profile['pin'] = '0000'
+    profile['pinResetRequested'] = False
+    save_profile(user_id, profile)
+    return jsonify({'status': 'ok'})
 
 
 @admin_bp.delete('/api/admin/users/<user_id>')

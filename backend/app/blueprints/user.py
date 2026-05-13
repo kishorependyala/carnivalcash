@@ -146,6 +146,32 @@ def get_balance():
     })
 
 
+@user_bp.put('/api/user/pin')
+@require_auth
+def update_pin():
+    body = request.get_json(silent=True) or {}
+    pin = str(body.get('pin', '')).strip()
+    if not pin or len(pin) != 4 or not pin.isdigit():
+        return jsonify({'error': 'PIN must be 4 digits'}), 400
+    profile = get_profile(g.user['userId'])
+    if not profile:
+        return jsonify({'error': 'Profile not found'}), 404
+    profile['pin'] = pin
+    save_profile(g.user['userId'], profile)
+    return jsonify({'status': 'ok'})
+
+
+@user_bp.post('/api/user/request-pin-reset')
+@require_auth
+def request_pin_reset():
+    profile = get_profile(g.user['userId'])
+    if not profile:
+        return jsonify({'error': 'Profile not found'}), 404
+    profile['pinResetRequested'] = True
+    save_profile(g.user['userId'], profile)
+    return jsonify({'status': 'ok', 'message': 'Reset request submitted. An admin will reset your PIN to 0000.'})
+
+
 @user_bp.put('/api/users/birth-year')
 @require_auth
 def update_birth_year():
@@ -214,12 +240,17 @@ def create_kid_profile():
     """
     payload = request.get_json(silent=True) or {}
     kids = get_user_kids(g.user['userId'])
+    pin = str(payload.get('pin', '')).strip()
+    birth_year = str(payload.get('birthYear', '0000')).strip() or '0000'
+    if pin and (len(pin) != 4 or not pin.isdigit()):
+        return jsonify({'error': 'PIN must be 4 digits'}), 400
     kid = {
         'kidId': str(uuid4()),
         'name': payload.get('name', ''),
         'spendingLimit': int(payload.get('spendingLimit', 0)),
         'spent': 0,
-        'birthYear': str(payload.get('birthYear', '0000')).strip() or '0000',
+        'birthYear': birth_year,
+        'pin': pin or ('0000' if birth_year == '0000' else birth_year),
         'createdAt': utc_now(),
     }
     kids.append(kid)
@@ -267,6 +298,11 @@ def update_kid(kid_id):
     if 'birthYear' in body:
         year = str(body['birthYear']).strip()
         kid['birthYear'] = year if (year == '0000' or (year.isdigit() and len(year) == 4)) else '0000'
+    if 'pin' in body:
+        pin = str(body['pin']).strip()
+        if len(pin) != 4 or not pin.isdigit():
+            return jsonify({'error': 'PIN must be 4 digits'}), 400
+        kid['pin'] = pin
 
     save_user_kids(user_id, kids)
     return jsonify(kid)
@@ -344,3 +380,12 @@ def get_public_profile(user_id):
     if not profile:
         return jsonify({'error': 'Not found'}), 404
     return jsonify({'name': profile.get('name', ''), 'phone': profile.get('phone', '')})
+
+
+@user_bp.get('/api/user/public/<parent_id>/kids/<kid_id>')
+def get_public_kid(parent_id, kid_id):
+    kids = get_user_kids(parent_id)
+    kid = next((k for k in kids if k.get('kidId') == kid_id), None)
+    if not kid:
+        return jsonify({'error': 'Kid not found'}), 404
+    return jsonify({'name': kid.get('name', ''), 'kidId': kid_id})

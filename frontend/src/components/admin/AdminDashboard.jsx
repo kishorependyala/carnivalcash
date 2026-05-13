@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import adminApi from '../../api/admin';
@@ -23,32 +24,42 @@ const btn = (variant = 'primary') => ({
 
 const TABS = ['User', 'Stalls', 'Admin'];
 
-function TabBar({ tabs, active, onChange }) {
+function TabBar({ tabs, active, onChange, badges = {} }) {
   return (
     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-      {tabs.map((tab) => (
-        <button
-          key={tab}
-          type="button"
-          onClick={() => onChange(tab)}
-          style={{
-            padding: '0.5rem 1.1rem',
-            borderRadius: '2rem',
-            border: 'none',
-            cursor: 'pointer',
-            background: active === tab ? '#f59e0b' : '#f3f4f6',
-            color: active === tab ? '#fff' : '#374151',
-            fontWeight: active === tab ? 700 : 400,
-          }}
-        >
-          {tab}
-        </button>
-      ))}
+      {tabs.map((tab) => {
+        const badge = badges[tab];
+        return (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => onChange(tab)}
+            style={{
+              padding: '0.5rem 1.1rem',
+              borderRadius: '2rem',
+              border: 'none',
+              cursor: 'pointer',
+              background: active === tab ? '#f59e0b' : '#f3f4f6',
+              color: active === tab ? '#fff' : '#374151',
+              fontWeight: active === tab ? 700 : 400,
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span>{tab}</span>
+              {badge > 0 && (
+                <span style={{ minWidth: '1.2rem', height: '1.2rem', borderRadius: '999px', background: '#dc2626', color: '#fff', fontSize: '0.72rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 0.28rem' }}>
+                  {badge}
+                </span>
+              )}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function TokenRow({ user, tokenRate, onDone, setStatus }) {
+function TokenRow({ user, tokenRate, onDone, setStatus, refreshPinResetRequests }) {
   const [open, setOpen] = useState(false);
   const [dollars, setDollars] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -91,6 +102,17 @@ function TokenRow({ user, tokenRate, onDone, setStatus }) {
     }
   };
 
+  const doResetPin = async () => {
+    try {
+      await adminApi.resetUserPin(user.userId);
+      setStatus(`✅ PIN reset to 0000 for ${user.name || user.phone}`);
+      await Promise.resolve(onDone?.());
+      await Promise.resolve(refreshPinResetRequests?.());
+    } catch (error) {
+      setStatus(error.response?.data?.error || 'Failed to reset PIN.');
+    }
+  };
+
   return (
     <div style={{ background: '#fffbeb', borderRadius: '0.75rem', padding: '0.75rem', display: 'grid', gap: '0.4rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
@@ -105,6 +127,7 @@ function TokenRow({ user, tokenRate, onDone, setStatus }) {
           <button style={btn('secondary')} onClick={() => { setOpen((v) => !v); setDollars(''); setDeleting(false); }}>
             {open ? 'Cancel' : '🪙 Add'}
           </button>
+          <button style={btn('secondary')} onClick={doResetPin}>🔐 Reset PIN</button>
           <button style={btn('danger')} onClick={doZero}>⬛ Zero</button>
           <button style={btn('danger')} onClick={() => { setDeleting((v) => !v); setDelCode(''); setOpen(false); }}>
             🗑️
@@ -168,6 +191,173 @@ function UserTypeahead({ allUsers, onSelect, placeholder }) {
               <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.5rem' }}>{user.phone}</span>
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CardsTab({ allUsers }) {
+  const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
+  const [newCards, setNewCards] = useState([]);
+  const [linkCardId, setLinkCardId] = useState(null);
+  const [linkUserId, setLinkUserId] = useState('');
+  const [linkKidId, setLinkKidId] = useState('');
+  const [linkName, setLinkName] = useState('');
+  const [linkUserKids, setLinkUserKids] = useState([]);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      setCards(await adminApi.listCards());
+    } catch {
+      setStatus('Failed to load cards.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const generate = async () => {
+    setGenerating(true);
+    try {
+      const res = await adminApi.generateCards(100);
+      setNewCards(res.cards || []);
+      setShowPrint(true);
+      await load();
+      setStatus(`✅ Generated ${res.generated} new cards. Total: ${res.total}`);
+    } catch {
+      setStatus('Failed to generate cards.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const openLink = (cardId) => {
+    setLinkCardId(cardId);
+    setLinkUserId('');
+    setLinkKidId('');
+    setLinkName('');
+    setLinkUserKids([]);
+  };
+
+  const onSelectLinkUser = (user) => {
+    setLinkUserId(user.userId);
+    setLinkName(user.name || '');
+    setLinkKidId('');
+    setLinkUserKids(user.kids || []);
+  };
+
+  const doLink = async () => {
+    if (!linkCardId || !linkUserId) return;
+    try {
+      await adminApi.adminLinkCard(linkCardId, {
+        userId: linkUserId,
+        ...(linkKidId ? { kidId: linkKidId } : {}),
+        ...(linkName ? { name: linkName } : {}),
+      });
+      setStatus('✅ Card linked.');
+      setLinkCardId(null);
+      await load();
+    } catch (e) {
+      setStatus(e.response?.data?.error || 'Link failed.');
+    }
+  };
+
+  const linked = cards.filter(c => c.linkedUserId);
+  const unlinked = cards.filter(c => !c.linkedUserId);
+  const selectedUser = allUsers.find(u => u.userId === linkUserId);
+
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      {status && <p style={{ margin: 0, background: '#fffbeb', padding: '0.6rem', borderRadius: '0.75rem', color: '#92400e' }}>{status}</p>}
+
+      <section style={card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>🎫 Pre-printed QR Cards</div>
+            <div style={{ color: '#6b7280', fontSize: '0.88rem' }}>Total: {cards.length} · Linked: {linked.length} · Unlinked: {unlinked.length}</div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button style={btn()} onClick={generate} disabled={generating}>
+              {generating ? 'Generating…' : '🖨️ Generate 100 Cards'}
+            </button>
+            {newCards.length > 0 && (
+              <button style={btn('secondary')} onClick={() => setShowPrint(v => !v)}>
+                {showPrint ? 'Hide Print View' : '🖨️ Show Print View'}
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {showPrint && newCards.length > 0 && (
+        <section style={card}>
+          <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Print these cards — each QR = one physical card</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.5rem' }}>
+            {newCards.map(c => (
+              <div key={c.cardId} style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.75rem', padding: '0.5rem', textAlign: 'center', fontSize: '0.72rem' }}>
+                <QRCodeSVG value={c.qrPayload} size={80} includeMargin />
+                <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', wordBreak: 'break-all', color: '#78350f', marginTop: '0.25rem' }}>
+                  {c.cardId.slice(0, 8)}…
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {loading ? <p>Loading…</p> : (
+        <section style={card}>
+          <div style={{ fontWeight: 700 }}>All Cards</div>
+          {cards.length === 0 ? (
+            <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>No cards yet. Generate some above.</p>
+          ) : (
+            <div style={{ display: 'grid', gap: '0.4rem', maxHeight: '400px', overflowY: 'auto' }}>
+              {cards.map(c => (
+                <div key={c.cardId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: c.linkedUserId ? '#d1fae5' : '#f9fafb', borderRadius: '0.65rem', padding: '0.6rem 0.9rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#374151' }}>{c.cardId.slice(0, 8)}…</span>
+                    {c.linkedName && <strong style={{ marginLeft: '0.5rem', fontSize: '0.88rem' }}>{c.linkedName}</strong>}
+                    {!c.linkedUserId && <span style={{ color: '#9ca3af', fontSize: '0.85rem', marginLeft: '0.5rem' }}>Unlinked</span>}
+                  </div>
+                  {!c.linkedUserId && (
+                    <button style={btn('secondary')} onClick={() => openLink(c.cardId)}>🔗 Link</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {linkCardId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: '#fff', borderRadius: '1.25rem', padding: '1.5rem', width: '100%', maxWidth: '400px', display: 'grid', gap: '1rem' }}>
+            <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>🔗 Link Card to User</div>
+            <UserTypeahead allUsers={allUsers.filter(user => user.roles?.includes('user'))} onSelect={onSelectLinkUser} placeholder="Search user by name or phone…" />
+            {linkUserId && (
+              <div style={{ background: '#d1fae5', borderRadius: '0.75rem', padding: '0.75rem', fontSize: '0.9rem', fontWeight: 600 }}>
+                ✅ Selected: {selectedUser?.name || selectedUser?.phone || linkUserId}
+              </div>
+            )}
+            {linkUserKids.length > 0 && (
+              <select style={{ ...inp, appearance: 'auto' }} value={linkKidId} onChange={e => setLinkKidId(e.target.value)}>
+                <option value="">Link to main user</option>
+                {linkUserKids.map(kid => <option key={kid.kidId} value={kid.kidId}>Kid: {kid.name}</option>)}
+              </select>
+            )}
+            <input style={inp} placeholder="Override name (optional)" value={linkName} onChange={e => setLinkName(e.target.value)} />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button style={btn()} onClick={doLink} disabled={!linkUserId}>Link Card</button>
+              <button style={btn('secondary')} onClick={() => setLinkCardId(null)}>Cancel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -374,6 +564,7 @@ function AdminDashboard() {
   const [linkSuggestions, setLinkSuggestions] = useState([]);
   const [linkSelected, setLinkSelected] = useState(null); // {userId, name, phone}
   const [drawerStatus, setDrawerStatus] = useState('');
+  const [pinResetRequests, setPinResetRequests] = useState([]);
 
   const loadAdmin = async () => {
     const [statsRes, eventRes, usersRes] = await Promise.all([
@@ -416,8 +607,13 @@ function AdminDashboard() {
     setStallsLoaded(true);
   };
 
+  const loadPinResetRequests = async () => {
+    const requests = await adminApi.getPinResetRequests();
+    setPinResetRequests(Array.isArray(requests) ? requests : []);
+  };
+
   const load = async () => {
-    await Promise.all([loadAdmin(), loadProfile()]);
+    await Promise.all([loadAdmin(), loadProfile(), loadPinResetRequests()]);
   };
 
   useEffect(() => {
@@ -444,6 +640,7 @@ function AdminDashboard() {
 
   const admins = users.filter((user) => user.roles?.includes('admin'));
   const nonAdminUsers = users.filter((user) => !user.roles?.includes('admin'));
+  const adminSubTabs = ['Users', 'Admins', 'Stalls', 'Charities', 'Files', 'History', 'Cards'];
 
   const grantAdmin = async (user) => {
     const newRoles = Array.from(new Set([...(user.roles || []), 'admin']));
@@ -482,7 +679,7 @@ function AdminDashboard() {
           </div>
         ) : null}
 
-        <TabBar tabs={TABS} active={tab} onChange={changeTab} />
+        <TabBar tabs={TABS} active={tab} onChange={changeTab} badges={{ Admin: pinResetRequests.length }} />
         {status && <p style={{ margin: 0, color: '#92400e', background: '#fffbeb', padding: '0.6rem 1rem', borderRadius: '0.75rem' }}>{status}</p>}
 
         {tab === 'User' && (() => {
@@ -611,9 +808,38 @@ function AdminDashboard() {
 
         {tab === 'Admin' && (
           <section style={card}>
+            {pinResetRequests.length > 0 && (
+              <div style={{ background: '#fef3c7', border: '1px solid #fca5a5', borderRadius: '0.85rem', padding: '0.9rem', display: 'grid', gap: '0.65rem', marginBottom: '1rem' }}>
+                <div style={{ fontWeight: 800, color: '#92400e' }}>🔐 {pinResetRequests.length} PIN Reset Request(s)</div>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                  {pinResetRequests.map((request) => (
+                    <div key={request.userId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', background: '#fff', borderRadius: '0.75rem', padding: '0.7rem 0.85rem' }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{request.name || '—'}</div>
+                        <div style={{ color: '#6b7280', fontSize: '0.85rem' }}>{request.phone}</div>
+                      </div>
+                      <button
+                        style={btn('danger')}
+                        onClick={async () => {
+                          try {
+                            await adminApi.resetUserPin(request.userId);
+                            setStatus(`✅ PIN reset to 0000 for ${request.name || request.phone}`);
+                            await load();
+                          } catch (error) {
+                            setStatus(error.response?.data?.error || 'Failed to reset PIN.');
+                          }
+                        }}
+                      >
+                        Reset to 0000
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Sub-tab bar */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              {['Users', 'Admins', 'Stalls', 'Charities', 'Files', 'History'].map((sub) => (
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              {adminSubTabs.map((sub) => (
                 <button
                   key={sub}
                   type="button"
@@ -685,7 +911,7 @@ function AdminDashboard() {
                       {filtered.length === 0 && <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.88rem' }}>No users match.</p>}
                       <div style={{ display: 'grid', gap: '0.5rem', marginTop: '0.5rem' }}>
                         {filtered.map((u) => (
-                          <TokenRow key={u.userId} user={u} tokenRate={rate} onDone={load} setStatus={setStatus} />
+                          <TokenRow key={u.userId} user={u} tokenRate={rate} onDone={load} setStatus={setStatus} refreshPinResetRequests={loadPinResetRequests} />
                         ))}
                       </div>
                     </div>
@@ -825,6 +1051,7 @@ function AdminDashboard() {
 
             {adminSubTab === 'Files' && <DataFilesTab />}
             {adminSubTab === 'History' && <HistoryTab transactions={transactions} />}
+            {adminSubTab === 'Cards' && <CardsTab allUsers={users} />}
           </section>
         )}
 

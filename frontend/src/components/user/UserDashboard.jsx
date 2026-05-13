@@ -62,6 +62,7 @@ function UserDashboard() {
   const [linkSuggestions, setLinkSuggestions] = useState([]);
   const [linkSelected, setLinkSelected] = useState(null);
   const [drawerStatus, setDrawerStatus] = useState('');
+  const [requestingPinReset, setRequestingPinReset] = useState(false);
 
   const loadProfile = async () => {
     try {
@@ -237,6 +238,27 @@ function UserDashboard() {
                   <input value={editName || profile.name || ''} onChange={e => setEditName(e.target.value)} placeholder="Your name" style={{ ...inp, fontSize: '1rem' }} />
                 </label>
                 <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>📱 Phone: <strong>{profile.phone}</strong> &nbsp;(cannot be changed)</div>
+                <div style={{ background: '#fffbeb', borderRadius: '0.75rem', padding: '0.85rem 1rem', display: 'grid', gap: '0.5rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PIN</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#78350f' }}>{balance.pin || '0000'}</div>
+                  <button
+                    onClick={async () => {
+                      setRequestingPinReset(true);
+                      try {
+                        await userApi.requestPinReset();
+                        setDrawerStatus('✅ Reset request sent. Admin will reset your PIN to 0000 shortly.');
+                      } catch (e) {
+                        setDrawerStatus(e.response?.data?.error || '❌ Failed to send reset request.');
+                      } finally {
+                        setRequestingPinReset(false);
+                      }
+                    }}
+                    disabled={requestingPinReset}
+                    style={{ ...actionBtn, padding: '0.65rem', fontSize: '0.9rem' }}
+                  >
+                    {requestingPinReset ? 'Sending…' : 'Forgot PIN? Request Reset'}
+                  </button>
+                </div>
                 <button onClick={async () => { try { await userApi.updateProfile({ name: editName || profile.name }); await loadProfile(); setDrawerStatus('✅ Name updated!'); } catch { setDrawerStatus('❌ Failed.'); } }}
                   style={{ ...actionBtn, padding: '0.75rem', fontSize: '1rem' }}>Save Changes</button>
               </div>

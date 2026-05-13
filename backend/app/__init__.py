@@ -5,6 +5,7 @@ from flask_cors import CORS
 from .blueprints.admin import admin_bp
 from .blueprints.auth import auth_bp
 from .blueprints.bootstrap import bootstrap_bp
+from .blueprints.cards import cards_bp
 from .blueprints.charities import charities_bp
 from .blueprints.events import events_bp
 from .blueprints.orders import orders_bp
@@ -64,6 +65,7 @@ def create_app():
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(bootstrap_bp)
+    app.register_blueprint(cards_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(vendor_bp)

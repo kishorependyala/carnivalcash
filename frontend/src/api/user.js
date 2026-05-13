@@ -5,6 +5,10 @@ const userApi = {
     const response = await api.get(`/api/user/public/${encodeURIComponent(userId)}`);
     return response.data;
   },
+  async getPublicKid(parentId, kidId) {
+    const response = await api.get(`/api/user/public/${encodeURIComponent(parentId)}/kids/${encodeURIComponent(kidId)}`);
+    return response.data;
+  },
   async getQr() {
     const response = await api.get('/api/user/qr');
     return response.data;
@@ -15,6 +19,14 @@ const userApi = {
   },
   async updateProfile(payload) {
     const response = await api.put('/api/user/profile', payload);
+    return response.data;
+  },
+  async updatePin(pin) {
+    const response = await api.put('/api/user/pin', { pin });
+    return response.data;
+  },
+  async requestPinReset() {
+    const response = await api.post('/api/user/request-pin-reset');
     return response.data;
   },
   async getBalance() {
@@ -49,11 +61,16 @@ const userApi = {
   async getFamily() {
     return (await api.get('/api/users/family')).data;
   },
-  async linkFamily(phone) {
-    return (await api.post('/api/users/link-family', { phone })).data;
+  async linkFamily(payload) {
+    const body = typeof payload === 'string' ? { phone: payload } : payload;
+    return (await api.post('/api/users/link-family', body)).data;
   },
   async unlinkFamily(userId) {
     return (await api.delete(`/api/users/link-family/${userId}`)).data;
+  },
+  async linkCard(cardId, kidId = null) {
+    const response = await api.post(`/api/user/link-card/${cardId}`, kidId ? { kidId } : {});
+    return response.data;
   },
 };
 

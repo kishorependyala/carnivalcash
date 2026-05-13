@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
+import api from '../../api';
 import stallsApi from '../../api/stalls';
 import userApi from '../../api/user';
 import Layout from '../common/Layout';
@@ -31,15 +32,17 @@ function VendorChargePage() {
   const [result, setResult] = useState(null);
   const [pin, setPin] = useState('');
 
-  // Decode kid vs regular user
-  const isKid = userId.startsWith('KID%3A') || userId.startsWith('KID:');
   const decodedUserId = decodeURIComponent(userId);
+  const isCard = decodedUserId.startsWith('CARNIVAL_CARD:');
+  const cardId = isCard ? decodedUserId.split(':')[1] : null;
+  const [resolvedUserId, setResolvedUserId] = useState(decodedUserId);
+  const isKid = resolvedUserId.startsWith('KID:');
 
   useEffect(() => {
+    setResolvedUserId(decodedUserId);
     stallsApi.mine()
       .then(stalls => {
         setMyStalls(stalls);
-        // Pre-select stall from URL param, or auto-select if only one
         if (preselectedStallId) {
           const found = stalls.find(s => s.stallId === preselectedStallId);
           if (found) pickStall(found);
@@ -49,27 +52,70 @@ function VendorChargePage() {
       })
       .catch(() => setStatus('Unable to load your stalls.'));
 
-    // Load customer display name
-    if (isKid) {
+    if (isCard && cardId) {
+      api.get(`/api/cards/resolve/${cardId}`)
+        .then(res => {
+          const data = res.data;
+          const nextResolved = data.linkedKidId ? `KID:${data.linkedUserId}:${data.linkedKidId}` : data.linkedUserId;
+          setResolvedUserId(nextResolved);
+          if (data.linkedKidId) {
+            userApi.getPublicKid(data.linkedUserId, data.linkedKidId)
+              .then(kid => {
+                setCustomerLabel(`👦 ${kid.name}`);
+                setCustomerName(kid.name);
+              })
+              .catch(() => {
+                setCustomerLabel(`👦 ${data.linkedName || 'Kid'}`);
+                setCustomerName(data.linkedName || 'Kid');
+              });
+            userApi.getPublicProfile(data.linkedUserId)
+              .then(p => setCustomerPhone(p.phone || ''))
+              .catch(() => {});
+          } else {
+            userApi.getPublicProfile(data.linkedUserId)
+              .then(p => {
+                setCustomerLabel(`👤 ${p.name || p.phone}`);
+                setCustomerName(p.name || p.phone);
+                setCustomerPhone(p.phone || '');
+              })
+              .catch(() => {
+                setCustomerLabel(`👤 ${data.linkedName || 'Customer'}`);
+                setCustomerName(data.linkedName || 'Customer');
+              });
+          }
+        })
+        .catch((error) => setStatus(error.response?.data?.error || 'Card not linked to any user yet.'));
+      return;
+    }
+
+    if (decodedUserId.startsWith('KID:')) {
       const parts = decodedUserId.split(':');
       if (parts.length === 3) {
-        userApi.getPublicProfile(parts[1])
-          .then(p => {
-            setCustomerLabel(`👦 Kid of ${p.name || p.phone}`);
-            setCustomerName(`kid (parent: ${p.name || p.phone})`);
-            setCustomerPhone(p.phone || '');
-          })
+        const parentId = parts[1];
+        const kidId = parts[2];
+        userApi.getPublicProfile(parentId)
+          .then(p => setCustomerPhone(p.phone || ''))
           .catch(() => {});
+        userApi.getPublicKid(parentId, kidId)
+          .then(kid => {
+            setCustomerLabel(`👦 ${kid.name}`);
+            setCustomerName(kid.name);
+          })
+          .catch(() => {
+            setCustomerLabel('👦 Kid');
+            setCustomerName('Kid');
+          });
       }
-    } else {
-      userApi.getPublicProfile(decodedUserId)
-        .then(p => {
-          setCustomerLabel(`👤 ${p.name || p.phone}`);
-          setCustomerName(p.name || p.phone);
-          setCustomerPhone(p.phone || '');
-        })
-        .catch(() => {});
+      return;
     }
+
+    userApi.getPublicProfile(decodedUserId)
+      .then(p => {
+        setCustomerLabel(`👤 ${p.name || p.phone}`);
+        setCustomerName(p.name || p.phone);
+        setCustomerPhone(p.phone || '');
+      })
+      .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickStall = async (stall) => {
@@ -95,7 +141,7 @@ function VendorChargePage() {
     try {
       const res = await stallsApi.charge(
         selectedStall.stallId,
-        decodedUserId,
+        resolvedUserId,
         (catalog?.items || []).map(item => ({ itemId: item.itemId, qty: quantities[item.itemId] || 0 })),
         pin.trim(),
       );
@@ -113,11 +159,10 @@ function VendorChargePage() {
       <div style={{ display: 'grid', gap: '1rem' }}>
         <div style={{ fontWeight: 900, fontSize: '1.3rem' }}>💳 Charge Customer</div>
 
-        {/* customer info */}
         <section style={{ ...card, background: '#fffbeb' }}>
           <div style={{ fontWeight: 700 }}>Customer</div>
           <div style={{ color: '#374151', fontSize: '0.95rem', fontWeight: 600 }}>
-            {customerLabel || (isKid ? '👦 Kid' : '👤 Customer')}
+            {customerLabel || (isCard ? '🎫 Card' : isKid ? '👦 Kid' : '👤 Customer')}
           </div>
           {customerPhone && (
             <div style={{ fontSize: '0.88rem', color: '#6b7280' }}>{customerPhone}</div>
@@ -146,7 +191,6 @@ function VendorChargePage() {
           </section>
         ) : (
           <>
-            {/* stall selector (if multiple stalls and no preselection) */}
             {!preselectedStallId && myStalls.length > 1 && (
               <section style={card}>
                 <div style={{ fontWeight: 700 }}>Select Stall</div>
@@ -171,10 +215,8 @@ function VendorChargePage() {
               </section>
             )}
 
-            {/* items */}
             {selectedStall && catalog && (
               <section style={card}>
-                {/* stall header */}
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <span style={{ fontSize: '1.4rem' }}>{typeMeta.icon}</span>
                   <div>

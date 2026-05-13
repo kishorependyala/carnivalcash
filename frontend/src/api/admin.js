@@ -53,6 +53,26 @@ const adminApi = {
     const response = await api.delete(`/api/admin/users/${userId}`, { data: { code } });
     return response.data;
   },
+  async getPinResetRequests() {
+    const response = await api.get('/api/admin/pin-reset-requests');
+    return response.data;
+  },
+  async resetUserPin(userId) {
+    const response = await api.post(`/api/admin/users/${userId}/reset-pin`);
+    return response.data;
+  },
+  async generateCards(count = 100) {
+    const response = await api.post('/api/admin/cards/generate', { count });
+    return response.data;
+  },
+  async listCards() {
+    const response = await api.get('/api/admin/cards');
+    return response.data;
+  },
+  async adminLinkCard(cardId, payload) {
+    const response = await api.post(`/api/admin/cards/${cardId}/link`, payload);
+    return response.data;
+  },
 };
 
 export default adminApi;

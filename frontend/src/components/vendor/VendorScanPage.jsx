@@ -20,6 +20,10 @@ function parseQRPayload(raw) {
       return { userId: `KID:${parts[1]}:${parts[2]}` };
     }
   }
+  if (val.startsWith('CARNIVAL_CARD:')) {
+    const cardId = val.split(':')[1];
+    return cardId ? { userId: `CARNIVAL_CARD:${cardId}` } : null;
+  }
   return null;
 }
 
@@ -30,7 +34,7 @@ function VendorScanPage() {
   const scannerRef = useRef(null);
   const html5Scanner = useRef(null);
   const [manualValue, setManualValue] = useState('');
-  const [status, setStatus] = useState('Scan a customer QR code.');
+  const [status, setStatus] = useState('Scan a customer, kid, or pre-printed card QR code.');
 
   const goToCharge = (userId) => {
     const dest = `/vendor/charge/${encodeURIComponent(userId)}${stallId ? `?stallId=${stallId}` : ''}`;
@@ -50,7 +54,7 @@ function VendorScanPage() {
           if (parsed) {
             goToCharge(parsed.userId);
           } else {
-            setStatus('That is not a CarnivalCash customer or kid QR code.');
+            setStatus('That is not a CarnivalCash customer, kid, or pre-printed card QR code.');
           }
         }, () => {});
       } catch {
@@ -67,7 +71,7 @@ function VendorScanPage() {
   const handleManual = () => {
     const parsed = parseQRPayload(manualValue.trim());
     if (!parsed) {
-      setStatus('Enter a value like CARNIVAL_USER:<userId> or CARNIVAL_KID:<parentId>:<kidId>.');
+      setStatus('Enter a value like CARNIVAL_USER:<userId>, CARNIVAL_KID:<parentId>:<kidId>, or CARNIVAL_CARD:<cardId>.');
       return;
     }
     goToCharge(parsed.userId);
@@ -79,7 +83,7 @@ function VendorScanPage() {
         <div style={{ fontWeight: 900, fontSize: '1.3rem' }}>📷 Scan Customer QR</div>
         {stallId && (
           <div style={{ background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: '0.75rem', padding: '0.6rem 1rem', fontSize: '0.9rem', color: '#92400e' }}>
-            🎪 Charging for stall · Scan user or kid QR
+            🎪 Charging for stall · Scan user, kid, or card QR
           </div>
         )}
         <section style={card}>
@@ -89,7 +93,7 @@ function VendorScanPage() {
           <input
             value={manualValue}
             onChange={e => setManualValue(e.target.value)}
-            placeholder="CARNIVAL_USER:userId  or  CARNIVAL_KID:parentId:kidId"
+            placeholder="CARNIVAL_USER:userId · CARNIVAL_KID:parentId:kidId · CARNIVAL_CARD:cardId"
             style={{ padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', fontSize: '0.95rem' }}
           />
           <button onClick={handleManual}

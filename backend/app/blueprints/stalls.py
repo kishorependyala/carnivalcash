@@ -13,6 +13,7 @@ from app.storage.stall_store import (
     save_stall,
     save_stall_transactions,
 )
+from app.blueprints.cards import _load_cards
 from app.storage.user_store import find_profile_by_phone, get_profile, get_user_kids, get_user_transactions, save_user_transactions
 from app.utils.auth_middleware import require_auth
 
@@ -578,6 +579,15 @@ def charge_user(stall_id):
     target_user_id = body.get('userId', '')
     requested_items = body.get('items', [])
 
+    if target_user_id.startswith('CARNIVAL_CARD:'):
+        card_id = target_user_id.split(':', 1)[1]
+        card = next((entry for entry in _load_cards() if entry.get('cardId') == card_id), None)
+        if not card:
+            return jsonify({'error': 'Card not found'}), 404
+        if not card.get('linkedUserId'):
+            return jsonify({'error': 'Card not yet linked to a user'}), 400
+        target_user_id = f"KID:{card['linkedUserId']}:{card['linkedKidId']}" if card.get('linkedKidId') else card['linkedUserId']
+
     # Support KID:<parentId>:<kidId> composite IDs
     kid_record = None
     billing_user_id = target_user_id
@@ -598,11 +608,9 @@ def charge_user(stall_id):
 
     pin = (body.get('pin') or '').strip()
     if kid_record is not None:
-        # Use kid's own birthYear; fall back to parent's
-        kid_birth_year = str(kid_record.get('birthYear', '0000'))
-        expected_pin = kid_birth_year if kid_birth_year != '0000' else str(user_profile.get('birthYear', '0000'))
+        expected_pin = str(kid_record.get('pin') or '').strip() or str(kid_record.get('birthYear') or '').strip() or str(user_profile.get('pin') or '').strip() or str(user_profile.get('birthYear', '0000'))
     else:
-        expected_pin = str(user_profile.get('birthYear', '0000'))
+        expected_pin = str(user_profile.get('pin') or '').strip() or str(user_profile.get('birthYear', '0000'))
     if pin != expected_pin:
         return jsonify({'error': 'Invalid PIN'}), 403
 

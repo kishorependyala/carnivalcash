@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import authApi from '../../api/auth';
+import stallsApi from '../../api/stalls';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 
@@ -95,22 +96,28 @@ function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // Auth steps
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [authStep, setAuthStep] = useState(1); // 1=phone, 2=code
+  const [authStep, setAuthStep] = useState(1);
   const [authStatus, setAuthStatus] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Onboarding state (new users only)
   const [onboarding, setOnboarding] = useState(false);
-  const [onboardStep, setOnboardStep] = useState(0); // 0=name, 1=kids, 2=tips
+  const [onboardStep, setOnboardStep] = useState(0);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [name, setName] = useState('');
-  const [kids, setKids] = useState([]); // [{name, limit}]
-  const [newKid, setNewKid] = useState({ name: '', limit: '' });
+  const [kids, setKids] = useState([]);
+  const [newKid, setNewKid] = useState({ name: '', limit: '', kidPin: '0000' });
+  const [pin, setPin] = useState('0000');
+  const [confirmPin, setConfirmPin] = useState('0000');
+  const [familyQuery, setFamilyQuery] = useState('');
+  const [familyMatches, setFamilyMatches] = useState([]);
+  const [linkedFamily, setLinkedFamily] = useState([]);
   const [saving, setSaving] = useState(false);
   const [onboardStatus, setOnboardStatus] = useState('');
+  const [confirmSkipKids, setConfirmSkipKids] = useState(false);
+
+  const pinMismatch = confirmPin.length > 0 && pin !== confirmPin;
 
   const handleRequestCode = async () => {
     setLoading(true);
@@ -119,7 +126,7 @@ function LoginPage() {
     try {
       await authApi.requestCode(phone);
       clearTimeout(wakeTimer);
-      setCode(phone); // dev: code matches phone
+      setCode(phone);
       setAuthStep(2);
       setAuthStatus('Code sent! For this build, the code matches your phone number.');
     } catch (err) {
@@ -149,37 +156,105 @@ function LoginPage() {
     }
   };
 
+  const nextOnboard = () => {
+    if (onboardStep < 4) {
+      setOnboardStep(s => s + 1);
+      setOnboardStatus('');
+    } else {
+      navigate(getLandingRoute(loggedInUser), { replace: true });
+    }
+  };
+
+  const savePin = async () => {
+    if (!/^\d{4}$/.test(pin) || !/^\d{4}$/.test(confirmPin)) {
+      setOnboardStatus('PIN must be 4 digits.');
+      return;
+    }
+    if (pin !== confirmPin) {
+      setOnboardStatus('PINs do not match.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await userApi.updatePin(pin);
+      nextOnboard();
+    } catch (e) {
+      setOnboardStatus(e.response?.data?.error || 'Failed to save PIN.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveName = async () => {
     if (!name.trim()) return nextOnboard();
     setSaving(true);
     try {
       await userApi.updateProfile({ name: name.trim() });
-    } catch { /* ignore */ }
+    } catch {}
     finally { setSaving(false); }
     nextOnboard();
   };
 
   const addKid = async () => {
     if (!newKid.name.trim()) return;
+    if (!/^\d{4}$/.test(newKid.kidPin || '0000')) {
+      setOnboardStatus('Kid PIN must be 4 digits.');
+      return;
+    }
     setSaving(true);
     try {
-      const created = await userApi.createKid({ name: newKid.name.trim(), spendingLimit: newKid.limit ? Number(newKid.limit) : null });
+      const created = await userApi.createKid({
+        name: newKid.name.trim(),
+        spendingLimit: newKid.limit ? Number(newKid.limit) : null,
+        pin: newKid.kidPin || '0000',
+      });
       setKids(prev => [...prev, created]);
-      setNewKid({ name: '', limit: '' });
+      setNewKid({ name: '', limit: '', kidPin: '0000' });
       setOnboardStatus('');
+      setConfirmSkipKids(false);
     } catch (e) {
       setOnboardStatus(e.response?.data?.error || 'Failed to add kid.');
     } finally { setSaving(false); }
   };
 
-  const nextOnboard = () => {
-    if (onboardStep < 2) { setOnboardStep(s => s + 1); setOnboardStatus(''); }
-    else { navigate(getLandingRoute(loggedInUser), { replace: true }); }
+  const handleKidsContinue = () => {
+    if (kids.length > 0) {
+      nextOnboard();
+      return;
+    }
+    setConfirmSkipKids(true);
+  };
+
+  const handleFamilySearch = async (value) => {
+    setFamilyQuery(value);
+    if (value.trim().length < 2) {
+      setFamilyMatches([]);
+      return;
+    }
+    try {
+      const matches = await stallsApi.searchUsers(value.trim());
+      setFamilyMatches(matches.filter(u => !u.isKid && !linkedFamily.some(member => member.userId === u.userId)));
+    } catch {
+      setFamilyMatches([]);
+    }
+  };
+
+  const handleLinkFamily = async (selected) => {
+    setSaving(true);
+    setOnboardStatus('');
+    try {
+      await userApi.linkFamily({ phone: selected.phone });
+      setLinkedFamily(prev => prev.some(member => member.userId === selected.userId) ? prev : [...prev, selected]);
+      setFamilyQuery('');
+      setFamilyMatches([]);
+    } catch (e) {
+      setOnboardStatus(e.response?.data?.error || 'Failed to link family member.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const finishOnboarding = () => navigate(getLandingRoute(loggedInUser), { replace: true });
-
-  /* ── Render ── */
 
   if (onboarding) {
     return (
@@ -189,13 +264,43 @@ function LoginPage() {
           <div style={{ fontSize: '1.5rem', fontWeight: 900, color: DEEP }}>CarnivalCash</div>
         </div>
         <div style={card}>
-          <ProgressDots current={onboardStep} total={3} />
+          <ProgressDots current={onboardStep} total={5} />
 
-          {/* Step 0: Name */}
           {onboardStep === 0 && (
             <>
               <div>
-                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>👋 Welcome!</div>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>🔐 Set your PIN</div>
+                <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Default is 0000 · You'll need this for all payments</div>
+              </div>
+              <input
+                autoFocus
+                style={inp}
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="e.g. 0000"
+                value={pin}
+                onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              />
+              <input
+                style={inp}
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="Confirm PIN"
+                value={confirmPin}
+                onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                onKeyDown={e => e.key === 'Enter' && savePin()}
+              />
+              {pinMismatch && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>PINs do not match.</p>}
+              <button style={primaryBtn} onClick={savePin} disabled={saving}>
+                {saving ? 'Saving…' : 'Continue →'}
+              </button>
+            </>
+          )}
+
+          {onboardStep === 1 && (
+            <>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>👋 What's your name?</div>
                 <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Let's set up your profile. What should we call you?</div>
               </div>
               <input
@@ -213,8 +318,7 @@ function LoginPage() {
             </>
           )}
 
-          {/* Step 1: Kids */}
-          {onboardStep === 1 && (
+          {onboardStep === 2 && (
             <>
               <div>
                 <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>👦 Add your kids</div>
@@ -232,17 +336,66 @@ function LoginPage() {
               <div style={{ display: 'grid', gap: '0.5rem', background: '#f9fafb', borderRadius: '0.85rem', padding: '0.85rem' }}>
                 <input style={inp} placeholder="Kid's name" value={newKid.name} onChange={e => setNewKid(n => ({ ...n, name: e.target.value }))} />
                 <input style={inp} placeholder="Token limit (optional)" type="number" value={newKid.limit} onChange={e => setNewKid(n => ({ ...n, limit: e.target.value }))} />
+                <div style={{ color: '#6b7280', fontSize: '0.82rem' }}>Tip: use their birth year as PIN, e.g. 2015</div>
+                <input style={inp} placeholder="Kid PIN" inputMode="numeric" maxLength={4} value={newKid.kidPin} onChange={e => setNewKid(n => ({ ...n, kidPin: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
                 <button style={{ ...primaryBtn, background: '#f3f4f6', color: '#374151', boxShadow: 'none' }} onClick={addKid} disabled={saving || !newKid.name.trim()}>
                   {saving ? 'Adding…' : '+ Add Kid'}
                 </button>
               </div>
-              {onboardStatus && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>{onboardStatus}</p>}
-              <button style={primaryBtn} onClick={nextOnboard}>{kids.length > 0 ? 'Done, Continue →' : 'Skip for now'}</button>
+              {confirmSkipKids && kids.length === 0 && (
+                <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '0.85rem', padding: '0.85rem', display: 'grid', gap: '0.65rem' }}>
+                  <div style={{ color: '#92400e', fontSize: '0.88rem', fontWeight: 600 }}>⚠️ Are you sure you want to skip adding kids? You can add them later from your profile.</div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button style={{ ...primaryBtn, margin: 0 }} onClick={() => { setConfirmSkipKids(false); nextOnboard(); }}>Yes, skip</button>
+                    <button style={{ ...primaryBtn, margin: 0, background: '#f3f4f6', color: '#374151', boxShadow: 'none' }} onClick={() => setConfirmSkipKids(false)}>Add a kid</button>
+                  </div>
+                </div>
+              )}
+              <button style={primaryBtn} onClick={handleKidsContinue}>{kids.length > 0 ? 'Done, Continue →' : 'Continue →'}</button>
+              <button style={skipBtn} onClick={() => setConfirmSkipKids(true)}>Skip for now</button>
             </>
           )}
 
-          {/* Step 2: Tips */}
-          {onboardStep === 2 && (
+          {onboardStep === 3 && (
+            <>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>🔗 Link your family</div>
+                <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Search by name or phone to connect your household.</div>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  autoFocus
+                  style={inp}
+                  placeholder="Type a name or phone number…"
+                  value={familyQuery}
+                  onChange={e => handleFamilySearch(e.target.value)}
+                />
+                {familyMatches.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.35rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.85rem', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', maxHeight: '200px', overflowY: 'auto', zIndex: 10 }}>
+                    {familyMatches.map(match => (
+                      <button key={match.userId} type="button" onClick={() => handleLinkFamily(match)} style={{ width: '100%', textAlign: 'left', padding: '0.75rem 0.9rem', border: 'none', background: '#fff', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}>
+                        <strong>{match.name || '—'}</strong>
+                        <span style={{ color: '#6b7280', marginLeft: '0.45rem', fontSize: '0.85rem' }}>{match.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {linkedFamily.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  {linkedFamily.map(member => (
+                    <div key={member.userId} style={{ background: '#d1fae5', color: '#065f46', borderRadius: '999px', padding: '0.4rem 0.75rem', fontSize: '0.85rem', fontWeight: 700 }}>
+                      ✅ {member.name || member.phone}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button style={primaryBtn} onClick={nextOnboard}>Done, Continue →</button>
+              <button style={skipBtn} onClick={nextOnboard}>Skip for now</button>
+            </>
+          )}
+
+          {onboardStep === 4 && (
             <>
               <div>
                 <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>🎪 You're all set!</div>
@@ -268,6 +421,12 @@ function LoginPage() {
               <button style={primaryBtn} onClick={finishOnboarding}>🎡 Let's go!</button>
             </>
           )}
+
+          {onboardStatus && (
+            <p style={{ margin: 0, padding: '0.6rem 0.9rem', background: '#fffbeb', color: '#92400e', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
+              {onboardStatus}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -275,7 +434,6 @@ function LoginPage() {
 
   return (
     <div style={pageStyle}>
-      {/* Hero */}
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>🎡</div>
         <div style={{ fontSize: '2rem', fontWeight: 900, color: DEEP, marginTop: '0.4rem', letterSpacing: '-0.5px' }}>CarnivalCash</div>
@@ -337,13 +495,8 @@ function LoginPage() {
           </p>
         )}
       </div>
-
-      <p style={{ color: '#b45309', fontSize: '0.8rem', marginTop: '1.5rem', textAlign: 'center', opacity: 0.7 }}>
-        🔒 Phone-based login · No password needed
-      </p>
     </div>
   );
 }
 
 export default LoginPage;
-

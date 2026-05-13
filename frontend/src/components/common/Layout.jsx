@@ -187,7 +187,7 @@ function TokensPanel() {
         </div>
         <div>
           <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>PIN</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#78350f' }}>{balance?.birthYear ?? '0000'}</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#78350f' }}>{balance?.pin ?? '0000'}</div>
         </div>
         <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>📱 {user?.phone}</div>
       </div>

@@ -41,6 +41,18 @@ const adminApi = {
     const response = await api.get('/api/admin/audit');
     return response.data;
   },
+  async browseFiles(path = '') {
+    const response = await api.get('/api/admin/files', { params: path ? { path } : {} });
+    return response.data;
+  },
+  async resetTokens(code) {
+    const response = await api.post('/api/admin/reset-tokens', { code });
+    return response.data;
+  },
+  async deleteUser(userId, code) {
+    const response = await api.delete(`/api/admin/users/${userId}`, { data: { code } });
+    return response.data;
+  },
 };
 
 export default adminApi;

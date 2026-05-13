@@ -1,0 +1,28 @@
+{
+  "stallId": "20260512_stall_0001",
+  "stallName": "Coin toss",
+  "stallType": "game",
+  "tokensPerItem": 2,
+  "description": "Coin toss",
+  "members": [
+    "202605100000000002"
+  ],
+  "stallAdmins": [
+    "202605100000000002"
+  ],
+  "memberNames": {
+    "202605100000000002": "kishore pendyala"
+  },
+  "createdBy": "202605100000000002",
+  "createdAt": "2026-05-13T00:31:15Z",
+  "tokenBalance": 0,
+  "items": [],
+  "joinRequests": [],
+  "charities": [
+    {
+      "charityId": "ch_9b3aa50f8503",
+      "name": "St Jude",
+      "percentage": 100
+    }
+  ]
+}

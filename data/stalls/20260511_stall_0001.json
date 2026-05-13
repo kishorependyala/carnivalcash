@@ -19,6 +19,13 @@
   "createdBy": "202605100000000002",
   "createdAt": "2026-05-11T23:09:07Z",
   "tokenBalance": 0,
-  "items": [],
+  "items": [
+    {
+      "itemId": "36d27922-2e69-474a-8f7a-e8b363aed8e5",
+      "name": "ice gola - two toppings",
+      "tokenPrice": 3,
+      "active": true
+    }
+  ],
   "joinRequests": []
 }

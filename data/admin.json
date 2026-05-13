@@ -16,6 +16,33 @@
         "eventId": "c0c08688-9186-46af-b0f3-cc86636608c5",
         "status": "open"
       }
+    },
+    {
+      "timestamp": "2026-05-12T22:52:52Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605110000000001",
+        "phone": "404-450-4937"
+      }
+    },
+    {
+      "timestamp": "2026-05-12T22:53:03Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605110000000002",
+        "phone": "732-718-4414"
+      }
+    },
+    {
+      "timestamp": "2026-05-12T22:53:09Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605100000000001",
+        "phone": "5551234567"
+      }
     }
   ]
 }

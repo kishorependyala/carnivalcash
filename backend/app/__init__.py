@@ -15,22 +15,37 @@ from .blueprints.user import user_bp
 from .blueprints.vendor import vendor_bp
 
 SWAGGER_CONFIG = {
-    'title': 'CarnivalCash API',
     'uiversion': 3,
-    'version': '1.0.0',
-    'description': (
-        'Digital token system for carnival donation events. '
-        'Authenticate via POST /api/auth/verify to get a JWT, '
-        'then use it as a Bearer token in the Authorize dialog.'
-    ),
-    'termsOfService': '',
+    'openapi': '3.0.3',
     'specs_route': '/apidocs/',
-    'securityDefinitions': {
-        'BearerAuth': {
-            'type': 'apiKey',
-            'in': 'header',
-            'name': 'Authorization',
-            'description': 'Enter: **Bearer &lt;your_token&gt;**',
+    'specs': [{
+        'endpoint': 'apispec_1',
+        'route': '/apispec_1.json',
+        'rule_filter': lambda rule: True,
+        'model_filter': lambda tag: True,
+    }],
+    'static_url_path': '/flasgger_static',
+    'swagger_ui': True,
+}
+
+SWAGGER_TEMPLATE = {
+    'openapi': '3.0.3',
+    'info': {
+        'title': 'CarnivalCash API',
+        'version': '1.0.0',
+        'description': (
+            'Digital token system for carnival donation events. '
+            'Authenticate via POST /api/auth/verify to get a JWT, '
+            'then use it as a Bearer token in the Authorize dialog.'
+        ),
+    },
+    'components': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            }
         }
     },
     'security': [{'BearerAuth': []}],
@@ -41,7 +56,7 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
 
-    Swagger(app, config=SWAGGER_CONFIG, merge=True)
+    Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE, merge=True)
 
     @app.get('/')
     def index():

@@ -448,7 +448,7 @@ function Layout({ children }) {
             <div>
               <div style={{ fontSize: '1.35rem', fontWeight: 800 }}>🎪 CarnivalCash</div>
               <div style={{ opacity: 0.9, fontSize: '0.9rem' }}>
-                {user ? `${user.name || ''} ${user.phone || ''}`.trim() : 'Carnival donations made easy'}
+                {user ? '' : 'Carnival donations made easy'}
               </div>
             </div>
           </div>

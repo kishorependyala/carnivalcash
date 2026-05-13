@@ -13,7 +13,28 @@ stats_bp = Blueprint('stats', __name__)
 @stats_bp.get('/api/stats')
 @require_auth
 def get_stats():
-    """Return aggregate event statistics."""
+    """
+    Return aggregate event statistics.
+    ---
+    tags: [Stats]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Stats summary
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                totalUsers: {type: integer}
+                totalStalls: {type: integer}
+                totalTransactions: {type: integer}
+                tokensInCirculation: {type: integer}
+                stallTokensEarned: {type: integer}
+                charityTokensDonated: {type: integer}
+                topStalls: {type: array, items: {type: object}}
+                topCharities: {type: array, items: {type: object}}
+    """
     profiles = list_profiles()
     stalls = list_stalls()
     charities = list_charities()

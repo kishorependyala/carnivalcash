@@ -30,13 +30,46 @@ def _save(events):
 @events_bp.get('/api/events')
 @require_auth
 def list_events():
+    """
+    List all events sorted by scheduled time.
+    ---
+    tags: [Events]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of events
+    """
     return jsonify(sorted(_load(), key=lambda event: event.get('scheduledFor', event.get('createdAt', ''))))
 
 
 @events_bp.post('/api/events')
 @require_auth
 def create_event():
-    """Admin only: create an announcement or schedule item."""
+    """
+    Create an announcement or schedule item. Admin only.
+    ---
+    tags: [Events]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [title]
+            properties:
+              title: {type: string, example: "Gates open at 10am"}
+              description: {type: string, example: "Main entrance only"}
+              type: {type: string, enum: [announcement, schedule], example: announcement}
+              scheduledFor: {type: string, example: "2026-06-01T10:00:00Z"}
+    responses:
+      201:
+        description: Event created
+      400:
+        description: title is required
+      403:
+        description: Admin only
+    """
     if 'admin' not in (g.user.get('roles') or []):
         return jsonify({'error': 'Admin only'}), 403
 
@@ -63,6 +96,22 @@ def create_event():
 @events_bp.delete('/api/events/<event_id>')
 @require_auth
 def delete_event(event_id):
+    """
+    Delete an event. Admin only.
+    ---
+    tags: [Events]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: event_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: Deleted
+      403:
+        description: Admin only
+    """
     if 'admin' not in (g.user.get('roles') or []):
         return jsonify({'error': 'Admin only'}), 403
 

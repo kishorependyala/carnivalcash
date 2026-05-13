@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from config import get_data_dir
@@ -47,6 +48,16 @@ def find_profile_by_phone(phone):
 def save_profile(user_id, data):
     ensure_dir(profiles_dir())
     return write_json(profiles_dir() / f'{user_id}.json', data)
+
+
+def delete_profile(user_id):
+    """Remove a user's profile file and all their user-side data."""
+    profile_file = profiles_dir() / f'{user_id}.json'
+    if profile_file.exists():
+        profile_file.unlink()
+    user_data = users_dir() / user_id
+    if user_data.exists():
+        shutil.rmtree(user_data)
 
 
 def archive_profile(user_id, timestamp, data):

@@ -1,10 +1,14 @@
 from datetime import datetime, timezone
+from pathlib import Path
 from uuid import uuid4
+import json
 
 from flask import Blueprint, g, jsonify, request
 
 from app.storage.admin_store import get_admin_data, get_event, log_admin_action, save_event
+from app.storage.stall_store import list_stalls, save_stall
 from app.storage.user_store import (
+    delete_profile,
     find_profile_by_phone,
     get_profile,
     get_vendor_items,
@@ -13,6 +17,7 @@ from app.storage.user_store import (
     save_profile,
 )
 from app.utils.auth_middleware import require_auth, require_role
+from config import DATA_DIR
 
 
 admin_bp = Blueprint('admin', __name__)
@@ -346,6 +351,50 @@ def list_users():
     ])
 
 
+@admin_bp.delete('/api/admin/users/<user_id>')
+@require_auth
+@require_role('admin')
+def delete_user(user_id):
+    """
+    Delete a user account and all associated data. Requires confirmation code.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: user_id
+        required: true
+        schema: {type: string}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code: {type: string, example: "1234567"}
+    responses:
+      200:
+        description: User deleted
+      403:
+        description: Invalid code or attempt to delete self
+      404:
+        description: User not found
+    """
+    payload = request.get_json(silent=True) or {}
+    if str(payload.get('code', '')) != RESET_CODE:
+        return jsonify({'error': 'Invalid code'}), 403
+    if user_id == g.user['userId']:
+        return jsonify({'error': 'Cannot delete your own account'}), 403
+    profile = get_profile(user_id)
+    if profile is None:
+        return jsonify({'error': 'User not found'}), 404
+    log_admin_action(g.user['userId'], 'delete_user', {'targetUserId': user_id, 'phone': profile.get('phone')})
+    delete_profile(user_id)
+    return jsonify({'deleted': user_id})
+
+
 @admin_bp.get('/api/admin/vendors')
 @require_auth
 @require_role('admin')
@@ -395,3 +444,130 @@ def get_audit_log():
     data = get_admin_data()
     log = list(reversed(data.get('auditLog', [])))[:100]
     return jsonify(log)
+
+
+@admin_bp.get('/api/admin/files')
+@require_auth
+@require_role('admin')
+def browse_files():
+    """
+    Browse data directory files and folders.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: query
+        name: path
+        schema: {type: string}
+        description: Relative path within the data directory
+    responses:
+      200:
+        description: Directory listing or file content
+      400:
+        description: Invalid path
+      404:
+        description: Path not found
+    """
+    rel = request.args.get('path', '').lstrip('/')
+    target = (DATA_DIR / rel).resolve() if rel else DATA_DIR.resolve()
+
+    if not str(target).startswith(str(DATA_DIR.resolve())):
+        return jsonify({'error': 'Invalid path'}), 400
+
+    if not target.exists():
+        return jsonify({'error': 'Not found'}), 404
+
+    if target.is_file():
+        try:
+            content = target.read_text(encoding='utf-8')
+        except Exception:
+            content = '<binary file>'
+        return jsonify({
+            'type': 'file',
+            'name': target.name,
+            'path': str(target.relative_to(DATA_DIR)),
+            'size': target.stat().st_size,
+            'content': content,
+        })
+
+    items = []
+    for item in sorted(target.iterdir(), key=lambda p: (p.is_file(), p.name)):
+        if item.suffix == '.lock':
+            continue
+        items.append({
+            'name': item.name,
+            'type': 'dir' if item.is_dir() else 'file',
+            'path': str(item.relative_to(DATA_DIR)),
+            'size': item.stat().st_size if item.is_file() else None,
+        })
+
+    return jsonify({
+        'type': 'dir',
+        'path': str(target.relative_to(DATA_DIR)) if target != DATA_DIR.resolve() else '',
+        'items': items,
+    })
+
+
+RESET_CODE = '1234567'
+
+
+@admin_bp.post('/api/admin/reset-tokens')
+@require_auth
+@require_role('admin')
+def reset_tokens():
+    """
+    Reset all user and stall token balances to zero, archiving a snapshot first.
+    Requires a confirmation code.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code: {type: string, example: "1234567"}
+    responses:
+      200:
+        description: Reset complete, archive path returned
+      403:
+        description: Invalid code
+    """
+    payload = request.get_json(silent=True) or {}
+    if str(payload.get('code', '')) != RESET_CODE:
+        return jsonify({'error': 'Invalid code'}), 403
+
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+    archive_dir = DATA_DIR / 'archive' / timestamp
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    # Snapshot & reset users
+    profiles = list_profiles()
+    (archive_dir / 'users.json').write_text(json.dumps(profiles, indent=2), encoding='utf-8')
+    for profile in profiles:
+        if 'tokenBalance' in profile:
+            profile['tokenBalance'] = 0
+            save_profile(profile['userId'], profile)
+
+    # Snapshot & reset stalls
+    stalls = list_stalls()
+    (archive_dir / 'stalls.json').write_text(json.dumps(stalls, indent=2), encoding='utf-8')
+    for stall in stalls:
+        if 'tokenBalance' in stall:
+            stall['tokenBalance'] = 0
+            save_stall(stall['stallId'], stall)
+
+    log_admin_action(g.user['userId'], 'reset_tokens', {
+        'archive': timestamp,
+        'usersReset': len(profiles),
+        'stallsReset': len(stalls),
+    })
+
+    return jsonify({
+        'archive': timestamp,
+        'usersReset': len(profiles),
+        'stallsReset': len(stalls),
+    })

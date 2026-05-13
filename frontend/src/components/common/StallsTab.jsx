@@ -268,22 +268,22 @@ function MemberAdder({ stallId, onUpdated }) {
 
 export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
   const [stall, setStall] = useState(initialStall);
-  const [expanded, setExpanded] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState({});
   const [txns, setTxns] = useState([]);
   const [showTxns, setShowTxns] = useState(false);
   const [orders, setOrders] = useState([]);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
-  const [newItem, setNewItem] = useState({ name: '', tokenPrice: initialStall.tokensPerItem });
-  const [addingItem, setAddingItem] = useState(false);
   const [status, setStatus] = useState('');
   const [joinRequests, setJoinRequests] = useState([]);
   const [joinRequestsLoaded, setJoinRequestsLoaded] = useState(false);
-  const [joinRequestsLoading, setJoinRequestsLoading] = useState(false);
+  const [showManage, setShowManage] = useState(false);
+  const [manageSection, setManageSection] = useState('details'); // 'details'|'members'|'items'
+  const [form, setForm] = useState({});
+  const [newItem, setNewItem] = useState({ name: '', tokenPrice: initialStall.tokensPerItem });
+  const [manageStatus, setManageStatus] = useState('');
   const typeMeta = TYPE_META[stall.stallType] || {};
   const isCreator = stall.createdBy === myUserId;
   const isAdmin = (stall.stallAdmins || []).includes(myUserId);
+  const canManage = isCreator || isAdmin;
 
   useEffect(() => {
     setStall(initialStall);
@@ -293,374 +293,272 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
   }, [initialStall]);
 
   useEffect(() => {
-    if (!expanded || joinRequestsLoaded) {
-      return;
-    }
-    setJoinRequestsLoading(true);
+    if (joinRequestsLoaded) return;
     stallsApi.listJoinRequests(stall.stallId)
-      .then((requests) => {
-        setJoinRequests(requests);
-        setJoinRequestsLoaded(true);
-      })
-      .catch(() => {
-        setStatus('Failed to load join requests.');
-      })
-      .finally(() => setJoinRequestsLoading(false));
-  }, [expanded, joinRequestsLoaded, stall.stallId]);
+      .then((requests) => { setJoinRequests(requests); setJoinRequestsLoaded(true); })
+      .catch(() => {});
+  }, [joinRequestsLoaded, stall.stallId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!expanded || ordersLoaded || !isAdmin) {
-      return;
-    }
+    if (ordersLoaded || !isAdmin) return;
     stallsApi.getStallOrders(stall.stallId)
-      .then((result) => {
-        setOrders(result);
-        setOrdersLoaded(true);
-      })
-      .catch(() => {
-        setStatus('Failed to load orders.');
-      });
-  }, [expanded, ordersLoaded, isAdmin, stall.stallId]);
+      .then((result) => { setOrders(result); setOrdersLoaded(true); })
+      .catch(() => {});
+  }, [ordersLoaded, isAdmin, stall.stallId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startEdit = () => {
-    setForm({
-      stallName: stall.stallName,
-      stallType: stall.stallType,
-      tokensPerItem: stall.tokensPerItem,
-      description: stall.description,
-      charities: stall.charities || [],
-    });
-    setEditMode(true);
+  const openManage = () => {
+    setForm({ stallName: stall.stallName, stallType: stall.stallType, tokensPerItem: stall.tokensPerItem, description: stall.description, charities: stall.charities || [] });
+    setManageStatus('');
+    setManageSection('details');
+    setShowManage(true);
   };
 
-  const saveEdit = async () => {
+  const saveDetails = async () => {
     try {
       const updated = await stallsApi.update(stall.stallId, { ...form, tokensPerItem: Number(form.tokensPerItem) });
       setStall(updated);
-      setEditMode(false);
-      setStatus('');
-    } catch (error) {
-      setStatus(error.response?.data?.error || 'Save failed.');
-    }
+      setManageStatus('✅ Saved!');
+    } catch (e) { setManageStatus(e.response?.data?.error || 'Save failed.'); }
   };
 
-  const removeMember = async (userId) => {
-    try {
-      const updated = await stallsApi.removeMember(stall.stallId, userId);
-      setStall(updated);
-      setStatus('');
-    } catch (error) {
-      setStatus(error.response?.data?.error || 'Failed.');
-    }
+  const removeMember = async (uid) => {
+    try { const u = await stallsApi.removeMember(stall.stallId, uid); setStall(u); setManageStatus('Removed.'); }
+    catch (e) { setManageStatus(e.response?.data?.error || 'Failed.'); }
   };
 
-  const toggleAdmin = async (memberId, makeAdmin) => {
-    try {
-      const updated = await stallsApi.toggleAdmin(stall.stallId, memberId, makeAdmin);
-      setStall(updated);
-    } catch (error) {
-      setStatus(error.response?.data?.error || 'Failed to update admin.');
-    }
+  const toggleAdmin = async (uid, makeAdmin) => {
+    try { const u = await stallsApi.toggleAdmin(stall.stallId, uid, makeAdmin); setStall(u); }
+    catch (e) { setManageStatus(e.response?.data?.error || 'Failed.'); }
   };
 
   const addItem = async () => {
-    if (!newItem.name.trim()) {
-      return;
-    }
+    if (!newItem.name.trim()) return;
     try {
-      const updated = await stallsApi.addItem(stall.stallId, { ...newItem, tokenPrice: Number(newItem.tokenPrice) });
-      setStall(updated);
-      setNewItem({ name: '', tokenPrice: updated.tokensPerItem });
-      setAddingItem(false);
-      setStatus('');
-    } catch (error) {
-      setStatus(error.response?.data?.error || 'Failed.');
-    }
+      const u = await stallsApi.addItem(stall.stallId, { ...newItem, tokenPrice: Number(newItem.tokenPrice) });
+      setStall(u); setNewItem({ name: '', tokenPrice: u.tokensPerItem }); setManageStatus('✅ Item added.');
+    } catch (e) { setManageStatus(e.response?.data?.error || 'Failed.'); }
   };
 
   const toggleItem = async (item) => {
-    try {
-      const updated = await stallsApi.updateItem(stall.stallId, item.itemId, { active: !item.active });
-      setStall(updated);
-      setStatus('');
-    } catch (error) {
-      setStatus(error.response?.data?.error || 'Failed.');
-    }
+    try { const u = await stallsApi.updateItem(stall.stallId, item.itemId, { active: !item.active }); setStall(u); }
+    catch (e) { setManageStatus(e.response?.data?.error || 'Failed.'); }
   };
 
   const loadTxns = async () => {
-    try {
-      setTxns(await stallsApi.transactions(stall.stallId));
-      setShowTxns(true);
-      setStatus('');
-    } catch {
-      setStatus('Failed to load transactions.');
-    }
+    try { setTxns(await stallsApi.transactions(stall.stallId)); setShowTxns(true); }
+    catch { setStatus('Failed to load transactions.'); }
   };
 
   const handleJoinRequest = async (userId, action) => {
     try {
-      const updated = await stallsApi.handleJoinRequest(stall.stallId, userId, action);
-      setStall(updated);
-      setJoinRequests((updated.joinRequests || []).filter((request) => request.status === 'pending'));
+      const u = await stallsApi.handleJoinRequest(stall.stallId, userId, action);
+      setStall(u);
+      setJoinRequests((u.joinRequests || []).filter((r) => r.status === 'pending'));
       setJoinRequestsLoaded(true);
-      setStatus('');
-    } catch (error) {
-      setStatus(error.response?.data?.error || 'Failed to update join request.');
-    }
+    } catch (e) { setStatus(e.response?.data?.error || 'Failed.'); }
   };
 
   return (
-    <div style={{ ...card, gap: '0.75rem' }}>
-      <div
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }}
-        onClick={() => setExpanded((value) => !value)}
-      >
+    <div style={{ ...card, gap: '0.85rem' }}>
+
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
           <span style={{ fontSize: '1.4rem' }}>{typeMeta.icon}</span>
           <div>
-            <div style={{ fontWeight: 900 }}>{stall.stallName}</div>
-            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>🪙 {stall.tokensPerItem}/item</div>
-            <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>
-              👥 {stall.memberNames && Object.keys(stall.memberNames).length > 0
-                ? Object.values(stall.memberNames).join(', ')
-                : `${stall.members.length} member${stall.members.length !== 1 ? 's' : ''}`}
-            </div>
-            {stall.charities && stall.charities.length > 0 && (
-              <div style={{ fontSize: '0.75rem', color: '#059669' }}>
-                💝 {stall.charities.map((charity) => `${charity.name} ${charity.percentage}%`).join(' · ')}
-              </div>
-            )}
+            <div style={{ fontWeight: 900, fontSize: '1.05rem' }}>{stall.stallName}</div>
+            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>🪙 {stall.tokensPerItem}/item · {stall.members.length} member{stall.members.length !== 1 ? 's' : ''}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-          <span style={{ background: typeMeta.bg, color: typeMeta.color, borderRadius: '1rem', padding: '0.15rem 0.6rem', fontSize: '0.78rem', fontWeight: 700 }}>
-            {typeMeta.label}
-          </span>
-          <span style={{ color: '#9ca3af' }}>{expanded ? '▲' : '▼'}</span>
+          <span style={{ background: typeMeta.bg, color: typeMeta.color, borderRadius: '1rem', padding: '0.15rem 0.6rem', fontSize: '0.78rem', fontWeight: 700 }}>{typeMeta.label}</span>
+          <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: '1rem', padding: '0.15rem 0.6rem', fontSize: '0.78rem', fontWeight: 700 }}>🪙 {stall.tokenBalance || 0}</span>
+          {canManage && (
+            <button onClick={openManage} style={{ background: '#fef3c7', border: '1.5px solid #f59e0b', borderRadius: '0.65rem', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 700, color: '#92400e', fontSize: '0.82rem' }}>⚙️ Manage</button>
+          )}
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: '0.65rem', padding: '0.3rem 0.8rem', fontWeight: 700, fontSize: '0.9rem' }}>
-          🪙 {stall.tokenBalance || 0} earned
-        </span>
-        {onScanCustomer && (
-          <button onClick={() => onScanCustomer()} style={actionBtn}>
-            🛒 Create Order
+      {status && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>{status}</p>}
+
+      {/* ── Two-column: QR | Create Order ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'stretch' }}>
+        <section style={{ background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', borderRadius: '1rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxSizing: 'border-box' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#92400e' }}>📲 Stall QR</div>
+          <PrintableQR title="" qrValue={`CARNIVAL_STALL:${stall.stallId}`} subtitle={stall.stallName} />
+        </section>
+        {onScanCustomer ? (
+          <button onClick={() => onScanCustomer()} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '1rem', padding: '1.5rem 1rem', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(245,158,11,0.3)', width: '100%', boxSizing: 'border-box' }}>
+            <span style={{ fontSize: '2rem', lineHeight: 1 }}>🛒</span>
+            <span style={{ fontSize: '1.05rem', fontWeight: 800 }}>Create Order</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 400, opacity: 0.9 }}>Scan customer QR to charge</span>
           </button>
+        ) : (
+          <div style={{ background: '#f3f4f6', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.85rem' }}>Not a member</div>
         )}
       </div>
 
-      {expanded && (
-        <div style={{ display: 'grid', gap: '1rem', borderTop: '1px solid #fed7aa', paddingTop: '0.85rem' }}>
-          {status && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>{status}</p>}
+      {/* ── Members (read-only) ── */}
+      <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.65rem' }}>
+        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151', marginBottom: '0.35rem' }}>👥 Members</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          {stall.members.map((uid) => {
+            const isKid = uid.startsWith('KID:');
+            const isStallAdmin = (stall.stallAdmins || []).includes(uid);
+            const displayName = uid === myUserId ? 'You' : (stall.memberNames?.[uid] || (isKid ? uid : `…${uid.slice(-8)}`));
+            return (
+              <span key={uid} style={{ background: isStallAdmin ? '#fef3c7' : '#f3f4f6', color: isStallAdmin ? '#92400e' : '#374151', borderRadius: '999px', padding: '0.2rem 0.65rem', fontSize: '0.82rem', fontWeight: isStallAdmin ? 700 : 400 }}>
+                {isKid ? '👦' : '👤'} {displayName}{isStallAdmin ? ' 👑' : ''}
+              </span>
+            );
+          })}
+        </div>
+      </div>
 
-          <div style={{ textAlign: 'center' }}>
-            <PrintableQR title="" qrValue={`CARNIVAL_STALL:${stall.stallId}`} subtitle={`${stall.stallName} · Scan to pay`} />
+      {/* ── Join Requests ── */}
+      {joinRequests.length > 0 && (
+        <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.65rem' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151', marginBottom: '0.35rem' }}>
+            ⏳ Join Requests
+            <span style={{ background: '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.1rem 0.45rem', fontSize: '0.75rem', marginLeft: '0.4rem' }}>{joinRequests.length}</span>
           </div>
+          {joinRequests.map((req) => (
+            <div key={req.userId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', background: '#fffbeb', borderRadius: '0.65rem', padding: '0.5rem 0.75rem', marginBottom: '0.35rem' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>👤 {req.userName || req.userId}</span>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button onClick={() => handleJoinRequest(req.userId, 'approve')} style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.75rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>✓ Approve</button>
+                <button onClick={() => handleJoinRequest(req.userId, 'reject')} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.6rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-          {editMode ? (
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <input style={inp} placeholder="Stall name" value={form.stallName} onChange={(event) => setForm((current) => ({ ...current, stallName: event.target.value }))} />
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {['game', 'food'].map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setForm((current) => ({ ...current, stallType: type }))}
-                    style={{
-                      flex: 1,
-                      padding: '0.5rem',
-                      borderRadius: '0.75rem',
-                      cursor: 'pointer',
-                      border: `2px solid ${form.stallType === type ? '#f59e0b' : '#e5e7eb'}`,
-                      background: form.stallType === type ? '#fef3c7' : '#f9fafb',
-                      fontWeight: form.stallType === type ? 700 : 400,
-                    }}
-                  >
-                    {TYPE_META[type].icon} {TYPE_META[type].label}
-                  </button>
+      {/* ── Open Orders (admin) ── */}
+      {isAdmin && orders.filter(o => o.status === 'pending' || o.status === 'ready').length > 0 && (
+        <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.65rem' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151', marginBottom: '0.35rem' }}>
+            📋 Open Orders
+            <span style={{ background: '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.1rem 0.45rem', fontSize: '0.75rem', marginLeft: '0.4rem' }}>{orders.filter(o => o.status === 'pending').length}</span>
+          </div>
+          {orders.filter(o => o.status === 'pending' || o.status === 'ready').map((order, idx) => {
+            const isReady = order.status === 'ready';
+            return (
+              <div key={order.orderId} style={{ background: isReady ? '#d1fae5' : '#fffbeb', border: `1px solid ${isReady ? '#6ee7b7' : '#fed7aa'}`, borderRadius: '0.75rem', padding: '0.65rem', marginBottom: '0.35rem', display: 'grid', gap: '0.3rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>#{idx + 1} · {order.kidName ? `${order.kidName} (via ${order.userName})` : order.userName}</span>
+                  <span style={{ background: isReady ? '#059669' : '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.15rem 0.5rem', fontSize: '0.75rem', fontWeight: 700 }}>{isReady ? 'Ready' : 'Pending'}</span>
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>{order.items.map(i => `${i.itemName} × ${i.qty}`).join(', ')} · 🪙 {order.totalTokens}</div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {!isReady && <button onClick={async () => { const u = await stallsApi.updateOrder(stall.stallId, order.orderId, 'ready'); setOrders(p => p.map(o => o.orderId === order.orderId ? u : o)); }} style={{ flex: 1, background: '#059669', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.4rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>{stall.stallType === 'game' ? 'Your Turn 🎯' : 'Ready 🍕'}</button>}
+                  <button onClick={async () => { await stallsApi.updateOrder(stall.stallId, order.orderId, 'complete'); setOrders(p => p.filter(o => o.orderId !== order.orderId)); }} style={{ flex: 1, background: '#374151', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.4rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>✓ Complete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Transactions ── */}
+      <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.65rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151' }}>Transactions</div>
+          {!showTxns && <button onClick={loadTxns} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem' }}>Load</button>}
+        </div>
+        {showTxns && txns.length === 0 && <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>No transactions yet.</p>}
+        {showTxns && txns.map((tx) => (
+          <div key={`${tx.txId}-${tx.itemId}`} style={{ background: '#fffbeb', borderRadius: '0.65rem', padding: '0.4rem 0.7rem', fontSize: '0.82rem', marginTop: '0.25rem' }}>
+            <div style={{ fontWeight: 700 }}>{tx.userName} · {tx.itemName} × {tx.qty}</div>
+            <div style={{ color: '#b45309' }}>🪙 {tx.amount} <span style={{ color: '#9ca3af', fontSize: '0.75rem', marginLeft: '0.4rem' }}>{tx.timestamp}</span></div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Manage Modal ── */}
+      {showManage && (
+        <div onClick={() => setShowManage(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '1.5rem 1.5rem 0 0', width: '100%', maxWidth: '560px', padding: '1.5rem 1.25rem 6rem', maxHeight: '85vh', overflowY: 'auto', boxSizing: 'border-box', boxShadow: '0 -4px 32px rgba(0,0,0,0.18)' }}>
+            <div style={{ width: '2.5rem', height: '4px', background: '#e5e7eb', borderRadius: '2px', margin: '0 auto 1.25rem' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#92400e' }}>⚙️ Manage: {stall.stallName}</div>
+              <button onClick={() => setShowManage(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#6b7280' }}>✕</button>
+            </div>
+            {/* Section tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              {[['details','✏️ Details'],['members','👥 Members'],['items','🛍 Items']].map(([key, label]) => (
+                <button key={key} onClick={() => { setManageSection(key); setManageStatus(''); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', background: manageSection === key ? 'linear-gradient(135deg,#f59e0b,#d97706)' : '#f3f4f6', color: manageSection === key ? '#fff' : '#374151' }}>{label}</button>
+              ))}
+            </div>
+            {manageStatus && <p style={{ margin: '0 0 1rem', padding: '0.6rem 1rem', background: '#fffbeb', color: '#92400e', borderRadius: '0.75rem', fontSize: '0.88rem' }}>{manageStatus}</p>}
+
+            {/* Details */}
+            {manageSection === 'details' && (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <label style={{ display: 'grid', gap: '0.3rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>Stall Name<input style={inp} value={form.stallName} onChange={(e) => setForm(f => ({ ...f, stallName: e.target.value }))} /></label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {['game', 'food'].map((type) => (
+                    <button key={type} type="button" onClick={() => setForm(f => ({ ...f, stallType: type }))} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.75rem', cursor: 'pointer', border: `2px solid ${form.stallType === type ? '#f59e0b' : '#e5e7eb'}`, background: form.stallType === type ? '#fef3c7' : '#f9fafb', fontWeight: form.stallType === type ? 700 : 400 }}>
+                      {TYPE_META[type].icon} {TYPE_META[type].label}
+                    </button>
+                  ))}
+                </div>
+                <label style={{ display: 'grid', gap: '0.3rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>Tokens per item<input type="number" style={inp} value={form.tokensPerItem} onChange={(e) => setForm(f => ({ ...f, tokensPerItem: e.target.value }))} /></label>
+                <label style={{ display: 'grid', gap: '0.3rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>Description<textarea style={{ ...inp, minHeight: '3rem', resize: 'vertical' }} value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} /></label>
+                <CharityConfig charities={form.charities} onChange={(v) => setForm(f => ({ ...f, charities: v }))} />
+                <button onClick={saveDetails} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>Save Changes</button>
+              </div>
+            )}
+
+            {/* Members */}
+            {manageSection === 'members' && (
+              <div style={{ display: 'grid', gap: '0.65rem' }}>
+                {stall.members.map((uid) => {
+                  const isKid = uid.startsWith('KID:');
+                  const isStallAdmin = (stall.stallAdmins || []).includes(uid);
+                  const displayName = uid === myUserId ? 'You' : (stall.memberNames?.[uid] || (isKid ? uid : `…${uid.slice(-8)}`));
+                  return (
+                    <div key={uid} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', borderRadius: '0.75rem', padding: '0.6rem 0.85rem' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{isKid ? '👦' : '👤'} {displayName}{isStallAdmin ? ' 👑' : ''}</span>
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        {isCreator && uid !== stall.createdBy && <button onClick={() => toggleAdmin(uid, !isStallAdmin)} style={{ background: '#fef3c7', border: 'none', borderRadius: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#92400e', fontWeight: 600 }}>{isStallAdmin ? 'Revoke 👑' : 'Make 👑'}</button>}
+                        {(isCreator || uid === myUserId) && uid !== stall.createdBy && <button onClick={() => removeMember(uid)} style={{ background: '#fee2e2', border: 'none', borderRadius: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#dc2626', fontWeight: 600 }}>Remove</button>}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{ marginTop: '0.25rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.4rem', color: '#374151' }}>➕ Add Member</div>
+                  <MemberAdder stallId={stall.stallId} onUpdated={setStall} />
+                </div>
+              </div>
+            )}
+
+            {/* Items */}
+            {manageSection === 'items' && (
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                {stall.items.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.85rem', margin: 0 }}>Default: {stall.tokensPerItem} token{stall.tokensPerItem !== 1 ? 's' : ''}/item. Add named items below.</p>}
+                {stall.items.map((item) => (
+                  <div key={item.itemId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f9fafb', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', opacity: item.active ? 1 : 0.5 }}>
+                    <span><span style={{ fontWeight: 600 }}>{item.name}</span><span style={{ color: '#b45309', marginLeft: '0.4rem', fontSize: '0.85rem' }}>🪙 {item.tokenPrice}</span></span>
+                    <button onClick={() => toggleItem(item)} style={{ background: item.active ? '#fee2e2' : '#d1fae5', border: 'none', borderRadius: '0.5rem', padding: '0.25rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', color: item.active ? '#dc2626' : '#059669', fontWeight: 600 }}>{item.active ? 'Disable' : 'Enable'}</button>
+                  </div>
                 ))}
-              </div>
-              <input type="number" style={inp} placeholder="Tokens per item" value={form.tokensPerItem} onChange={(event) => setForm((current) => ({ ...current, tokensPerItem: event.target.value }))} />
-              <textarea style={{ ...inp, minHeight: '3rem', resize: 'vertical' }} placeholder="Description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
-              <CharityConfig charities={form.charities} onChange={(value) => setForm((current) => ({ ...current, charities: value }))} />
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={saveEdit} style={{ ...actionBtn, flex: 1 }}>Save</button>
-                <button onClick={() => setEditMode(false)} style={{ flex: 1, background: '#f3f4f6', border: 'none', borderRadius: '0.65rem', padding: '0.6rem', cursor: 'pointer' }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{ fontSize: '0.9rem', color: '#374151' }}>
-                {stall.description || <em style={{ color: '#9ca3af' }}>No description</em>}
-              </div>
-              <button onClick={startEdit} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontWeight: 700, flexShrink: 0 }}>✏️ Edit</button>
-            </div>
-          )}
-
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <div style={{ fontWeight: 700 }}>Items</div>
-              <button onClick={() => setAddingItem((value) => !value)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontWeight: 700 }}>
-                {addingItem ? 'Cancel' : '+ Add Item'}
-              </button>
-            </div>
-            {stall.items.length === 0 && (
-              <div style={{ color: '#9ca3af', fontSize: '0.85rem' }}>
-                Default: {stall.tokensPerItem} token{stall.tokensPerItem !== 1 ? 's' : ''} per item. Add named sub-items optionally.
-              </div>
-            )}
-            {stall.items.map((item) => (
-              <div key={item.itemId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid #f3f4f6', opacity: item.active ? 1 : 0.45 }}>
-                <div>
-                  <span style={{ fontWeight: 600 }}>{item.name}</span>
-                  <span style={{ color: '#b45309', fontSize: '0.85rem', marginLeft: '0.4rem' }}>🪙 {item.tokenPrice}</span>
-                </div>
-                <button onClick={() => toggleItem(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#6b7280' }}>
-                  {item.active ? 'Disable' : 'Enable'}
-                </button>
-              </div>
-            ))}
-            {addingItem && (
-              <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.5rem' }}>
-                <input style={inp} placeholder="Item name" value={newItem.name} onChange={(event) => setNewItem((current) => ({ ...current, name: event.target.value }))} />
-                <input type="number" style={inp} placeholder="Token price" value={newItem.tokenPrice} onChange={(event) => setNewItem((current) => ({ ...current, tokenPrice: event.target.value }))} />
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={addItem} style={{ ...actionBtn, flex: 1 }}>Add</button>
-                  <button onClick={() => setAddingItem(false)} style={{ flex: 1, background: '#f3f4f6', border: 'none', borderRadius: '0.65rem', padding: '0.5rem', cursor: 'pointer' }}>Cancel</button>
+                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', display: 'grid', gap: '0.4rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151' }}>➕ New Item</div>
+                  <input style={inp} placeholder="Item name" value={newItem.name} onChange={(e) => setNewItem(n => ({ ...n, name: e.target.value }))} />
+                  <input type="number" style={inp} placeholder="Token price" value={newItem.tokenPrice} onChange={(e) => setNewItem(n => ({ ...n, tokenPrice: e.target.value }))} />
+                  <button onClick={addItem} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>Add Item</button>
                 </div>
               </div>
             )}
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Members</div>
-            {stall.members.map((uid) => {
-              const isKid = uid.startsWith('KID:');
-              const isStallAdmin = (stall.stallAdmins || []).includes(uid);
-              const displayName = uid === myUserId ? 'You' : (stall.memberNames?.[uid] || (isKid ? uid : `…${uid.slice(-8)}`));
-              return (
-                <div key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0' }}>
-                  <span style={{ fontSize: '0.9rem' }}>
-                    {isKid ? '👦' : '👤'} {displayName} {isStallAdmin && <span style={{ background: '#fef3c7', color: '#92400e', borderRadius: '0.5rem', padding: '0.1rem 0.4rem', fontSize: '0.75rem', fontWeight: 700 }}>👑 Admin</span>}
-                  </span>
-                  <div style={{ display: 'flex', gap: '0.4rem' }}>
-                    {isCreator && uid !== stall.createdBy && (
-                      <button onClick={() => toggleAdmin(uid, !isStallAdmin)} style={{ background: isStallAdmin ? '#fef3c7' : '#f3f4f6', border: 'none', borderRadius: '0.5rem', padding: '0.2rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#92400e' }}>
-                        {isStallAdmin ? 'Revoke Admin' : 'Make Admin'}
-                      </button>
-                    )}
-                    {(isCreator || uid === myUserId) && uid !== stall.createdBy && (
-                      <button onClick={() => removeMember(uid)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.8rem' }}>Remove</button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            <div style={{ marginTop: '0.6rem' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>Add member</div>
-              <MemberAdder stallId={stall.stallId} onUpdated={setStall} />
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Join Requests</div>
-            {joinRequestsLoading && <p style={{ margin: 0, color: '#6b7280', fontSize: '0.85rem' }}>Loading join requests…</p>}
-            {!joinRequestsLoading && joinRequests.length === 0 && <p style={{ margin: 0, color: '#6b7280', fontSize: '0.85rem' }}>No pending join requests.</p>}
-            {!joinRequestsLoading && joinRequests.map((request) => (
-              <div key={request.userId} style={{ background: '#fffbeb', borderRadius: '0.75rem', padding: '0.75rem', display: 'grid', gap: '0.4rem', marginTop: '0.4rem' }}>
-                <div style={{ fontWeight: 700 }}>{request.userName || request.userId}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{request.requestedAt}</div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => handleJoinRequest(request.userId, 'approve')} style={{ ...actionBtn, flex: 1, background: '#059669' }}>Approve</button>
-                  <button onClick={() => handleJoinRequest(request.userId, 'reject')} style={{ flex: 1, background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 0.9rem', fontWeight: 700, cursor: 'pointer' }}>Reject</button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {isAdmin && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <div style={{ fontWeight: 700 }}>
-                  📋 Open Orders
-                  {orders.filter(o => o.status === 'pending').length > 0 && (
-                    <span style={{ background: '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.1rem 0.5rem', fontSize: '0.8rem', marginLeft: '0.25rem' }}>
-                      {orders.filter(o => o.status === 'pending').length}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => stallsApi.getStallOrders(stall.stallId).then(result => { setOrders(result); setOrdersLoaded(true); }).catch(() => {})}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem' }}
-                >
-                  ↻ Refresh
-                </button>
-              </div>
-              {orders.filter(o => o.status === 'pending' || o.status === 'ready').length === 0 && (
-                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.85rem' }}>No open orders.</p>
-              )}
-              {orders.filter(o => o.status === 'pending' || o.status === 'ready').map((order, idx) => {
-                const isReady = order.status === 'ready';
-                const readyLabel = stall.stallType === 'game' ? 'Your Turn 🎯' : 'Ready for Pickup 🍕';
-                return (
-                  <div key={order.orderId} style={{ background: isReady ? '#d1fae5' : '#fffbeb', border: `1px solid ${isReady ? '#6ee7b7' : '#fed7aa'}`, borderRadius: '0.75rem', padding: '0.75rem', marginTop: '0.4rem', display: 'grid', gap: '0.3rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>#{idx + 1} · {order.kidName ? `${order.kidName} (via ${order.userName})` : order.userName}</span>
-                      <span style={{ background: isReady ? '#059669' : '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.15rem 0.5rem', fontSize: '0.75rem', fontWeight: 700 }}>{isReady ? 'Ready' : 'Pending'}</span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                      {order.items.map(i => `${i.itemName} × ${i.qty}`).join(', ')} · 🪙 {order.totalTokens}
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-                      {!isReady && (
-                        <button
-                          onClick={async () => {
-                            const updated = await stallsApi.updateOrder(stall.stallId, order.orderId, 'ready');
-                            setOrders(prev => prev.map(o => (o.orderId === order.orderId ? updated : o)));
-                          }}
-                          style={{ flex: 1, background: '#059669', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.45rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
-                        >
-                          {readyLabel}
-                        </button>
-                      )}
-                      <button
-                        onClick={async () => {
-                          await stallsApi.updateOrder(stall.stallId, order.orderId, 'complete');
-                          setOrders(prev => prev.filter(o => o.orderId !== order.orderId));
-                        }}
-                        style={{ flex: 1, background: '#374151', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.45rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
-                      >
-                        ✓ Complete
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-              <div style={{ fontWeight: 700 }}>Transactions</div>
-              {!showTxns && <button onClick={loadTxns} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontWeight: 700 }}>Load</button>}
-            </div>
-            {showTxns && txns.length === 0 && <p style={{ color: '#6b7280', fontSize: '0.85rem' }}>No transactions yet.</p>}
-            {showTxns && txns.map((tx) => (
-              <div key={`${tx.txId}-${tx.itemId}`} style={{ background: '#fffbeb', borderRadius: '0.65rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                <div style={{ fontWeight: 700 }}>{tx.userName} · {tx.itemName} × {tx.qty}</div>
-                <div style={{ color: '#b45309' }}>🪙 {tx.amount}</div>
-                <div style={{ color: '#9ca3af', fontSize: '0.75rem' }}>{tx.timestamp}</div>
-              </div>
-            ))}
           </div>
         </div>
       )}
     </div>
   );
 }
+
 
 export function StallsTab() {
   const { user } = useAuth();
@@ -799,6 +697,103 @@ export function BrowseStallsTab() {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+const subTab = (active) => ({
+  padding: '0.4rem 0.9rem',
+  borderRadius: '2rem',
+  border: 'none',
+  cursor: 'pointer',
+  background: active ? '#f59e0b' : '#f3f4f6',
+  color: active ? '#fff' : '#374151',
+  fontWeight: active ? 700 : 400,
+  fontSize: '0.9rem',
+});
+
+export function MergedStallsTab() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [myStalls, setMyStalls] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('');
+  const [popup, setPopup] = useState(null); // 'create' | null
+
+  useEffect(() => {
+    stallsApi.mine()
+      .then((result) => { setMyStalls(result); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onStallCreated = (stall) => {
+    setMyStalls((prev) => [stall, ...prev]);
+    setPopup(null);
+  };
+
+  if (loading) return <p style={{ color: '#9ca3af' }}>Loading stalls…</p>;
+
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+
+      {/* Sub-navigation */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          type="button"
+          style={{ ...subTab(false), background: '#f59e0b', color: '#fff', fontWeight: 700 }}
+          onClick={() => setPopup('create')}
+        >
+          + Add / Join Stall
+        </button>
+      </div>
+
+      {status && <p style={{ margin: 0, color: '#92400e', background: '#fffbeb', padding: '0.6rem 1rem', borderRadius: '0.75rem' }}>{status}</p>}
+
+      {/* ── My Stalls ── */}
+      <>
+        {myStalls.length === 0 && (
+            <section style={{ ...card, textAlign: 'center', gap: '0.75rem' }}>
+              <div style={{ fontSize: '2.5rem' }}>🎪</div>
+              <div style={{ fontWeight: 700, color: '#374151' }}>No stalls yet</div>
+              <div style={{ fontSize: '0.88rem', color: '#6b7280' }}>Create your own stall or request to join an existing one.</div>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button onClick={() => setPopup('create')} style={actionBtn}>+ Add / Join a Stall</button>
+              </div>
+            </section>
+          )}
+          {myStalls.map((stall) => (
+            <StallCard
+              key={stall.stallId}
+              stall={stall}
+              myUserId={user?.userId}
+              onScanCustomer={() => navigate(`/vendor/scan?stallId=${stall.stallId}`)}
+            />
+          ))}
+      </>
+
+      {/* ── Add / Join popup ── */}
+      {popup === 'create' && (
+        <div
+          onClick={() => setPopup(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: '1.5rem', padding: '1.75rem 1.5rem', maxWidth: '460px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}
+          >
+            {/* Popup header with close */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#92400e' }}>🎪 Add / Join a Stall</div>
+              <button onClick={() => setPopup(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#6b7280', lineHeight: 1 }}>✕</button>
+            </div>
+
+            {/* Popup content */}
+            <CreateStallForm onCreated={onStallCreated} />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

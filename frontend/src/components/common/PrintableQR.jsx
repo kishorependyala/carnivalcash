@@ -17,7 +17,6 @@ function PrintableQR({ title, qrValue, subtitle }) {
       <h3 style={{ margin: 0 }}>{title}</h3>
       <QRCodeSVG value={qrValue} size={180} includeMargin />
       {subtitle ? <p style={{ margin: 0, color: '#6b7280' }}>{subtitle}</p> : null}
-      <code style={{ wordBreak: 'break-all' }}>{qrValue}</code>
       <button type="button" onClick={() => window.print()}>
         Print
       </button>

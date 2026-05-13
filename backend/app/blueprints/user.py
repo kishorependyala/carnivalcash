@@ -325,7 +325,15 @@ def get_family():
     for uid in me.get('familyLinks', []):
         profile = get_profile(uid)
         if profile:
-            family.append({'userId': uid, 'name': profile.get('name', ''), 'phone': profile.get('phone', '')})
+            txns = get_user_transactions(uid)
+            spent = sum(t.get('amount', 0) for t in txns if t.get('type') == 'debit')
+            family.append({
+                'userId': uid,
+                'name': profile.get('name', ''),
+                'phone': profile.get('phone', ''),
+                'tokenBalance': profile.get('tokenBalance', 0),
+                'tokenSpent': spent,
+            })
     return jsonify(family)
 
 

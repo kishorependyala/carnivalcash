@@ -30,6 +30,40 @@ def _is_member(stall, user_id):
 @orders_bp.post('/api/stalls/<stall_id>/orders')
 @require_auth
 def place_order(stall_id):
+    """
+    Place an order at a stall. Deducts tokens from the user's balance.
+    ---
+    tags: [Orders]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [items]
+            properties:
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    itemId: {type: string, example: default}
+                    qty: {type: integer, example: 2}
+              kidId: {type: string, description: "Optional kid ID to charge against spending limit"}
+    responses:
+      201:
+        description: Order placed, returns order with updated balances
+      400:
+        description: No items selected or exceeds spending limit
+      404:
+        description: Stall or item not found
+    """
     stall = get_stall(stall_id)
     if not stall:
         return jsonify({'error': 'Stall not found'}), 404
@@ -166,6 +200,28 @@ def place_order(stall_id):
 @orders_bp.get('/api/stalls/<stall_id>/orders')
 @require_auth
 def list_stall_orders(stall_id):
+    """
+    List orders for a stall. Stall members only.
+    ---
+    tags: [Orders]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+      - in: query
+        name: status
+        schema: {type: string, enum: [pending, ready, complete, cancelled]}
+        description: Filter by order status
+    responses:
+      200:
+        description: List of orders
+      403:
+        description: Not a stall member
+      404:
+        description: Stall not found
+    """
     stall = get_stall(stall_id)
     if not stall:
         return jsonify({'error': 'Stall not found'}), 404
@@ -185,6 +241,39 @@ def list_stall_orders(stall_id):
 @orders_bp.patch('/api/stalls/<stall_id>/orders/<order_id>')
 @require_auth
 def update_order(stall_id, order_id):
+    """
+    Update an order status. Stall members only.
+    ---
+    tags: [Orders]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+      - in: path
+        name: order_id
+        required: true
+        schema: {type: string}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status: {type: string, enum: [ready, complete, cancelled]}
+    responses:
+      200:
+        description: Updated order
+      400:
+        description: Invalid status
+      403:
+        description: Not a stall member
+      404:
+        description: Stall or order not found
+    """
     stall = get_stall(stall_id)
     if not stall:
         return jsonify({'error': 'Stall not found'}), 404
@@ -212,6 +301,15 @@ def update_order(stall_id, order_id):
 @orders_bp.get('/api/users/orders')
 @require_auth
 def my_orders():
+    """
+    Get the current user's order history.
+    ---
+    tags: [Orders]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of orders placed by the current user
+    """
     orders = get_user_orders(g.user['userId'])
     for order in orders:
         if order.get('status') == 'pending':

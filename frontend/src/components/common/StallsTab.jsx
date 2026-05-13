@@ -717,8 +717,13 @@ export function MergedStallsTab() {
   const navigate = useNavigate();
   const [myStalls, setMyStalls] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState(''); // eslint-disable-line no-unused-vars
-  const [popup, setPopup] = useState(null); // 'create' | null
+  const [popup, setPopup] = useState(null); // 'create' | 'join' | null
+  const [popupTab, setPopupTab] = useState('create'); // 'create' | 'join'
+  const [allStalls, setAllStalls] = useState([]);
+  const [stallsLoading, setStallsLoading] = useState(false);
+  const [joinQuery, setJoinQuery] = useState('');
+  const [joinSelected, setJoinSelected] = useState(null);
+  const [joinStatus, setJoinStatus] = useState('');
 
   useEffect(() => {
     stallsApi.mine()
@@ -727,10 +732,41 @@ export function MergedStallsTab() {
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const openPopup = async () => {
+    setPopup('create');
+    setPopupTab('create');
+    setJoinQuery('');
+    setJoinSelected(null);
+    setJoinStatus('');
+    if (allStalls.length === 0) {
+      setStallsLoading(true);
+      try { setAllStalls(await stallsApi.listAll()); } catch { /* ignore */ }
+      finally { setStallsLoading(false); }
+    }
+  };
+
   const onStallCreated = (stall) => {
     setMyStalls((prev) => [stall, ...prev]);
     setPopup(null);
   };
+
+  const doJoin = async () => {
+    if (!joinSelected) return;
+    setJoinStatus('');
+    try {
+      await stallsApi.requestJoin(joinSelected.stallId);
+      setJoinStatus('✅ Join request sent! Wait for approval.');
+      setJoinSelected(null);
+      setJoinQuery('');
+    } catch (e) {
+      setJoinStatus(e.response?.data?.error || '❌ Failed to send request.');
+    }
+  };
+
+  const filteredStalls = allStalls.filter(s => {
+    const q = joinQuery.toLowerCase();
+    return !q || s.stallName.toLowerCase().includes(q);
+  });
 
   if (loading) return <p style={{ color: '#9ca3af' }}>Loading stalls…</p>;
 
@@ -742,13 +778,11 @@ export function MergedStallsTab() {
         <button
           type="button"
           style={{ ...subTab(false), background: '#f59e0b', color: '#fff', fontWeight: 700 }}
-          onClick={() => setPopup('create')}
+          onClick={openPopup}
         >
           + Add / Join Stall
         </button>
       </div>
-
-      {status && <p style={{ margin: 0, color: '#92400e', background: '#fffbeb', padding: '0.6rem 1rem', borderRadius: '0.75rem' }}>{status}</p>}
 
       {/* ── My Stalls ── */}
       <>
@@ -758,7 +792,7 @@ export function MergedStallsTab() {
               <div style={{ fontWeight: 700, color: '#374151' }}>No stalls yet</div>
               <div style={{ fontSize: '0.88rem', color: '#6b7280' }}>Create your own stall or request to join an existing one.</div>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button onClick={() => setPopup('create')} style={actionBtn}>+ Add / Join a Stall</button>
+                <button onClick={openPopup} style={actionBtn}>+ Add / Join a Stall</button>
               </div>
             </section>
           )}
@@ -773,7 +807,7 @@ export function MergedStallsTab() {
       </>
 
       {/* ── Add / Join popup ── */}
-      {popup === 'create' && (
+      {popup && (
         <div
           onClick={() => setPopup(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
@@ -782,14 +816,70 @@ export function MergedStallsTab() {
             onClick={(e) => e.stopPropagation()}
             style={{ background: '#fff', borderRadius: '1.5rem', padding: '1.75rem 1.5rem', maxWidth: '460px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}
           >
-            {/* Popup header with close */}
+            {/* Popup header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#92400e' }}>🎪 Add / Join a Stall</div>
               <button onClick={() => setPopup(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#6b7280', lineHeight: 1 }}>✕</button>
             </div>
 
-            {/* Popup content */}
-            <CreateStallForm onCreated={onStallCreated} />
+            {/* Tab switcher */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              {[['create','➕ Create Stall'],['join','🚪 Join Stall']].map(([key, label]) => (
+                <button key={key} onClick={() => { setPopupTab(key); setJoinStatus(''); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', background: popupTab === key ? 'linear-gradient(135deg,#f59e0b,#d97706)' : '#f3f4f6', color: popupTab === key ? '#fff' : '#374151' }}>{label}</button>
+              ))}
+            </div>
+
+            {/* Create tab */}
+            {popupTab === 'create' && <CreateStallForm onCreated={onStallCreated} />}
+
+            {/* Join tab */}
+            {popupTab === 'join' && (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    value={joinSelected ? joinSelected.stallName : joinQuery}
+                    onChange={(e) => { setJoinQuery(e.target.value); setJoinSelected(null); setJoinStatus(''); }}
+                    placeholder={stallsLoading ? 'Loading stalls…' : 'Type stall name…'}
+                    disabled={stallsLoading}
+                    style={{ ...inp, width: '100%', boxSizing: 'border-box' }}
+                  />
+                  {!joinSelected && joinQuery.length > 0 && filteredStalls.length > 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.65rem', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 600, maxHeight: '200px', overflowY: 'auto' }}>
+                      {filteredStalls.map(s => (
+                        <div key={s.stallId}
+                          onClick={() => { setJoinSelected(s); setJoinQuery(''); }}
+                          style={{ padding: '0.65rem 0.9rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', fontSize: '0.88rem' }}
+                          onMouseEnter={e => e.currentTarget.style.background='#f9fafb'}
+                          onMouseLeave={e => e.currentTarget.style.background='#fff'}
+                        >
+                          <span style={{ fontWeight: 600 }}>{s.stallName}</span>
+                          {s.hasPendingRequest && <span style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: '#f59e0b', fontWeight: 700 }}>⏳ Pending</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!joinSelected && joinQuery.length > 0 && !stallsLoading && filteredStalls.length === 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.65rem', padding: '0.75rem 1rem', color: '#9ca3af', fontSize: '0.88rem', zIndex: 600 }}>No stalls found</div>
+                  )}
+                </div>
+                {joinSelected && (
+                  <div style={{ background: '#fef3c7', borderRadius: '0.75rem', padding: '0.65rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ flex: 1, fontWeight: 600, fontSize: '0.9rem' }}>🎪 {joinSelected.stallName}</span>
+                    <button onClick={() => { setJoinSelected(null); setJoinQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '1rem' }}>✕</button>
+                  </div>
+                )}
+                {joinStatus && (
+                  <p style={{ margin: 0, padding: '0.6rem 1rem', background: joinStatus.startsWith('✅') ? '#d1fae5' : '#fee2e2', color: joinStatus.startsWith('✅') ? '#065f46' : '#dc2626', borderRadius: '0.75rem', fontSize: '0.88rem' }}>{joinStatus}</p>
+                )}
+                <button
+                  onClick={doJoin}
+                  disabled={!joinSelected || !!joinSelected?.hasPendingRequest}
+                  style={{ background: joinSelected?.hasPendingRequest ? '#e5e7eb' : 'linear-gradient(135deg,#f59e0b,#d97706)', color: joinSelected?.hasPendingRequest ? '#9ca3af' : '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 700, cursor: joinSelected ? 'pointer' : 'default', fontSize: '1rem' }}
+                >
+                  {joinSelected?.hasPendingRequest ? '⏳ Request Already Pending' : '🚪 Request to Join'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

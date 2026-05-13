@@ -370,6 +370,9 @@ function AdminDashboard() {
   const [newKidLimit, setNewKidLimit] = useState('');
   const [editingKid, setEditingKid] = useState(null); // {kidId, name, spendingLimit}
   const [linkPhone, setLinkPhone] = useState('');
+  const [linkQuery, setLinkQuery] = useState('');
+  const [linkSuggestions, setLinkSuggestions] = useState([]);
+  const [linkSelected, setLinkSelected] = useState(null); // {userId, name, phone}
   const [drawerStatus, setDrawerStatus] = useState('');
 
   const loadAdmin = async () => {
@@ -980,15 +983,55 @@ function AdminDashboard() {
                 ))}
                 {linkedFamily.length === 0 && <p style={{ color: '#6b7280', fontSize: '0.88rem', margin: 0 }}>No linked family members yet.</p>}
 
-                {/* Link by phone */}
+                {/* Link by name or phone typeahead */}
                 <div style={{ background: '#eff6ff', borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'grid', gap: '0.5rem' }}>
                   <div style={{ fontWeight: 700, color: '#374151', fontSize: '0.88rem' }}>🔗 Link a Family Member</div>
-                  <input value={linkPhone} onChange={(e) => setLinkPhone(e.target.value)} placeholder="Their phone number" style={{ ...inp }} type="tel" />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      value={linkSelected ? `${linkSelected.name} (${linkSelected.phone})` : linkQuery}
+                      onChange={async (e) => {
+                        const q = e.target.value;
+                        setLinkQuery(q);
+                        setLinkSelected(null);
+                        if (q.length >= 2) {
+                          try {
+                            const res = await stallsApi.searchUsers(q);
+                            setLinkSuggestions(res.filter(u => !u.isKid));
+                          } catch { setLinkSuggestions([]); }
+                        } else { setLinkSuggestions([]); }
+                      }}
+                      placeholder="Type name or phone…"
+                      style={{ ...inp, width: '100%', boxSizing: 'border-box' }}
+                    />
+                    {linkSuggestions.length > 0 && !linkSelected && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.65rem', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 600, maxHeight: '180px', overflowY: 'auto' }}>
+                        {linkSuggestions.map(u => (
+                          <div key={u.userId} onClick={() => { setLinkSelected(u); setLinkQuery(''); setLinkSuggestions([]); }}
+                            style={{ padding: '0.6rem 0.9rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', fontSize: '0.88rem' }}
+                            onMouseEnter={e => e.currentTarget.style.background='#f9fafb'}
+                            onMouseLeave={e => e.currentTarget.style.background='#fff'}
+                          >
+                            <span style={{ fontWeight: 600 }}>👤 {u.name}</span>
+                            <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>{u.phone}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {linkSelected && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#dbeafe', borderRadius: '0.65rem', padding: '0.4rem 0.75rem' }}>
+                      <span style={{ flex: 1, fontSize: '0.88rem', fontWeight: 600 }}>✅ {linkSelected.name} · {linkSelected.phone}</span>
+                      <button onClick={() => { setLinkSelected(null); setLinkQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '1rem' }}>✕</button>
+                    </div>
+                  )}
                   <button onClick={async () => {
-                    if (!linkPhone.trim()) return;
+                    const phone = linkSelected?.phone || linkPhone.trim();
+                    if (!phone) return;
                     try {
-                      await userApi.linkFamily(linkPhone.trim());
-                      await loadProfile(); setLinkPhone(''); setDrawerStatus('✅ Family member linked!');
+                      await userApi.linkFamily(phone);
+                      await loadProfile();
+                      setLinkSelected(null); setLinkQuery(''); setLinkPhone('');
+                      setDrawerStatus('✅ Family member linked!');
                     } catch { setDrawerStatus('❌ Not found or already linked.'); }
                   }} style={{ background: 'linear-gradient(135deg,#3b82f6,#2563eb)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
                     Link

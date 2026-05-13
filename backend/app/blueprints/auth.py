@@ -16,6 +16,15 @@ def utc_now():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
 
 
+@auth_bp.get('/api/auth/check-phone')
+def check_phone():
+    phone = normalize_phone(str(request.args.get('phone', '')).strip())
+    if not phone:
+        return jsonify({'error': 'Phone required'}), 400
+    exists = find_profile_by_phone(phone) is not None
+    return jsonify({'exists': exists})
+
+
 @auth_bp.post('/api/auth/request-code')
 def request_code():
     """

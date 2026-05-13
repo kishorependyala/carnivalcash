@@ -27,5 +27,12 @@
       "active": true
     }
   ],
-  "joinRequests": []
+  "joinRequests": [
+    {
+      "userId": "202605130000000001",
+      "userName": "7327184411",
+      "requestedAt": "2026-05-13T23:47:13Z",
+      "status": "pending"
+    }
+  ]
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import authApi from '../../api/auth';
+import api from '../../api/index';
 import stallsApi from '../../api/stalls';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
@@ -101,6 +102,7 @@ function LoginPage() {
   const [authStep, setAuthStep] = useState(1);
   const [authStatus, setAuthStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isExisting, setIsExisting] = useState(null); // null=unknown, true=returning, false=new
 
   const [onboarding, setOnboarding] = useState(false);
   const [onboardStep, setOnboardStep] = useState(0);
@@ -118,6 +120,18 @@ function LoginPage() {
   const [confirmSkipKids, setConfirmSkipKids] = useState(false);
 
   const pinMismatch = confirmPin.length > 0 && pin !== confirmPin;
+
+  const handlePhoneChange = async (val) => {
+    setPhone(val);
+    setIsExisting(null);
+    const digits = val.replace(/\D/g, '');
+    if (digits.length >= 10) {
+      try {
+        const res = await api.get('/api/auth/check-phone', { params: { phone: digits } });
+        setIsExisting(res.data.exists);
+      } catch { /* ignore */ }
+    }
+  };
 
   const handleRequestCode = async () => {
     setLoading(true);
@@ -444,7 +458,9 @@ function LoginPage() {
         {authStep === 1 ? (
           <>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: DEEP }}>Sign in</div>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: DEEP }}>
+                {isExisting === false ? '👋 Sign Up' : isExisting === true ? '👋 Welcome back!' : 'Sign In / Sign Up'}
+              </div>
               <div style={{ color: '#6b7280', fontSize: '0.88rem', marginTop: '0.2rem' }}>Enter your phone number to get started</div>
             </div>
             <div>
@@ -454,13 +470,13 @@ function LoginPage() {
                 type="tel"
                 placeholder="e.g. 7327184414"
                 value={phone}
-                onChange={e => setPhone(e.target.value)}
+                onChange={e => handlePhoneChange(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !loading && phone && handleRequestCode()}
                 autoFocus
               />
             </div>
             <button style={{ ...primaryBtn, opacity: loading || !phone ? 0.65 : 1 }} onClick={handleRequestCode} disabled={loading || !phone}>
-              {loading ? 'Sending…' : 'Send Code →'}
+              {loading ? 'Sending…' : isExisting === false ? '✨ Sign Up →' : isExisting === true ? '→ Sign In' : 'Continue →'}
             </button>
           </>
         ) : (

@@ -4,8 +4,10 @@ import jwt
 from flask import Blueprint, jsonify, request
 
 from app.storage.user_store import ensure_user_storage, find_profile_by_phone, get_profile, normalize_phone, save_profile
+from app.utils.email_sender import send_email
 from app.utils.id_generator import generate_user_id
 from app.utils.pin_generator import generate_pin
+from app.utils.pin_reset_codes import generate_code, verify_code
 from config import get_jwt_secret
 
 
@@ -218,3 +220,58 @@ def verify():
             },
         }
     )
+
+@auth_bp.post('/api/auth/request-pin-reset-code')
+def request_pin_reset_code():
+    """Send a 4-digit reset code to user's email(s). Body: {phone}"""
+    payload = request.get_json(silent=True) or {}
+    phone = normalize_phone(str(payload.get('phone', '')).strip())
+    if not phone:
+        return jsonify({'error': 'Phone required'}), 400
+
+    profile = find_profile_by_phone(phone)
+    if not profile:
+        return jsonify({'sent': True, 'message': 'If an account exists, a code was sent.'})
+
+    emails = profile.get('emails', [])
+    if not emails:
+        return jsonify({'error': 'No email on file. Ask admin to reset your PIN to 0000.'}), 400
+
+    code = generate_code(phone)
+    subject = 'CarnivalCash PIN Reset Code'
+    body = f"Your CarnivalCash PIN reset code is: {code}\n\nThis code expires in 15 minutes.\n\nIf you didn't request this, ignore this email."
+
+    sent_count = 0
+    for email in emails:
+        if send_email(email, subject, body):
+            sent_count += 1
+
+    return jsonify({'sent': True, 'emailCount': len(emails), 'message': f'Code sent to {len(emails)} email(s) on file.'})
+
+
+@auth_bp.post('/api/auth/verify-pin-reset-code')
+def verify_pin_reset_code():
+    """Verify code and set new PIN. Body: {phone, code, newPin}"""
+    payload = request.get_json(silent=True) or {}
+    phone = normalize_phone(str(payload.get('phone', '')).strip())
+    code = str(payload.get('code', '')).strip()
+    new_pin = str(payload.get('newPin', '')).strip()
+
+    if not phone or not code or not new_pin:
+        return jsonify({'error': 'Phone, code and newPin are required'}), 400
+    if len(new_pin) != 4 or not new_pin.isdigit():
+        return jsonify({'error': 'PIN must be exactly 4 digits'}), 400
+
+    if not verify_code(phone, code):
+        return jsonify({'error': 'Invalid or expired code. Request a new one.'}), 400
+
+    profile = find_profile_by_phone(phone)
+    if not profile:
+        return jsonify({'error': 'User not found'}), 404
+
+    profile['pin'] = new_pin
+    profile['pinResetRequested'] = False
+    save_profile(profile['userId'], profile)
+
+    return jsonify({'status': 'ok', 'message': 'PIN updated successfully.'})
+

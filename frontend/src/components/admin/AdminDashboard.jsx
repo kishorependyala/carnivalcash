@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import adminApi from '../../api/admin';
 import charitiesApi from '../../api/charities';
 import stallsApi from '../../api/stalls';
+import authApi from '../../api/auth';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
@@ -640,6 +641,11 @@ function AdminDashboard() {
   const [editPinConfirm, setEditPinConfirm] = useState('');
   const [savingPin, setSavingPin] = useState(false);
   const [requestingPinReset, setRequestingPinReset] = useState(false);
+  const [emailResetMode, setEmailResetMode] = useState(null);
+  const [emailResetCode, setEmailResetCode] = useState('');
+  const [emailResetNewPin, setEmailResetNewPin] = useState('');
+  const [emailResetConfirm, setEmailResetConfirm] = useState('');
+  const [emailResetLoading, setEmailResetLoading] = useState(false);
   const [newKidName, setNewKidName] = useState('');
   const [newKidLimit, setNewKidLimit] = useState('');
   const [newKidPin, setNewKidPin] = useState('0000');
@@ -725,6 +731,62 @@ function AdminDashboard() {
       charitiesApi.list().then(setCharities).catch(() => {}).finally(() => setCharitiesLoaded(true));
     }
   }, [tab, adminSubTab, charitiesLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clearEmailResetState = () => {
+    setEmailResetMode(null);
+    setEmailResetCode('');
+    setEmailResetNewPin('');
+    setEmailResetConfirm('');
+  };
+
+  const handleRequestEmailReset = async () => {
+    if (!profile.phone) {
+      setDrawerStatus('❌ No phone on file.');
+      return;
+    }
+    setEmailResetLoading(true);
+    try {
+      const res = await authApi.requestPinResetCode(profile.phone);
+      setEmailResetMode('enter-code');
+      setEmailResetCode('');
+      setEmailResetNewPin('');
+      setEmailResetConfirm('');
+      setDrawerStatus(res.message || '✅ Reset code sent to your email(s).');
+    } catch (e) {
+      setDrawerStatus(e.response?.data?.error || '❌ Failed to send reset code.');
+    } finally {
+      setEmailResetLoading(false);
+    }
+  };
+
+  const handleConfirmEmailReset = async () => {
+    if (!/^\d{4}$/.test(emailResetCode)) {
+      setDrawerStatus('❌ Enter the 4-digit code from your email.');
+      return;
+    }
+    if (!/^\d{4}$/.test(emailResetNewPin)) {
+      setDrawerStatus('❌ New PIN must be 4 digits.');
+      return;
+    }
+    if (emailResetNewPin !== emailResetConfirm) {
+      setDrawerStatus('❌ PINs do not match.');
+      return;
+    }
+    setEmailResetLoading(true);
+    try {
+      await authApi.verifyPinResetCode(profile.phone, emailResetCode, emailResetNewPin);
+      await loadProfile();
+      setEditPinCurrent('');
+      setEditPinNew('');
+      setEditPinConfirm('');
+      clearEmailResetState();
+      setDrawerStatus('✅ PIN updated!');
+    } catch (e) {
+      setDrawerStatus(e.response?.data?.error || '❌ Failed to reset PIN.');
+    } finally {
+      setEmailResetLoading(false);
+    }
+  };
 
   const changeTab = (nextTab) => {
     setStatus('');
@@ -1463,6 +1525,56 @@ function AdminDashboard() {
                     style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '0.82rem', cursor: 'pointer', textDecoration: 'underline', textAlign: 'left', padding: 0 }}>
                     {requestingPinReset ? 'Sending…' : 'Forgot PIN? Request admin reset'}
                   </button>
+                  <button onClick={handleRequestEmailReset} disabled={emailResetLoading}
+                    style={{ background: 'none', border: 'none', color: '#92400e', fontSize: '0.82rem', cursor: 'pointer', textDecoration: 'underline', textAlign: 'left', padding: 0 }}>
+                    {emailResetLoading && emailResetMode !== 'enter-code' ? 'Sending…' : '📧 Reset via email'}
+                  </button>
+                  {emailResetMode === 'enter-code' && (
+                    <div style={{ background: '#fff', borderRadius: '0.75rem', padding: '0.85rem', display: 'grid', gap: '0.55rem', border: '1px solid #fde68a' }}>
+                      <div style={{ fontSize: '0.82rem', color: '#78350f' }}>A 4-digit code was sent to your email(s) on file.</div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="4-digit code"
+                        value={emailResetCode}
+                        onChange={e => setEmailResetCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                        style={{ ...inp }}
+                      />
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="New PIN"
+                        value={emailResetNewPin}
+                        onChange={e => setEmailResetNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                        style={{ ...inp }}
+                      />
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="Confirm new PIN"
+                        value={emailResetConfirm}
+                        onChange={e => setEmailResetConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                        style={{ ...inp, borderColor: emailResetConfirm && emailResetNewPin !== emailResetConfirm ? '#dc2626' : '#e5e7eb' }}
+                      />
+                      {emailResetConfirm && emailResetNewPin !== emailResetConfirm && (
+                        <p style={{ margin: 0, color: '#dc2626', fontSize: '0.82rem' }}>PINs do not match</p>
+                      )}
+                      <button
+                        onClick={handleConfirmEmailReset}
+                        disabled={emailResetLoading || emailResetCode.length < 4 || emailResetNewPin.length < 4 || emailResetNewPin !== emailResetConfirm}
+                        style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: emailResetLoading || emailResetCode.length < 4 || emailResetNewPin.length < 4 || emailResetNewPin !== emailResetConfirm ? 0.5 : 1 }}
+                      >
+                        {emailResetLoading ? 'Resetting…' : 'Confirm Reset'}
+                      </button>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <button onClick={handleRequestEmailReset} disabled={emailResetLoading} style={{ background: 'none', border: 'none', color: '#92400e', fontSize: '0.82rem', cursor: 'pointer', textDecoration: 'underline', textAlign: 'left', padding: 0 }}>Resend code</button>
+                        <button onClick={clearEmailResetState} disabled={emailResetLoading} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '0.82rem', cursor: 'pointer', textDecoration: 'underline', textAlign: 'left', padding: 0 }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

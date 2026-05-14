@@ -103,6 +103,12 @@ function LoginPage() {
   const [authStatus, setAuthStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [isExisting, setIsExisting] = useState(null);
+  const [resetMode, setResetMode] = useState(null);
+  const [resetCode, setResetCode] = useState('');
+  const [resetNewPin, setResetNewPin] = useState('');
+  const [resetConfirmPin, setResetConfirmPin] = useState('');
+  const [resetStatus, setResetStatus] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const [onboarding, setOnboarding] = useState(false);
   const [onboardStep, setOnboardStep] = useState(0);
@@ -124,6 +130,11 @@ function LoginPage() {
   const handlePhoneChange = async (val) => {
     setPhone(val);
     setIsExisting(null);
+    setResetMode(null);
+    setResetCode('');
+    setResetNewPin('');
+    setResetConfirmPin('');
+    setResetStatus('');
     const digits = val.replace(/\D/g, '');
     if (digits.length >= 10) {
       try {
@@ -171,6 +182,64 @@ function LoginPage() {
       setAuthStatus(err.response?.data?.error || 'Unable to sign in.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const clearResetState = () => {
+    setResetMode(null);
+    setResetCode('');
+    setResetNewPin('');
+    setResetConfirmPin('');
+    setResetStatus('');
+  };
+
+  const handleRequestPinResetCode = async () => {
+    const normalizedPhone = phone.replace(/\D/g, '');
+    if (!normalizedPhone) {
+      setResetStatus('Phone required.');
+      return;
+    }
+    setResetLoading(true);
+    setResetStatus('');
+    try {
+      const res = await authApi.requestPinResetCode(normalizedPhone);
+      setResetMode('enter-code');
+      setResetCode('');
+      setResetNewPin('');
+      setResetConfirmPin('');
+      setResetStatus(res.message || 'A 4-digit code was sent to your email(s) on file.');
+    } catch (err) {
+      setResetStatus(err.response?.data?.error || 'Unable to send reset code.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleVerifyPinResetCode = async () => {
+    const normalizedPhone = phone.replace(/\D/g, '');
+    if (!/^\d{4}$/.test(resetCode)) {
+      setResetStatus('Enter the 4-digit code from your email.');
+      return;
+    }
+    if (!/^\d{4}$/.test(resetNewPin)) {
+      setResetStatus('New PIN must be exactly 4 digits.');
+      return;
+    }
+    if (resetNewPin !== resetConfirmPin) {
+      setResetStatus('PINs do not match.');
+      return;
+    }
+    setResetLoading(true);
+    setResetStatus('');
+    try {
+      await authApi.verifyPinResetCode(normalizedPhone, resetCode, resetNewPin);
+      setLoginPin('');
+      clearResetState();
+      setAuthStatus('✅ PIN updated! Please sign in.');
+    } catch (err) {
+      setResetStatus(err.response?.data?.error || 'Unable to reset PIN.');
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -488,6 +557,94 @@ function LoginPage() {
               {loading ? 'Please wait…' : isExisting === false ? '✨ Sign Up →' : isExisting === true ? '→ Sign In' : 'Continue →'}
             </button>
           </>
+        ) : resetMode ? (
+          <>
+            {resetMode === 'choose' ? (
+              <>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '1.15rem', color: DEEP }}>🔐 Reset your PIN</div>
+                  <div style={{ color: '#6b7280', fontSize: '0.88rem', marginTop: '0.2rem' }}>Choose how you want to reset the PIN for <strong>{phone}</strong>.</div>
+                </div>
+                <button style={primaryBtn} onClick={handleRequestPinResetCode} disabled={resetLoading}>
+                  {resetLoading ? 'Sending…' : '📧 Send code to my email'}
+                </button>
+                <button
+                  style={{ ...primaryBtn, background: '#f3f4f6', color: '#374151', boxShadow: 'none' }}
+                  onClick={async () => {
+                    setResetLoading(true);
+                    setResetStatus('');
+                    try {
+                      await userApi.requestPinReset();
+                      clearResetState();
+                      setAuthStatus('✅ Reset request sent. Admin will reset your PIN to 0000 shortly.');
+                    } catch (err) {
+                      setResetStatus(err.response?.data?.error || 'Unable to request admin reset.');
+                    } finally {
+                      setResetLoading(false);
+                    }
+                  }}
+                  disabled={resetLoading}
+                >
+                  Ask admin to reset PIN
+                </button>
+                <button style={skipBtn} onClick={() => { clearResetState(); setAuthStatus(''); }}>← Back</button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '1.15rem', color: DEEP }}>📧 Enter your reset code</div>
+                  <div style={{ color: '#6b7280', fontSize: '0.88rem', marginTop: '0.2rem' }}>A 4-digit code was sent to your email(s) on file.</div>
+                </div>
+                <input
+                  style={inp}
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="4-digit code"
+                  value={resetCode}
+                  onChange={e => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  autoFocus
+                />
+                <input
+                  style={inp}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="New PIN"
+                  value={resetNewPin}
+                  onChange={e => setResetNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                />
+                <input
+                  style={{ ...inp, borderColor: resetConfirmPin && resetNewPin !== resetConfirmPin ? '#dc2626' : '#e5e7eb' }}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="Confirm new PIN"
+                  value={resetConfirmPin}
+                  onChange={e => setResetConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  onKeyDown={e => e.key === 'Enter' && !resetLoading && handleVerifyPinResetCode()}
+                />
+                {resetConfirmPin && resetNewPin !== resetConfirmPin && (
+                  <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>PINs do not match.</p>
+                )}
+                <button
+                  style={{ ...primaryBtn, opacity: resetLoading || resetCode.length < 4 || resetNewPin.length < 4 || resetNewPin !== resetConfirmPin ? 0.65 : 1 }}
+                  onClick={handleVerifyPinResetCode}
+                  disabled={resetLoading || resetCode.length < 4 || resetNewPin.length < 4 || resetNewPin !== resetConfirmPin}
+                >
+                  {resetLoading ? 'Resetting…' : 'Reset PIN'}
+                </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <button style={{ ...skipBtn, alignSelf: 'auto' }} onClick={handleRequestPinResetCode} disabled={resetLoading}>Resend code</button>
+                  <button style={{ ...skipBtn, alignSelf: 'auto' }} onClick={() => { setResetMode('choose'); setResetStatus(''); }}>← Back</button>
+                </div>
+              </>
+            )}
+            {resetStatus && (
+              <p style={{ margin: 0, padding: '0.6rem 0.9rem', background: '#fffbeb', color: '#92400e', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
+                {resetStatus}
+              </p>
+            )}
+          </>
         ) : (
           <>
             <div>
@@ -510,10 +667,13 @@ function LoginPage() {
             <button style={{ ...primaryBtn, opacity: loading || loginPin.length < 4 ? 0.65 : 1 }} onClick={handleLoginWithPin} disabled={loading || loginPin.length < 4}>
               {loading ? 'Signing in…' : '✓ Sign In'}
             </button>
-            <button style={skipBtn} onClick={() => { setAuthStep(1); setAuthStatus(''); setLoginPin(''); }}>← Change number</button>
-            <div style={{ textAlign: 'center', fontSize: '0.82rem', color: '#9ca3af' }}>
-              Forgot your PIN? Contact an admin to reset it.
-            </div>
+            <button style={skipBtn} onClick={() => { setAuthStep(1); setAuthStatus(''); setLoginPin(''); clearResetState(); }}>← Change number</button>
+            <button
+              style={{ ...skipBtn, color: '#92400e' }}
+              onClick={() => { setResetMode('choose'); setResetStatus(''); setAuthStatus(''); }}
+            >
+              Forgot PIN?
+            </button>
           </>
         )}
 

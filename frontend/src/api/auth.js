@@ -5,8 +5,8 @@ const authApi = {
     const response = await api.post('/api/auth/request-code', { phone });
     return response.data;
   },
-  async verifyCode(phone, code) {
-    const response = await api.post('/api/auth/verify', { phone, code });
+  async loginWithPin(phone, pin) {
+    const response = await api.post('/api/auth/login-with-pin', { phone, pin });
     return response.data;
   },
 };

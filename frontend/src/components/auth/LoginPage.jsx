@@ -98,11 +98,11 @@ function LoginPage() {
   const { login } = useAuth();
 
   const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [authStep, setAuthStep] = useState(1);
+  const [loginPin, setLoginPin] = useState('');
+  const [authStep, setAuthStep] = useState(1); // 1=phone, 2=pin (existing users only)
   const [authStatus, setAuthStatus] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isExisting, setIsExisting] = useState(null); // null=unknown, true=returning, false=new
+  const [isExisting, setIsExisting] = useState(null);
 
   const [onboarding, setOnboarding] = useState(false);
   const [onboardStep, setOnboardStep] = useState(0);
@@ -133,29 +133,33 @@ function LoginPage() {
     }
   };
 
-  const handleRequestCode = async () => {
-    setLoading(true);
-    setAuthStatus('');
-    const wakeTimer = setTimeout(() => setAuthStatus('Waking up server, please wait…'), 5000);
-    try {
-      await authApi.requestCode(phone);
-      clearTimeout(wakeTimer);
-      setCode(phone);
+  const handleContinue = async () => {
+    if (isExisting) {
+      // Existing user — show PIN step
       setAuthStep(2);
-      setAuthStatus('Code sent! For this build, the code matches your phone number.');
-    } catch (err) {
-      clearTimeout(wakeTimer);
-      setAuthStatus(err.response?.data?.error || 'Unable to send code. Try again.');
-    } finally {
-      setLoading(false);
+      setAuthStatus('');
+    } else {
+      // New user — create account & go to onboarding
+      setLoading(true);
+      setAuthStatus('');
+      try {
+        const res = await authApi.loginWithPin(phone.replace(/\D/g, ''), '');
+        login(res.token, res.user);
+        setLoggedInUser(res.user);
+        setOnboarding(true);
+      } catch (err) {
+        setAuthStatus(err.response?.data?.error || 'Unable to sign up. Try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleLogin = async () => {
+  const handleLoginWithPin = async () => {
     setLoading(true);
     setAuthStatus('');
     try {
-      const res = await authApi.verifyCode(phone, code);
+      const res = await authApi.loginWithPin(phone.replace(/\D/g, ''), loginPin);
       login(res.token, res.user);
       if (res.user?.isNew) {
         setLoggedInUser(res.user);
@@ -164,7 +168,7 @@ function LoginPage() {
         navigate(getLandingRoute(res.user), { replace: true });
       }
     } catch (err) {
-      setAuthStatus(err.response?.data?.error || 'Unable to log in.');
+      setAuthStatus(err.response?.data?.error || 'Unable to sign in.');
     } finally {
       setLoading(false);
     }
@@ -476,37 +480,40 @@ function LoginPage() {
                 placeholder="e.g. 7327184414"
                 value={phone}
                 onChange={e => handlePhoneChange(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !loading && phone && handleRequestCode()}
+                onKeyDown={e => e.key === 'Enter' && !loading && phone && handleContinue()}
                 autoFocus
               />
             </div>
-            <button style={{ ...primaryBtn, opacity: loading || !phone ? 0.65 : 1 }} onClick={handleRequestCode} disabled={loading || !phone}>
-              {loading ? 'Sending…' : isExisting === false ? '✨ Sign Up →' : isExisting === true ? '→ Sign In' : 'Continue →'}
+            <button style={{ ...primaryBtn, opacity: loading || !phone ? 0.65 : 1 }} onClick={handleContinue} disabled={loading || !phone}>
+              {loading ? 'Please wait…' : isExisting === false ? '✨ Sign Up →' : isExisting === true ? '→ Sign In' : 'Continue →'}
             </button>
           </>
         ) : (
           <>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: DEEP }}>Verify your number</div>
-              <div style={{ color: '#6b7280', fontSize: '0.88rem', marginTop: '0.2rem' }}>Code sent to <strong>{phone}</strong></div>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: DEEP }}>🔐 Enter your PIN</div>
+              <div style={{ color: '#6b7280', fontSize: '0.88rem', marginTop: '0.2rem' }}>
+                Signing in as <strong>{phone}</strong>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', color: '#374151', marginBottom: '0.4rem' }}>Verification code</label>
-              <input
-                style={inp}
-                type="text"
-                inputMode="numeric"
-                placeholder="Enter code"
-                value={code}
-                onChange={e => setCode(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !loading && code && handleLogin()}
-                autoFocus
-              />
-            </div>
-            <button style={{ ...primaryBtn, opacity: loading || !code ? 0.65 : 1 }} onClick={handleLogin} disabled={loading || !code}>
+            <input
+              style={inp}
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="Your 4-digit PIN"
+              value={loginPin}
+              onChange={e => setLoginPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              onKeyDown={e => e.key === 'Enter' && !loading && loginPin.length === 4 && handleLoginWithPin()}
+              autoFocus
+            />
+            <button style={{ ...primaryBtn, opacity: loading || loginPin.length < 4 ? 0.65 : 1 }} onClick={handleLoginWithPin} disabled={loading || loginPin.length < 4}>
               {loading ? 'Signing in…' : '✓ Sign In'}
             </button>
-            <button style={skipBtn} onClick={() => { setAuthStep(1); setAuthStatus(''); }}>← Change number</button>
+            <button style={skipBtn} onClick={() => { setAuthStep(1); setAuthStatus(''); setLoginPin(''); }}>← Change number</button>
+            <div style={{ textAlign: 'center', fontSize: '0.82rem', color: '#9ca3af' }}>
+              Forgot your PIN? Contact an admin to reset it.
+            </div>
           </>
         )}
 

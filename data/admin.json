@@ -43,6 +43,15 @@
         "targetUserId": "202605100000000001",
         "phone": "5551234567"
       }
+    },
+    {
+      "timestamp": "2026-05-13T23:51:04Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000001",
+        "phone": "7327184411"
+      }
     }
   ]
 }

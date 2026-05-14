@@ -200,7 +200,10 @@ function LoginPage() {
   };
 
   const saveName = async () => {
-    if (!name.trim()) return nextOnboard();
+    if (!name.trim()) {
+      setOnboardStatus('Please enter your name to continue.');
+      return;
+    }
     setSaving(true);
     try {
       await userApi.updateProfile({ name: name.trim() });
@@ -283,8 +286,8 @@ function LoginPage() {
           {onboardStep === 0 && (
             <>
               <div>
-                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>🔐 Set your PIN</div>
-                <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Default is 0000 · You'll need this for all payments</div>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>🔐 Set your PIN / Password</div>
+                <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>4 digits · Used for all payments · Default is 0000 · If forgotten, request a reset from admin</div>
               </div>
               <input
                 autoFocus
@@ -315,20 +318,22 @@ function LoginPage() {
             <>
               <div>
                 <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>👋 What's your name?</div>
-                <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Let's set up your profile. What should we call you?</div>
+                <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Required — this is how others find you and stalls identify you.</div>
               </div>
               <input
                 autoFocus
-                style={inp}
+                style={{ ...inp, borderColor: onboardStatus && !name.trim() ? '#dc2626' : '#e5e7eb' }}
                 placeholder="Your name"
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={e => { setName(e.target.value); setOnboardStatus(''); }}
                 onKeyDown={e => e.key === 'Enter' && saveName()}
               />
+              {onboardStatus && !name.trim() && (
+                <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>{onboardStatus}</p>
+              )}
               <button style={primaryBtn} onClick={saveName} disabled={saving}>
                 {saving ? 'Saving…' : 'Continue →'}
               </button>
-              <button style={skipBtn} onClick={nextOnboard}>Skip for now</button>
             </>
           )}
 

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import eventsApi from '../../api/events';
 import statsApi from '../../api/stats';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
+import { usePolling } from '../../hooks/usePolling';
 
 const shellStyle = {
   minHeight: '100vh',
@@ -410,6 +411,39 @@ function BottomNav() {
   );
 }
 
+// Countdown timer — ticks every second, resets on each poll cycle
+function RefreshTimer({ intervalSec = 15 }) {
+  const [secs, setSecs] = useState(intervalSec);
+  const secsRef = useRef(intervalSec);
+
+  // reset whenever a poll fires
+  usePolling(() => { secsRef.current = intervalSec; setSecs(intervalSec); }, intervalSec * 1000);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      secsRef.current = Math.max(0, secsRef.current - 1);
+      setSecs(secsRef.current);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pct = secs / intervalSec;
+  const r = 9;
+  const circ = 2 * Math.PI * r;
+  const dash = circ * pct;
+
+  return (
+    <div title={`Refreshes in ${secs}s`} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: 0.85 }}>
+      <svg width="26" height="26" style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx="13" cy="13" r={r} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" />
+        <circle cx="13" cy="13" r={r} fill="none" stroke="#fff" strokeWidth="2.5"
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.9s linear' }} />
+      </svg>
+      <span style={{ fontSize: '0.72rem', color: '#fff', fontWeight: 600, minWidth: '1.5rem' }}>{secs}s</span>
+    </div>
+  );
+}
+
 // Root dashboard paths — no back button shown here
 const ROOT_PATHS = ['/user', '/vendor', '/admin', '/'];
 
@@ -453,9 +487,12 @@ function Layout({ children }) {
             </div>
           </div>
           {user ? (
-            <button type="button" onClick={logout} style={{ border: 0, borderRadius: '999px', padding: '0.65rem 1rem', fontWeight: 700 }}>
-              Logout
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <RefreshTimer intervalSec={15} />
+              <button type="button" onClick={logout} style={{ border: 0, borderRadius: '999px', padding: '0.65rem 1rem', fontWeight: 700 }}>
+                Logout
+              </button>
+            </div>
           ) : null}
         </div>
       </header>

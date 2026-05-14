@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { usePolling } from '../../hooks/usePolling';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
@@ -65,6 +66,7 @@ function VendorDashboard() {
   useEffect(() => {
     load().catch(() => setStatus('Unable to load stall dashboard.'));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  usePolling(load, 15000);
 
   const changeTab = (nextTab) => {
     setStatus('');

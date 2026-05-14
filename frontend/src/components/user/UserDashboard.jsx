@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { usePolling } from '../../hooks/usePolling';
 import stallsApi from '../../api/stalls';
 import authApi from '../../api/auth';
 import userApi from '../../api/user';
@@ -102,6 +103,7 @@ function UserDashboard() {
   };
 
   useEffect(() => { loadProfile(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  usePolling(loadProfile, 15000);
 
   const changeTab = (t) => { setStatus(''); setTab(t); setSearchParams({ tab: t }, { replace: true }); };
 

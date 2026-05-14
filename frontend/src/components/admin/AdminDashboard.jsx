@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { usePolling } from '../../hooks/usePolling';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import adminApi from '../../api/admin';
@@ -719,6 +720,7 @@ function AdminDashboard() {
   useEffect(() => {
     load().catch(() => setStatus('Unable to load dashboard.'));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  usePolling(load, 10000);
 
   useEffect(() => {
     if (tab === 'Admin' && adminSubTab === 'Stalls' && !stallsLoaded) {

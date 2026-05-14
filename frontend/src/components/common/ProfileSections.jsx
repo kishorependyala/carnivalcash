@@ -3,6 +3,7 @@
  */
 import { useEffect, useState } from 'react';
 
+import { usePolling } from '../../hooks/usePolling';
 import adminApi from '../../api/admin';
 import stallsApi from '../../api/stalls';
 import userApi from '../../api/user';
@@ -681,6 +682,7 @@ export function StallTab({ setStatus }) {
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  usePolling(load, 15000);
 
   const save = async () => {
     try {

@@ -62,6 +62,7 @@ function UserDashboard() {
   const [savingPin, setSavingPin] = useState(false);
   const [newKidName, setNewKidName] = useState('');
   const [newKidLimit, setNewKidLimit] = useState('');
+  const [newKidPin, setNewKidPin] = useState('0000');
   const [editingKid, setEditingKid] = useState(null);
   const [linkQuery, setLinkQuery] = useState('');
   const [linkSuggestions, setLinkSuggestions] = useState([]);
@@ -353,9 +354,14 @@ function UserDashboard() {
                       <>
                         <input value={editingKid.name} onChange={e => setEditingKid({ ...editingKid, name: e.target.value })} placeholder="Kid's name" style={inp} />
                         <input type="number" value={editingKid.spendingLimit} onChange={e => setEditingKid({ ...editingKid, spendingLimit: e.target.value })} placeholder="Token limit" style={inp} />
+                        <input type="password" inputMode="numeric" maxLength={4} value={editingKid.pin || ''} onChange={e => setEditingKid({ ...editingKid, pin: e.target.value.replace(/\D/g,'').slice(0,4) })} placeholder="PIN (4 digits)" style={inp} />
+                        <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>Tip: use birth year, e.g. 2015</div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={async () => { try { await userApi.updateKid(kid.kidId, { name: editingKid.name, spendingLimit: parseInt(editingKid.spendingLimit) }); await loadProfile(); setEditingKid(null); setDrawerStatus('✅ Kid updated!'); } catch { setDrawerStatus('❌ Failed.'); } }}
-                            style={{ flex: 1, background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem', fontWeight: 700, cursor: 'pointer' }}>Save</button>
+                          <button onClick={async () => {
+                            const updates = { name: editingKid.name, spendingLimit: parseInt(editingKid.spendingLimit) };
+                            if (editingKid.pin?.length === 4) updates.pin = editingKid.pin;
+                            try { await userApi.updateKid(kid.kidId, updates); await loadProfile(); setEditingKid(null); setDrawerStatus('✅ Kid updated!'); } catch { setDrawerStatus('❌ Failed.'); }
+                          }} style={{ flex: 1, background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem', fontWeight: 700, cursor: 'pointer' }}>Save</button>
                           <button onClick={() => setEditingKid(null)} style={{ flex: 1, background: '#e5e7eb', border: 'none', borderRadius: '0.5rem', padding: '0.5rem', cursor: 'pointer' }}>Cancel</button>
                         </div>
                       </>
@@ -363,10 +369,10 @@ function UserDashboard() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
                           <div style={{ fontWeight: 600, color: '#374151' }}>👦 {kid.name}</div>
-                          <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Limit: {kid.spendingLimit} tokens</div>
+                          <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Limit: {kid.spendingLimit} tokens · PIN: {kid.pin ? '****' : '(none)'}</div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.4rem' }}>
-                          <button onClick={() => setEditingKid({ ...kid })} style={{ background: '#fef3c7', border: 'none', borderRadius: '0.5rem', padding: '0.35rem 0.65rem', cursor: 'pointer', fontWeight: 600, color: '#92400e' }}>✏️</button>
+                          <button onClick={() => setEditingKid({ ...kid, pin: '' })} style={{ background: '#fef3c7', border: 'none', borderRadius: '0.5rem', padding: '0.35rem 0.65rem', cursor: 'pointer', fontWeight: 600, color: '#92400e' }}>✏️</button>
                           <button onClick={async () => { if (!window.confirm(`Remove ${kid.name}?`)) return; try { await userApi.deleteKid(kid.kidId); await loadProfile(); setDrawerStatus('Removed.'); } catch { setDrawerStatus('❌ Failed.'); } }}
                             style={{ background: '#fee2e2', border: 'none', borderRadius: '0.5rem', padding: '0.35rem 0.65rem', cursor: 'pointer', fontWeight: 600, color: '#dc2626' }}>🗑</button>
                         </div>
@@ -378,8 +384,12 @@ function UserDashboard() {
                   <div style={{ fontWeight: 700, color: '#374151', fontSize: '0.88rem' }}>➕ Add a Kid</div>
                   <input value={newKidName} onChange={e => setNewKidName(e.target.value)} placeholder="Name" style={inp} />
                   <input type="number" value={newKidLimit} onChange={e => setNewKidLimit(e.target.value)} placeholder="Token limit" style={inp} />
-                  <button onClick={async () => { if (!newKidName.trim()) return; try { await userApi.createKid({ name: newKidName.trim(), spendingLimit: parseInt(newKidLimit) || 0 }); await loadProfile(); setNewKidName(''); setNewKidLimit(''); setDrawerStatus('✅ Kid added!'); } catch { setDrawerStatus('❌ Failed.'); } }}
-                    style={{ ...actionBtn, padding: '0.65rem' }}>Add Kid</button>
+                  <input type="password" inputMode="numeric" maxLength={4} value={newKidPin} onChange={e => setNewKidPin(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="PIN (4 digits, default 0000)" style={inp} />
+                  <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>Tip: use birth year as PIN, e.g. 2015</div>
+                  <button onClick={async () => {
+                    if (!newKidName.trim()) return;
+                    try { await userApi.createKid({ name: newKidName.trim(), spendingLimit: parseInt(newKidLimit) || 0, pin: newKidPin || '0000' }); await loadProfile(); setNewKidName(''); setNewKidLimit(''); setNewKidPin('0000'); setDrawerStatus('✅ Kid added!'); } catch { setDrawerStatus('❌ Failed.'); }
+                  }} style={{ ...actionBtn, padding: '0.65rem' }}>Add Kid</button>
                 </div>
               </div>
             )}

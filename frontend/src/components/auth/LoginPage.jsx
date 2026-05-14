@@ -114,13 +114,11 @@ function LoginPage() {
   const [onboardStep, setOnboardStep] = useState(0);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [name, setName] = useState('');
+  const [onboardEmail, setOnboardEmail] = useState('');
   const [kids, setKids] = useState([]);
   const [newKid, setNewKid] = useState({ name: '', limit: '', kidPin: '0000' });
   const [pin, setPin] = useState('0000');
   const [confirmPin, setConfirmPin] = useState('0000');
-  const [familyQuery, setFamilyQuery] = useState('');
-  const [familyMatches, setFamilyMatches] = useState([]);
-  const [linkedFamily, setLinkedFamily] = useState([]);
   const [saving, setSaving] = useState(false);
   const [onboardStatus, setOnboardStatus] = useState('');
   const [confirmSkipKids, setConfirmSkipKids] = useState(false);
@@ -315,30 +313,19 @@ function LoginPage() {
     setConfirmSkipKids(true);
   };
 
-  const handleFamilySearch = async (value) => {
-    setFamilyQuery(value);
-    if (value.trim().length < 2) {
-      setFamilyMatches([]);
+  const saveEmail = async () => {
+    const email = onboardEmail.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setOnboardStatus('Please enter a valid email address.');
       return;
     }
-    try {
-      const matches = await stallsApi.searchUsers(value.trim());
-      setFamilyMatches(matches.filter(u => !u.isKid && !linkedFamily.some(member => member.userId === u.userId)));
-    } catch {
-      setFamilyMatches([]);
-    }
-  };
-
-  const handleLinkFamily = async (selected) => {
     setSaving(true);
-    setOnboardStatus('');
     try {
-      await userApi.linkFamily({ phone: selected.phone });
-      setLinkedFamily(prev => prev.some(member => member.userId === selected.userId) ? prev : [...prev, selected]);
-      setFamilyQuery('');
-      setFamilyMatches([]);
+      await userApi.updateProfile({ emails: [email] });
+      setOnboardStep(s => s + 1);
+      setOnboardStatus('');
     } catch (e) {
-      setOnboardStatus(e.response?.data?.error || 'Failed to link family member.');
+      setOnboardStatus(e.response?.data?.error || 'Failed to save email.');
     } finally {
       setSaving(false);
     }
@@ -414,6 +401,29 @@ function LoginPage() {
           {onboardStep === 2 && (
             <>
               <div>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>📧 Add your email</div>
+                <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Required — used to send PIN reset codes if you ever forget your PIN.</div>
+              </div>
+              <input
+                autoFocus
+                type="email"
+                inputMode="email"
+                style={{ ...inp, borderColor: onboardStatus ? '#dc2626' : '#e5e7eb' }}
+                placeholder="you@example.com"
+                value={onboardEmail}
+                onChange={e => { setOnboardEmail(e.target.value); setOnboardStatus(''); }}
+                onKeyDown={e => e.key === 'Enter' && saveEmail()}
+              />
+              {onboardStatus && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>{onboardStatus}</p>}
+              <button style={primaryBtn} onClick={saveEmail} disabled={saving}>
+                {saving ? 'Saving…' : 'Continue →'}
+              </button>
+            </>
+          )}
+
+          {onboardStep === 3 && (
+            <>
+              <div>
                 <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>👦 Add your kids</div>
                 <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Kids get their own QR code and token limit so they can spend independently.</div>
               </div>
@@ -449,45 +459,6 @@ function LoginPage() {
             </>
           )}
 
-          {onboardStep === 3 && (
-            <>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>🔗 Link your family</div>
-                <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>Search by name or phone to connect your household.</div>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <input
-                  autoFocus
-                  style={inp}
-                  placeholder="Type a name or phone number…"
-                  value={familyQuery}
-                  onChange={e => handleFamilySearch(e.target.value)}
-                />
-                {familyMatches.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.35rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.85rem', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', maxHeight: '200px', overflowY: 'auto', zIndex: 10 }}>
-                    {familyMatches.map(match => (
-                      <button key={match.userId} type="button" onClick={() => handleLinkFamily(match)} style={{ width: '100%', textAlign: 'left', padding: '0.75rem 0.9rem', border: 'none', background: '#fff', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}>
-                        <strong>{match.name || '—'}</strong>
-                        <span style={{ color: '#6b7280', marginLeft: '0.45rem', fontSize: '0.85rem' }}>{match.phone}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {linkedFamily.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-                  {linkedFamily.map(member => (
-                    <div key={member.userId} style={{ background: '#d1fae5', color: '#065f46', borderRadius: '999px', padding: '0.4rem 0.75rem', fontSize: '0.85rem', fontWeight: 700 }}>
-                      ✅ {member.name || member.phone}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <button style={primaryBtn} onClick={nextOnboard}>Done, Continue →</button>
-              <button style={skipBtn} onClick={nextOnboard}>Skip for now</button>
-            </>
-          )}
-
           {onboardStep === 4 && (
             <>
               <div>
@@ -499,7 +470,7 @@ function LoginPage() {
                   ['🪙', 'Buy tokens', 'Tokens are your carnival currency. Get them at the entry booth.'],
                   ['📲', 'Scan at stalls', 'Show your QR code at any stall to spend tokens on games & food.'],
                   ['👦', 'Kids spend too', 'Each kid has their own QR code with a set limit you control.'],
-                  ['🔗', 'Link family', 'Connect with a partner so you can share balance visibility.'],
+                  ['🔗', 'Link family', 'Connect with a partner from your profile page after sign-in.'],
                   ['🎪', 'Run a stall?', 'Go to the Stalls tab to create your stall or request to join an existing one.'],
                 ].map(([icon, title, desc]) => (
                   <div key={title} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', background: '#fffbeb', borderRadius: '0.85rem', padding: '0.75rem 0.9rem' }}>

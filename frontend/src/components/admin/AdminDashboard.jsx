@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -205,10 +206,9 @@ function CardsPrintOverlay({ cards, onClose }) {
     pages.push(cards.slice(i, i + PAGE_SIZE));
   }
 
-  const doPrint = () => window.print(); // eslint-disable-line no-unused-vars
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 600, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+  // Portal renders directly as a body child so @media print can target it
+  return createPortal(
+    <div id="cards-print-portal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* toolbar — hidden on print */}
       <div className="no-print" style={{ background: '#1f2937', color: '#fff', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexShrink: 0 }}>
         <span style={{ fontWeight: 700, fontSize: '1rem' }}>🖨️ Print QR Cards — {cards.length} cards · {pages.length} page{pages.length > 1 ? 's' : ''} (50/page)</span>
@@ -223,9 +223,9 @@ function CardsPrintOverlay({ cards, onClose }) {
       </div>
 
       {/* scrollable preview */}
-      <div id="cards-print-root" style={{ flex: 1, overflowY: 'auto', background: '#f3f4f6', padding: '1rem' }}>
+      <div id="cards-print-content" style={{ flex: 1, overflowY: 'auto', background: '#f3f4f6', padding: '1rem' }}>
         {pages.map((pageCards, pageIdx) => (
-          <div key={pageIdx} className="cards-print-page" style={{ background: '#fff', marginBottom: '1rem', padding: '1cm', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem 0.75rem', pageBreakAfter: 'always' }}>
+          <div key={pageIdx} className="cards-print-page" style={{ background: '#fff', marginBottom: '1rem', padding: '1cm', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem 0.75rem' }}>
             {pageCards.map((c, i) => {
               const serial = pageIdx * PAGE_SIZE + i + 1;
               return (
@@ -242,14 +242,29 @@ function CardsPrintOverlay({ cards, onClose }) {
 
       <style>{`
         @media print {
-          body > *:not(#cards-print-root) { display: none !important; }
-          #cards-print-root { display: block !important; position: static !important; overflow: visible !important; }
-          .cards-print-page { page-break-after: always; margin-bottom: 0 !important; }
+          body > *:not(#cards-print-portal) { display: none !important; }
+          #cards-print-portal {
+            position: static !important;
+            background: white !important;
+            display: block !important;
+            overflow: visible !important;
+          }
+          #cards-print-content {
+            overflow: visible !important;
+            height: auto !important;
+            background: white !important;
+            padding: 0 !important;
+          }
+          .cards-print-page {
+            page-break-after: always;
+            margin-bottom: 0 !important;
+          }
           .cards-print-page:last-child { page-break-after: avoid; }
           .no-print { display: none !important; }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -258,7 +273,6 @@ function CardsTab({ allUsers }) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [generating, setGenerating] = useState(false);
-  const [showPrint, setShowPrint] = useState(false);
   const [newCards, setNewCards] = useState([]);
   const [showPrintView, setShowPrintView] = useState(false);
   const [printCards, setPrintCards] = useState([]);

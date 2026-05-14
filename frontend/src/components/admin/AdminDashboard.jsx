@@ -198,7 +198,7 @@ function UserTypeahead({ allUsers, onSelect, placeholder }) {
   );
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 function CardsPrintOverlay({ cards, onClose }) {
   const pages = [];
@@ -211,7 +211,7 @@ function CardsPrintOverlay({ cards, onClose }) {
     <div id="cards-print-portal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* toolbar — hidden on print */}
       <div className="no-print" style={{ background: '#1f2937', color: '#fff', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexShrink: 0 }}>
-        <span style={{ fontWeight: 700, fontSize: '1rem' }}>🖨️ Print QR Cards — {cards.length} cards · {pages.length} page{pages.length > 1 ? 's' : ''} (50/page)</span>
+        <span style={{ fontWeight: 700, fontSize: '1rem' }}>🖨️ Print QR Cards — {cards.length} cards · {pages.length} page{pages.length > 1 ? 's' : ''} (20/page)</span>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button onClick={() => window.print()} style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1.25rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>
             🖨️ Print
@@ -225,13 +225,13 @@ function CardsPrintOverlay({ cards, onClose }) {
       {/* scrollable preview */}
       <div id="cards-print-content" style={{ flex: 1, overflowY: 'auto', background: '#f3f4f6', padding: '1rem' }}>
         {pages.map((pageCards, pageIdx) => (
-          <div key={pageIdx} className="cards-print-page" style={{ background: '#fff', marginBottom: '1rem', padding: '1cm', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem 0.75rem' }}>
+          <div key={pageIdx} className="cards-print-page" style={{ background: '#fff', marginBottom: '1rem', padding: '1cm', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem 1rem' }}>
             {pageCards.map((c, i) => {
               const serial = pageIdx * PAGE_SIZE + i + 1;
               return (
                 <div key={c.cardId} style={{ border: '1px dashed #d1d5db', borderRadius: '0.5rem', padding: '0.4rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
                   <div style={{ fontWeight: 800, fontSize: '1rem', color: '#111827' }}>#{serial}</div>
-                  <QRCodeSVG value={c.qrPayload} size={90} includeMargin={false} />
+                  <QRCodeSVG value={c.qrPayload} size={120} includeMargin={false} />
                   <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: '#6b7280', wordBreak: 'break-all' }}>{c.cardId.slice(0, 8)}</div>
                 </div>
               );

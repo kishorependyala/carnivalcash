@@ -352,6 +352,7 @@ function LoginPage() {
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '2.5rem' }}>🎡</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 900, color: DEEP }}>CarnivalCash</div>
+          <div style={{ color: '#b45309', fontSize: '0.7rem', marginTop: '0.2rem', opacity: 0.6 }}>Designed by Harshan &amp; Kishore</div>
         </div>
         <div style={card}>
           <ProgressDots current={onboardStep} total={5} />
@@ -530,6 +531,7 @@ function LoginPage() {
         <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>🎡</div>
         <div style={{ fontSize: '2rem', fontWeight: 900, color: DEEP, marginTop: '0.4rem', letterSpacing: '-0.5px' }}>CarnivalCash</div>
         <div style={{ color: '#92400e', fontSize: '0.92rem', marginTop: '0.3rem', opacity: 0.8 }}>Your digital token wallet for the carnival</div>
+        <div style={{ color: '#b45309', fontSize: '0.7rem', marginTop: '0.4rem', opacity: 0.6 }}>Designed by Harshan &amp; Kishore</div>
       </div>
 
       <div style={card}>

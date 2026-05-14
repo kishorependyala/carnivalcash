@@ -11,6 +11,10 @@ sleep 1
 
 echo "🐍 Starting backend on http://localhost:5001 ..."
 cd "$ROOT/backend"
+# Load .env if present
+if [ -f "$ROOT/backend/.env" ]; then
+  export $(grep -v '^#' "$ROOT/backend/.env" | xargs)
+fi
 DATA_DIR="$ROOT/data" venv/bin/python run.py > /tmp/carnivalcash-backend.log 2>&1 &
 BACKEND_PID=$!
 echo "   Backend PID: $BACKEND_PID"

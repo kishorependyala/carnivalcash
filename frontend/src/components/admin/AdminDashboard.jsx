@@ -556,6 +556,12 @@ function AdminDashboard() {
   const [showEditDrawer, setShowEditDrawer] = useState(false);
   const [editSection, setEditSection] = useState('profile'); // 'profile' | 'kids' | 'family'
   const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPinCurrent, setEditPinCurrent] = useState('');
+  const [editPinNew, setEditPinNew] = useState('');
+  const [editPinConfirm, setEditPinConfirm] = useState('');
+  const [savingPin, setSavingPin] = useState(false);
+  const [requestingPinReset, setRequestingPinReset] = useState(false);
   const [newKidName, setNewKidName] = useState('');
   const [newKidLimit, setNewKidLimit] = useState('');
   const [editingKid, setEditingKid] = useState(null); // {kidId, name, spendingLimit}
@@ -1113,23 +1119,90 @@ function AdminDashboard() {
             {/* ── Profile section ── */}
             {editSection === 'profile' && (
               <div style={{ display: 'grid', gap: '1rem' }}>
+                {/* Name */}
                 <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>
                   Display Name
                   <input value={editName || profile.name || ''} onChange={(e) => setEditName(e.target.value)}
                     placeholder="Your name" style={{ ...inp, fontSize: '1rem' }} />
                 </label>
+
+                {/* Email */}
+                <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>
+                  Email Address
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Add email" type="email" style={{ ...inp, fontSize: '1rem', flex: 1 }} />
+                    <button onClick={async () => {
+                      if (!editEmail.trim()) return;
+                      const emails = [...(profile.emails || [])];
+                      if (!emails.includes(editEmail.trim())) emails.push(editEmail.trim());
+                      try { await userApi.updateProfile({ emails }); await loadProfile(); setEditEmail(''); setDrawerStatus('✅ Email added!'); }
+                      catch { setDrawerStatus('❌ Failed to add email.'); }
+                    }} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.65rem 0.9rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Add</button>
+                  </div>
+                </label>
+                {(profile.emails || []).length > 0 && (
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {profile.emails.map(em => (
+                      <div key={em} style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '999px', padding: '0.3rem 0.7rem', fontSize: '0.83rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        {em}
+                        <button onClick={async () => {
+                          const emails = profile.emails.filter(e => e !== em);
+                          try { await userApi.updateProfile({ emails }); await loadProfile(); setDrawerStatus('Email removed.'); }
+                          catch { setDrawerStatus('❌ Failed.'); }
+                        }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '0.9rem', padding: 0, lineHeight: 1 }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>📱 Phone: <strong>{profile.phone}</strong> &nbsp;(cannot be changed)</div>
-                <button
-                  onClick={async () => {
-                    try {
-                      await userApi.updateProfile({ name: editName || profile.name });
-                      await loadProfile();
-                      setDrawerStatus('✅ Name updated!');
-                    } catch { setDrawerStatus('❌ Failed to update.'); }
-                  }}
-                  style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>
-                  Save Changes
+
+                <button onClick={async () => {
+                  try { await userApi.updateProfile({ name: editName || profile.name }); await loadProfile(); setDrawerStatus('✅ Name saved!'); }
+                  catch { setDrawerStatus('❌ Failed to update.'); }
+                }} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>
+                  Save Name
                 </button>
+
+                {/* PIN change */}
+                <div style={{ background: '#fffbeb', borderRadius: '0.85rem', padding: '1rem', display: 'grid', gap: '0.65rem', borderTop: '2px solid #fde68a' }}>
+                  <div style={{ fontWeight: 700, color: '#78350f', fontSize: '0.92rem' }}>🔐 Change PIN / Password</div>
+                  <input type="password" inputMode="numeric" maxLength={4} placeholder="Current PIN" value={editPinCurrent}
+                    onChange={e => setEditPinCurrent(e.target.value.replace(/\D/g, '').slice(0, 4))} style={{ ...inp }} />
+                  <input type="password" inputMode="numeric" maxLength={4} placeholder="New PIN (4 digits)" value={editPinNew}
+                    onChange={e => setEditPinNew(e.target.value.replace(/\D/g, '').slice(0, 4))} style={{ ...inp }} />
+                  <input type="password" inputMode="numeric" maxLength={4} placeholder="Confirm new PIN" value={editPinConfirm}
+                    onChange={e => setEditPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    style={{ ...inp, borderColor: editPinConfirm && editPinNew !== editPinConfirm ? '#dc2626' : '#e5e7eb' }} />
+                  {editPinConfirm && editPinNew !== editPinConfirm && (
+                    <p style={{ margin: 0, color: '#dc2626', fontSize: '0.82rem' }}>PINs do not match</p>
+                  )}
+                  <button disabled={savingPin || editPinNew.length < 4 || editPinNew !== editPinConfirm}
+                    onClick={async () => {
+                      if (editPinCurrent !== balance.pin) { setDrawerStatus('❌ Current PIN is incorrect.'); return; }
+                      setSavingPin(true);
+                      try {
+                        await userApi.updatePin(editPinNew);
+                        await loadProfile();
+                        setEditPinCurrent(''); setEditPinNew(''); setEditPinConfirm('');
+                        setDrawerStatus('✅ PIN updated!');
+                      } catch (e) { setDrawerStatus(e.response?.data?.error || '❌ Failed to update PIN.'); }
+                      finally { setSavingPin(false); }
+                    }}
+                    style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.7rem', fontWeight: 700, cursor: 'pointer',
+                      opacity: savingPin || editPinNew.length < 4 || editPinNew !== editPinConfirm ? 0.5 : 1 }}>
+                    {savingPin ? 'Saving…' : 'Update PIN'}
+                  </button>
+                  <button onClick={async () => {
+                    setRequestingPinReset(true);
+                    try { await userApi.requestPinReset(); setDrawerStatus('✅ Reset request sent. Admin will reset your PIN to 0000 shortly.'); }
+                    catch (e) { setDrawerStatus(e.response?.data?.error || '❌ Failed.'); }
+                    finally { setRequestingPinReset(false); }
+                  }} disabled={requestingPinReset}
+                    style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '0.82rem', cursor: 'pointer', textDecoration: 'underline', textAlign: 'left', padding: 0 }}>
+                    {requestingPinReset ? 'Sending…' : 'Forgot PIN? Request admin reset'}
+                  </button>
+                </div>
               </div>
             )}
 

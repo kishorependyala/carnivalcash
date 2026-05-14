@@ -385,12 +385,13 @@ function CardsTab({ allUsers }) {
             <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>No cards yet. Generate some above.</p>
           ) : (
             <div style={{ display: 'grid', gap: '0.4rem', maxHeight: '400px', overflowY: 'auto' }}>
-              {cards.map(c => (
+              {cards.map((c, i) => (
                 <div key={c.cardId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: c.linkedUserId ? '#d1fae5' : '#f9fafb', borderRadius: '0.65rem', padding: '0.6rem 0.9rem', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span style={{ fontWeight: 700, color: '#9ca3af', fontSize: '0.78rem', minWidth: '2rem', textAlign: 'right' }}>#{i + 1}</span>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#374151' }}>{c.cardId.slice(0, 8)}…</span>
-                    {c.linkedName && <strong style={{ marginLeft: '0.5rem', fontSize: '0.88rem' }}>{c.linkedName}</strong>}
-                    {!c.linkedUserId && <span style={{ color: '#9ca3af', fontSize: '0.85rem', marginLeft: '0.5rem' }}>Unlinked</span>}
+                    {c.linkedName && <strong style={{ fontSize: '0.88rem' }}>{c.linkedName}</strong>}
+                    {!c.linkedUserId && <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Unlinked</span>}
                   </div>
                   {!c.linkedUserId && (
                     <button style={btn('secondary')} onClick={() => openLink(c.cardId)}>🔗 Link</button>

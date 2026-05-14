@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 import authApi from '../../api/auth';
 import api from '../../api/index';
-import stallsApi from '../../api/stalls';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 

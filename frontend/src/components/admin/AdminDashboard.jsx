@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -24,6 +24,17 @@ const btn = (variant = 'primary') => ({
 });
 
 const TABS = ['User', 'Stalls', 'Admin'];
+const OFFLINE_CARD_PREFIX = 'CARNIVAL_CARD:';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function extractOfflineCardId(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (value.startsWith(OFFLINE_CARD_PREFIX)) {
+    return value.slice(OFFLINE_CARD_PREFIX.length).trim();
+  }
+  return UUID_PATTERN.test(value) ? value : '';
+}
 
 function TabBar({ tabs, active, onChange, badges = {} }) {
   return (
@@ -639,6 +650,15 @@ function AdminDashboard() {
   const [linkSelected, setLinkSelected] = useState(null); // {userId, name, phone}
   const [drawerStatus, setDrawerStatus] = useState('');
   const [pinResetRequests, setPinResetRequests] = useState([]);
+  const offlineScanner = useRef(null);
+  const [showAddOffline, setShowAddOffline] = useState(false);
+  const [offlineName, setOfflineName] = useState('');
+  const [offlinePin, setOfflinePin] = useState('0000');
+  const [offlineCardId, setOfflineCardId] = useState('');
+  const [offlineCardRaw, setOfflineCardRaw] = useState('');
+  const [offlineSaving, setOfflineSaving] = useState(false);
+  const [offlineStatus, setOfflineStatus] = useState('');
+  const [offlineScannerActive, setOfflineScannerActive] = useState(false);
 
   const loadAdmin = async () => {
     const [statsRes, eventRes, usersRes] = await Promise.all([
@@ -740,6 +760,93 @@ function AdminDashboard() {
       setStatus(error.response?.data?.error || 'Failed.');
     }
   };
+
+  const handleOfflineCardRawChange = (value) => {
+    setOfflineCardRaw(value);
+    const cardId = extractOfflineCardId(value);
+    if (cardId) {
+      setOfflineCardId(cardId);
+      setOfflineStatus(`✅ Card #${cardId.slice(0, 8)} ready to link`);
+      return;
+    }
+    setOfflineCardId('');
+    setOfflineStatus(value.trim() ? 'Paste a CARNIVAL_CARD:<cardId> value or bare card UUID.' : '');
+  };
+
+  const handleCreateOfflineUser = async () => {
+    const trimmedName = offlineName.trim();
+    if (!trimmedName) {
+      setOfflineStatus('Name is required.');
+      return;
+    }
+
+    setOfflineSaving(true);
+    setOfflineStatus('');
+    try {
+      const res = await adminApi.createOfflineUser({ name: trimmedName, pin: offlinePin || '0000' });
+      if (offlineCardId) {
+        await adminApi.adminLinkCard(offlineCardId, { userId: res.userId, name: trimmedName });
+      }
+      await load();
+      setOfflineName('');
+      setOfflinePin('0000');
+      setOfflineCardId('');
+      setOfflineCardRaw('');
+      setOfflineScannerActive(false);
+      setShowAddOffline(false);
+      setOfflineStatus('');
+      setStatus(`✅ Created user: ${trimmedName}`);
+    } catch (error) {
+      setOfflineStatus(error.response?.data?.error || 'Failed to create offline user.');
+    } finally {
+      setOfflineSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!(tab === 'Admin' && adminSubTab === 'Users' && showAddOffline && offlineScannerActive)) {
+      offlineScanner.current?.clear?.().catch(() => {});
+      offlineScanner.current = null;
+      return undefined;
+    }
+
+    let mounted = true;
+
+    async function startOfflineScanner() {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted || offlineScanner.current) return;
+        const scanner = new Html5QrcodeScanner('offline-card-reader', { fps: 5, qrbox: 200, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
+        offlineScanner.current = scanner;
+        scanner.render((decodedText) => {
+          if (decodedText.startsWith(OFFLINE_CARD_PREFIX)) {
+            const id = decodedText.split(':')[1];
+            if (id) {
+              setOfflineCardRaw(decodedText);
+              setOfflineCardId(id);
+              setOfflineStatus(`✅ Card #${id.slice(0, 8)} ready to link`);
+              scanner.clear().catch(() => {});
+              offlineScanner.current = null;
+              setOfflineScannerActive(false);
+              return;
+            }
+          }
+          setOfflineStatus('Not a pre-printed card QR code. Try again.');
+        }, () => {});
+      } catch {
+        setOfflineStatus('Camera unavailable. Paste the card QR value instead.');
+        setOfflineScannerActive(false);
+      }
+    }
+
+    startOfflineScanner();
+    return () => {
+      mounted = false;
+      const scanner = offlineScanner.current;
+      offlineScanner.current = null;
+      scanner?.clear?.().catch(() => {});
+    };
+  }, [tab, adminSubTab, showAddOffline, offlineScannerActive]);
 
   return (
     <Layout>
@@ -960,6 +1067,92 @@ function AdminDashboard() {
                     ))}
                   </div>
                 </div>
+
+                <section style={card}>
+                  <button
+                    type="button"
+                    style={{ ...btn(showAddOffline ? 'secondary' : 'primary'), justifySelf: 'start' }}
+                    onClick={() => {
+                      const next = !showAddOffline;
+                      setShowAddOffline(next);
+                      if (!next) {
+                        setOfflineScannerActive(false);
+                      }
+                      setOfflineStatus('');
+                    }}
+                  >
+                    {showAddOffline ? '➖ Hide Add Offline User' : '➕ Add Offline User'}
+                  </button>
+
+                  {showAddOffline && (
+                    <div style={{ ...card, background: '#fffbeb', gap: '0.85rem' }}>
+                      <label style={{ display: 'grid', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: 700, color: '#374151' }}>Name</span>
+                        <input
+                          style={inp}
+                          value={offlineName}
+                          onChange={(e) => setOfflineName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && !offlineSaving && handleCreateOfflineUser()}
+                          placeholder="Customer name"
+                        />
+                        {!offlineName.trim() && <span style={{ color: '#dc2626', fontSize: '0.82rem' }}>Name is required.</span>}
+                      </label>
+
+                      <label style={{ display: 'grid', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: 700, color: '#374151' }}>PIN</span>
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={4}
+                          style={inp}
+                          value={offlinePin}
+                          onChange={(e) => setOfflinePin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                          placeholder="0000"
+                        />
+                        <span style={{ color: '#6b7280', fontSize: '0.82rem' }}>Default: 0000 — admin manages their PIN</span>
+                      </label>
+
+                      <div style={{ display: 'grid', gap: '0.65rem' }}>
+                        <div style={{ fontWeight: 800, color: '#374151' }}>Link a pre-printed card (optional)</div>
+                        <button
+                          type="button"
+                          style={{ ...btn('secondary'), justifySelf: 'start' }}
+                          onClick={() => {
+                            setOfflineScannerActive((active) => !active);
+                            setOfflineStatus('');
+                          }}
+                        >
+                          {offlineScannerActive ? '🛑 Stop Scan' : '📷 Scan Card'}
+                        </button>
+                        {offlineScannerActive && <div id="offline-card-reader" style={{ width: '100%' }} />}
+                        <div style={{ color: '#9ca3af', fontSize: '0.82rem', fontWeight: 700 }}>OR</div>
+                        <input
+                          style={inp}
+                          value={offlineCardRaw}
+                          onChange={(e) => handleOfflineCardRawChange(e.target.value)}
+                          placeholder="Or paste card ID / QR value"
+                        />
+                        {offlineCardId && <div style={{ color: '#047857', fontWeight: 700 }}>✅ Card #{offlineCardId.slice(0, 8)} ready to link</div>}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          style={btn()}
+                          disabled={offlineSaving || !offlineName.trim()}
+                          onClick={handleCreateOfflineUser}
+                        >
+                          {offlineSaving ? 'Creating…' : 'Create User'}
+                        </button>
+                        {offlineStatus && (
+                          <span style={{ color: offlineStatus.startsWith('✅') ? '#047857' : '#92400e', fontSize: '0.88rem' }}>
+                            {offlineStatus}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </section>
 
                 {/* User list with search */}
                 {(() => {

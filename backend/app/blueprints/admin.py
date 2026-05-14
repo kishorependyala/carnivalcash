@@ -9,6 +9,7 @@ from app.storage.admin_store import get_admin_data, get_event, log_admin_action,
 from app.storage.stall_store import list_stalls, save_stall
 from app.storage.user_store import (
     delete_profile,
+    ensure_user_storage,
     find_profile_by_phone,
     get_profile,
     get_user_kids,
@@ -18,6 +19,7 @@ from app.storage.user_store import (
     save_profile,
 )
 from app.utils.auth_middleware import require_auth, require_role
+from app.utils.id_generator import generate_user_id
 from config import DATA_DIR
 
 
@@ -324,6 +326,35 @@ def set_user_roles(user_id):
     save_profile(user_id, profile)
     log_admin_action(g.user['userId'], 'set_roles', {'targetUserId': user_id, 'roles': profile['roles']})
     return jsonify({'userId': user_id, 'phone': profile.get('phone'), 'roles': profile['roles']})
+
+
+@admin_bp.post('/api/admin/users')
+@require_auth
+@require_role('admin')
+def create_offline_user():
+    payload = request.get_json(silent=True) or {}
+    name = str(payload.get('name', '')).strip()
+    pin = str(payload.get('pin') or '0000').strip() or '0000'
+
+    if not name:
+        return jsonify({'error': 'Name is required'}), 400
+
+    user_id = generate_user_id()
+    phone = f'OFFLINE-{user_id[:8]}'
+    profile = {
+        'userId': user_id,
+        'phone': phone,
+        'name': name,
+        'emails': [],
+        'roles': ['user'],
+        'pin': pin,
+        'tokenBalance': 0,
+        'createdAt': utc_now(),
+    }
+    save_profile(user_id, profile)
+    ensure_user_storage(user_id)
+    log_admin_action(g.user['userId'], 'create_offline_user', {'name': name})
+    return jsonify({'userId': user_id, 'name': name, 'phone': phone}), 201
 
 
 @admin_bp.get('/api/admin/users')

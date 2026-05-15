@@ -17,6 +17,10 @@ const authApi = {
     const response = await api.post('/api/auth/verify-pin-reset-code', { phone, code, newPin });
     return response.data;
   },
+  async requestAdminPinReset(phone) {
+    const response = await api.post('/api/auth/request-admin-pin-reset', { phone });
+    return response.data;
+  },
 };
 
 export default authApi;

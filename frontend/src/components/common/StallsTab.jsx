@@ -620,6 +620,7 @@ export function BrowseStallsTab() {
   const [status, setStatus] = useState('');
   const [expandedId, setExpandedId] = useState('');
   const [busyId, setBusyId] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     stallsApi.listAll()
@@ -647,11 +648,21 @@ export function BrowseStallsTab() {
     return <p style={{ color: '#9ca3af' }}>Loading stalls…</p>;
   }
 
+  const filteredStalls = search.trim()
+    ? stalls.filter((s) => s.stallName.toLowerCase().includes(search.trim().toLowerCase()))
+    : stalls;
+
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
+      <input
+        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #e5e7eb', boxSizing: 'border-box', fontSize: '1rem', outline: 'none' }}
+        placeholder="🔍 Search stalls…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
       {status && <p style={{ margin: 0, color: '#92400e', background: '#fffbeb', padding: '0.6rem 1rem', borderRadius: '0.75rem' }}>{status}</p>}
-      {stalls.length === 0 && <section style={card}><p style={{ margin: 0, color: '#6b7280' }}>No stalls yet.</p></section>}
-      {stalls.map((stall) => {
+      {filteredStalls.length === 0 && <section style={card}><p style={{ margin: 0, color: '#6b7280' }}>{stalls.length === 0 ? 'No stalls yet.' : 'No stalls match your search.'}</p></section>}
+      {filteredStalls.map((stall) => {
         const typeMeta = TYPE_META[stall.stallType] || TYPE_META.game;
         const expanded = expandedId === stall.stallId;
         return (
@@ -726,6 +737,7 @@ export function MergedStallsTab() {
   const [joinStatus, setJoinStatus] = useState('');
   const [myKids, setMyKids] = useState([]);
   const [selectedKids, setSelectedKids] = useState([]); // kidIds to include in request
+  const [joinInputFocused, setJoinInputFocused] = useState(false);
 
   useEffect(() => {
     stallsApi.mine()
@@ -770,7 +782,8 @@ export function MergedStallsTab() {
     }
   };
 
-  const filteredStalls = allStalls.filter(s => {
+  const availableStalls = allStalls.filter(s => !s.isMember);
+  const filteredStalls = availableStalls.filter(s => {
     const q = joinQuery.toLowerCase();
     return !q || s.stallName.toLowerCase().includes(q);
   });
@@ -846,15 +859,17 @@ export function MergedStallsTab() {
                   <input
                     value={joinSelected ? joinSelected.stallName : joinQuery}
                     onChange={(e) => { setJoinQuery(e.target.value); setJoinSelected(null); setJoinStatus(''); }}
-                    placeholder={stallsLoading ? 'Loading stalls…' : 'Type stall name…'}
+                    onFocus={() => setJoinInputFocused(true)}
+                    onBlur={() => setTimeout(() => setJoinInputFocused(false), 150)}
+                    placeholder={stallsLoading ? 'Loading stalls…' : availableStalls.length === 0 ? 'No available stalls' : `Search ${availableStalls.length} available stall${availableStalls.length !== 1 ? 's' : ''}…`}
                     disabled={stallsLoading}
                     style={{ ...inp, width: '100%', boxSizing: 'border-box' }}
                   />
-                  {!joinSelected && joinQuery.length > 0 && filteredStalls.length > 0 && (
+                  {!joinSelected && joinInputFocused && filteredStalls.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.65rem', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 600, maxHeight: '200px', overflowY: 'auto' }}>
                       {filteredStalls.map(s => (
                         <div key={s.stallId}
-                          onClick={() => { setJoinSelected(s); setJoinQuery(''); }}
+                          onMouseDown={() => { setJoinSelected(s); setJoinQuery(''); setJoinInputFocused(false); }}
                           style={{ padding: '0.65rem 0.9rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', fontSize: '0.88rem' }}
                           onMouseEnter={e => e.currentTarget.style.background='#f9fafb'}
                           onMouseLeave={e => e.currentTarget.style.background='#fff'}
@@ -865,7 +880,7 @@ export function MergedStallsTab() {
                       ))}
                     </div>
                   )}
-                  {!joinSelected && joinQuery.length > 0 && !stallsLoading && filteredStalls.length === 0 && (
+                  {!joinSelected && joinInputFocused && !stallsLoading && joinQuery.length > 0 && filteredStalls.length === 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.65rem', padding: '0.75rem 1rem', color: '#9ca3af', fontSize: '0.88rem', zIndex: 600 }}>No stalls found</div>
                   )}
                 </div>

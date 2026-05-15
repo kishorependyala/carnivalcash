@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request
 from app.storage.user_store import ensure_user_storage, find_profile_by_phone, get_profile, normalize_phone, save_profile
 from app.utils.email_sender import send_email
 from app.utils.id_generator import generate_user_id
+from app.utils.login_logger import log_login
 from app.utils.pin_generator import generate_pin
 from app.utils.pin_reset_codes import generate_code, verify_code
 from config import get_jwt_secret
@@ -61,7 +62,10 @@ def login_with_pin():
     if not is_new:
         stored_pin = profile.get('pin', '0000')
         if not pin or pin != stored_pin:
+            log_login(phone, 'login_with_pin', False, 'incorrect_pin', request)
             return jsonify({'error': 'Incorrect PIN. If you forgot your PIN, contact an admin to reset it.'}), 401
+
+    log_login(phone, 'login_with_pin', True, 'new' if is_new else 'existing', request)
 
     token = jwt.encode(
         {
@@ -221,6 +225,24 @@ def verify():
         }
     )
 
+@auth_bp.post('/api/auth/request-admin-pin-reset')
+def request_admin_pin_reset():
+    """Mark user as needing admin PIN reset. Body: {phone}"""
+    payload = request.get_json(silent=True) or {}
+    phone = normalize_phone(str(payload.get('phone', '')).strip())
+    if not phone:
+        return jsonify({'error': 'Phone required'}), 400
+
+    profile = find_profile_by_phone(phone)
+    if profile:
+        profile['pinResetRequested'] = True
+        save_profile(profile['userId'], profile)
+
+    log_login(phone, 'request_admin_pin_reset', True, '', request)
+    # Always respond the same way — don't reveal whether the account exists
+    return jsonify({'sent': True, 'message': 'Reset request submitted. Admin will reset your PIN to 0000 shortly.'})
+
+
 @auth_bp.post('/api/auth/request-pin-reset-code')
 def request_pin_reset_code():
     """Send a 4-digit reset code to user's email(s). Body: {phone}"""
@@ -263,6 +285,7 @@ def verify_pin_reset_code():
         return jsonify({'error': 'PIN must be exactly 4 digits'}), 400
 
     if not verify_code(phone, code):
+        log_login(phone, 'verify_pin_reset_code', False, 'invalid_or_expired_code', request)
         return jsonify({'error': 'Invalid or expired code. Request a new one.'}), 400
 
     profile = find_profile_by_phone(phone)
@@ -273,5 +296,6 @@ def verify_pin_reset_code():
     profile['pinResetRequested'] = False
     save_profile(profile['userId'], profile)
 
+    log_login(phone, 'verify_pin_reset_code', True, '', request)
     return jsonify({'status': 'ok', 'message': 'PIN updated successfully.'})
 

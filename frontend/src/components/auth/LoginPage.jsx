@@ -142,7 +142,18 @@ function LoginPage() {
   };
 
   const handleContinue = async () => {
-    if (isExisting) {
+    let existing = isExisting;
+    // If check-phone hasn't resolved yet, do it now
+    if (existing === null) {
+      try {
+        const res = await api.get('/api/auth/check-phone', { params: { phone: phone.replace(/\D/g, '') } });
+        existing = res.data.exists;
+        setIsExisting(existing);
+      } catch {
+        existing = false;
+      }
+    }
+    if (existing) {
       // Existing user — show PIN step
       setAuthStep(2);
       setAuthStatus('');
@@ -156,7 +167,14 @@ function LoginPage() {
         setLoggedInUser(res.user);
         setOnboarding(true);
       } catch (err) {
-        setAuthStatus(err.response?.data?.error || 'Unable to sign up. Try again.');
+        // 401 means the user actually exists but has a PIN — show PIN step instead
+        if (err.response?.status === 401) {
+          setIsExisting(true);
+          setAuthStep(2);
+          setAuthStatus('');
+        } else {
+          setAuthStatus(err.response?.data?.error || 'Unable to sign up. Try again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -546,7 +564,7 @@ function LoginPage() {
                     setResetLoading(true);
                     setResetStatus('');
                     try {
-                      await userApi.requestPinReset();
+                      await authApi.requestAdminPinReset(phone.replace(/\D/g, ''));
                       clearResetState();
                       setAuthStatus('✅ Reset request sent. Admin will reset your PIN to 0000 shortly.');
                     } catch (err) {

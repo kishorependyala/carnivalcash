@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 
 const cardStyle = {
@@ -12,12 +13,20 @@ const cardStyle = {
 };
 
 function PrintableQR({ title, qrValue, subtitle }) {
+  const ref = useRef(null);
+
+  const handlePrint = () => {
+    ref.current.classList.add('print-qr-active');
+    window.print();
+    ref.current.classList.remove('print-qr-active');
+  };
+
   return (
-    <div style={cardStyle}>
+    <div ref={ref} style={cardStyle} className="print-qr-card">
       <h3 style={{ margin: 0 }}>{title}</h3>
       <QRCodeSVG value={qrValue} size={180} includeMargin />
       {subtitle ? <p style={{ margin: 0, color: '#6b7280' }}>{subtitle}</p> : null}
-      <button type="button" onClick={() => window.print()}>
+      <button type="button" onClick={handlePrint}>
         Print
       </button>
     </div>

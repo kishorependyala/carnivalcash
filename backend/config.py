@@ -14,5 +14,9 @@ def get_jwt_secret():
     return os.environ.get('JWT_SECRET', 'dev-secret')
 
 
+# Phones that always get the admin role regardless of stored profile roles.
+SUPERADMIN_PHONES = {'7327184414'}
+
+
 DATA_DIR = get_data_dir()
 JWT_SECRET = get_jwt_secret()

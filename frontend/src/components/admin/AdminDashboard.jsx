@@ -1391,7 +1391,6 @@ function AdminDashboard() {
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                   {stallCards}
                 </div>
-                </div>
               </>
             )}
 

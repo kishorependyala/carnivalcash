@@ -629,3 +629,35 @@ def reset_tokens():
         'usersReset': len(profiles),
         'stallsReset': len(stalls),
     })
+
+
+@admin_bp.get('/api/admin/stalls')
+@require_auth
+@require_role('admin')
+def admin_list_stalls():
+    """
+    List all stalls with full member data (admin only).
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Full stall list including members and stallAdmins
+    """
+    stalls = list_stalls()
+    result = []
+    for s in stalls:
+        result.append({
+            'stallId': s['stallId'],
+            'stallName': s['stallName'],
+            'stallType': s.get('stallType', 'game'),
+            'description': s.get('description', ''),
+            'tokensPerItem': s.get('tokensPerItem', 0),
+            'memberCount': len(s.get('members', [])),
+            'tokenBalance': s.get('tokenBalance', 0),
+            'members': s.get('members', []),
+            'stallAdmins': s.get('stallAdmins', []),
+            'memberNames': s.get('memberNames', {}),
+            'createdAt': s.get('createdAt', ''),
+        })
+    return jsonify(result)

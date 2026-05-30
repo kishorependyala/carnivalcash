@@ -380,6 +380,14 @@ def list_users():
         description: List of all user profiles with roles
     """
     profiles = list_profiles()
+    user_profiles = [p for p in profiles if 'user' in p.get('roles', [])]
+    other_profiles = [p for p in profiles if 'user' not in p.get('roles', [])]
+
+    with ThreadPoolExecutor() as executor:
+        kids_list = list(executor.map(
+            lambda p: get_user_kids(p['userId']), user_profiles))
+    kids_map = {p['userId']: k for p, k in zip(user_profiles, kids_list)}
+
     return jsonify([
         {
             'userId': p['userId'],
@@ -387,7 +395,7 @@ def list_users():
             'name': p.get('name', ''),
             'roles': p.get('roles', []),
             'tokenBalance': int(p.get('tokenBalance', 0)),
-            'kids': get_user_kids(p['userId']) if 'user' in p.get('roles', []) else [],
+            'kids': kids_map.get(p['userId'], []) if 'user' in p.get('roles', []) else [],
         }
         for p in profiles
     ])
@@ -479,11 +487,11 @@ def list_vendors():
     """
     profiles = list_profiles()
     vendor_profiles = [p for p in profiles if 'vendor' in p.get('roles', [])]
-    result = []
-    for v in vendor_profiles:
+
+    def _fetch_vendor_data(v):
         transactions = get_vendor_transactions(v['userId'])
         items = get_vendor_items(v['userId'])
-        result.append({
+        return {
             'userId': v['userId'],
             'phone': v.get('phone', ''),
             'name': v.get('name', ''),
@@ -493,7 +501,10 @@ def list_vendors():
             'transactionCount': len(transactions),
             'items': items,
             'recentTransactions': transactions[-10:],
-        })
+        }
+
+    with ThreadPoolExecutor() as executor:
+        result = list(executor.map(_fetch_vendor_data, vendor_profiles))
     return jsonify(result)
 
 

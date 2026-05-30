@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, memo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { usePolling } from '../../hooks/usePolling';
@@ -73,7 +73,7 @@ function TabBar({ tabs, active, onChange, badges = {} }) {
   );
 }
 
-function TokenRow({ user, tokenRate, onDone, setStatus, refreshPinResetRequests }) {
+const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, refreshPinResetRequests }) {
   const [open, setOpen] = useState(false);
   const [dollars, setDollars] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -176,7 +176,7 @@ function TokenRow({ user, tokenRate, onDone, setStatus, refreshPinResetRequests 
       )}
     </div>
   );
-}
+});
 
 function UserTypeahead({ allUsers, onSelect, placeholder }) {
   const [query, setQuery] = useState('');
@@ -483,6 +483,11 @@ function DataFilesTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const formattedContent = useMemo(() => {
+    if (node?.type !== 'file') return '';
+    try { return JSON.stringify(JSON.parse(node.content), null, 2); } catch { return node.content || ''; }
+  }, [node]);
+
   const browse = (targetPath) => {
     setError('');
     setLoading(true);
@@ -597,7 +602,7 @@ function DataFilesTab() {
             <span style={{ marginLeft: 'auto', fontSize: '0.78rem', color: '#9ca3af' }}>{fmtSize(node.size)}</span>
           </div>
           <pre style={{ background: '#1e1e2e', color: '#cdd6f4', borderRadius: '0.75rem', padding: '1rem', overflowX: 'auto', fontSize: '0.8rem', margin: 0, maxHeight: '60vh', overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-            {(() => { try { return JSON.stringify(JSON.parse(node.content), null, 2); } catch { return node.content; } })()}
+            {formattedContent}
           </pre>
         </div>
       )}
@@ -756,14 +761,14 @@ function AdminDashboard() {
     setStallsLoaded(true);
   };
 
-  const loadPinResetRequests = async () => {
+  const loadPinResetRequests = useCallback(async () => {
     const requests = await adminApi.getPinResetRequests();
     setPinResetRequests(Array.isArray(requests) ? requests : []);
-  };
+  }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     await Promise.all([loadAdmin(), loadProfile(), loadPinResetRequests()]);
-  };
+  }, [loadPinResetRequests]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     load().catch(() => setStatus('Unable to load dashboard.'));

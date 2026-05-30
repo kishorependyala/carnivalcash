@@ -1,3 +1,4 @@
+import re
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -39,7 +40,6 @@ def list_profiles():
 
 def normalize_phone(phone):
     """Strip all non-digit characters so 862-252-1855, (862) 252-1855, 8622521855 all match."""
-    import re
     return re.sub(r'\D', '', str(phone))
 
 
@@ -91,40 +91,32 @@ def ensure_vendor_storage(user_id):
 
 
 def get_user_kids(user_id):
-    ensure_user_storage(user_id)
     return read_json(users_dir() / user_id / 'kids.json') or []
 
 
 def save_user_kids(user_id, kids):
-    ensure_user_storage(user_id)
     return write_json(users_dir() / user_id / 'kids.json', kids)
 
 
 def get_user_transactions(user_id):
-    ensure_user_storage(user_id)
     return read_json(users_dir() / user_id / 'transactions.json') or []
 
 
 def save_user_transactions(user_id, transactions):
-    ensure_user_storage(user_id)
     return write_json(users_dir() / user_id / 'transactions.json', transactions)
 
 
 def get_vendor_items(user_id):
-    ensure_vendor_storage(user_id)
     return read_json(vendors_dir() / user_id / 'items.json') or []
 
 
 def save_vendor_items(user_id, items):
-    ensure_vendor_storage(user_id)
     return write_json(vendors_dir() / user_id / 'items.json', items)
 
 
 def get_vendor_transactions(user_id):
-    ensure_vendor_storage(user_id)
     return read_json(vendors_dir() / user_id / 'transactions.json') or []
 
 
 def save_vendor_transactions(user_id, transactions):
-    ensure_vendor_storage(user_id)
     return write_json(vendors_dir() / user_id / 'transactions.json', transactions)

@@ -1,3 +1,7 @@
+from config import get_jwt_secret
+from app.storage.user_store import ensure_user_storage, ensure_vendor_storage, save_profile
+from app.storage.file_store import ensure_dir
+from app import create_app
 import json
 import shutil
 import sys
@@ -11,11 +15,6 @@ import pytest
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
-
-from app import create_app
-from app.storage.file_store import ensure_dir
-from app.storage.user_store import ensure_user_storage, ensure_vendor_storage, save_profile
-from config import get_jwt_secret
 
 
 RUNTIME_DATA_ROOT = Path(__file__).resolve().parent / '_runtime_data'

@@ -20,7 +20,8 @@ def test_add_tokens_increases_balance(client, seed_profile, auth_header):
 def test_set_rate_updates_event(client, seed_profile, auth_header):
     admin = seed_profile('5550000001', roles=['admin'])
 
-    response = client.post('/api/admin/rate', json={'tokenRate': 12}, headers=auth_header(admin))
+    response = client.post(
+        '/api/admin/rate', json={'tokenRate': 12}, headers=auth_header(admin))
 
     assert response.status_code == 200
     assert response.get_json()['tokenRate'] == 12
@@ -28,7 +29,8 @@ def test_set_rate_updates_event(client, seed_profile, auth_header):
 
 def test_open_close_event_lifecycle(client, seed_profile, auth_header):
     admin = seed_profile('5550000001', roles=['admin'])
-    client.post('/api/admin/rate', json={'tokenRate': 10}, headers=auth_header(admin))
+    client.post('/api/admin/rate',
+                json={'tokenRate': 10}, headers=auth_header(admin))
 
     open_response = client.post(
         '/api/admin/event',
@@ -36,7 +38,8 @@ def test_open_close_event_lifecycle(client, seed_profile, auth_header):
         headers=auth_header(admin),
     )
     event = open_response.get_json()
-    close_response = client.post('/api/admin/event', json={'action': 'close'}, headers=auth_header(admin))
+    close_response = client.post(
+        '/api/admin/event', json={'action': 'close'}, headers=auth_header(admin))
 
     assert open_response.status_code == 200
     assert event['status'] == 'open'
@@ -102,8 +105,10 @@ def test_admin_list_stalls_returns_all_stalls(client, seed_profile, auth_header)
     admin = seed_profile('5550001003', roles=['admin'])
     creator = seed_profile('5550001004', name='Stall Owner')
 
-    create_stall('Ring Toss', 'game', 3, 'A fun game', creator['userId'], creator_name='Stall Owner')
-    create_stall('Hot Dogs', 'food', 5, 'Tasty food', creator['userId'], creator_name='Stall Owner')
+    create_stall('Ring Toss', 'game', 3, 'A fun game',
+                 creator['userId'], creator_name='Stall Owner')
+    create_stall('Hot Dogs', 'food', 5, 'Tasty food',
+                 creator['userId'], creator_name='Stall Owner')
 
     response = client.get('/api/admin/stalls', headers=auth_header(admin))
 
@@ -121,7 +126,8 @@ def test_admin_list_stalls_includes_members_and_admins(client, seed_profile, aut
 
     stall_response = client.post(
         '/api/stalls',
-        json={'stallName': 'Balloon Pop', 'stallType': 'game', 'tokensPerItem': 2},
+        json={'stallName': 'Balloon Pop',
+              'stallType': 'game', 'tokensPerItem': 2},
         headers=auth_header(creator),
     )
     stall_id = stall_response.get_json()['stallId']
@@ -171,13 +177,16 @@ def test_admin_list_stalls_member_count_is_correct(client, seed_profile, auth_he
 
     stall_response = client.post(
         '/api/stalls',
-        json={'stallName': 'Wheel Spin', 'stallType': 'game', 'tokensPerItem': 1},
+        json={'stallName': 'Wheel Spin',
+              'stallType': 'game', 'tokensPerItem': 1},
         headers=auth_header(creator),
     )
     stall_id = stall_response.get_json()['stallId']
 
-    client.post(f'/api/stalls/{stall_id}/members', json={'memberId': extra1['userId']}, headers=auth_header(creator))
-    client.post(f'/api/stalls/{stall_id}/members', json={'memberId': extra2['userId']}, headers=auth_header(creator))
+    client.post(f'/api/stalls/{stall_id}/members',
+                json={'memberId': extra1['userId']}, headers=auth_header(creator))
+    client.post(f'/api/stalls/{stall_id}/members',
+                json={'memberId': extra2['userId']}, headers=auth_header(creator))
 
     response = client.get('/api/admin/stalls', headers=auth_header(admin))
 

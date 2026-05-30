@@ -92,7 +92,7 @@ Kid QR ─────────────▶ deducted from parent's wallet
 
 ---
 
-## 💻 Local Development
+## 💻 Local Development 
 
 ### Backend
 ```bash

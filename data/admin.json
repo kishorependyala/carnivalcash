@@ -52,6 +52,94 @@
         "targetUserId": "202605130000000001",
         "phone": "7327184411"
       }
+    },
+    {
+      "timestamp": "2026-05-14T00:32:53Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000005",
+        "phone": "0000000000"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T00:33:00Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000004",
+        "phone": "7327181111"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T00:33:20Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000002",
+        "phone": "7327184415"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T00:33:26Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000003",
+        "phone": "7327184417"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T01:09:53Z",
+      "adminId": "202605100000000002",
+      "action": "create_offline_user",
+      "details": {
+        "name": "test"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T01:11:13Z",
+      "adminId": "202605100000000002",
+      "action": "create_offline_user",
+      "details": {
+        "name": "aaaa"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T02:32:09Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000008",
+        "phone": "OFFLINE-20260513"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T02:32:16Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000010",
+        "phone": "7327121234"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T02:32:22Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000007",
+        "phone": "OFFLINE-20260513"
+      }
+    },
+    {
+      "timestamp": "2026-05-14T02:32:27Z",
+      "adminId": "202605100000000002",
+      "action": "delete_user",
+      "details": {
+        "targetUserId": "202605130000000009",
+        "phone": "7327184111"
+      }
     }
   ]
 }

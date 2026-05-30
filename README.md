@@ -1,6 +1,8 @@
 # 🎡 CarnivalCash
+
 **Digital token bank for carnival & donation events** — scan QR codes to pay stalls, manage kids' wallets, track everything in real time.
 Harshan
+
 ---
 
 ## 🏗️ Architecture
@@ -20,7 +22,7 @@ graph TB
     subgraph Azure["🔷 Azure"]
         SWA[Static Web Apps<br/>mango-sky-007c1e70f.7.azurestaticapps.net]
         API[App Service<br/>carnivalcash-api.azurewebsites.net]
-        FS[/home/carnivalcash-data/<br/>JSON flat files]
+        FS["/home/carnivalcash-data/<br/>JSON flat files"]
     end
 
     UI -->|HTTPS / JWT| API
@@ -32,6 +34,7 @@ graph TB
 ```
 
 ### Data Layout
+
 ```
 /home/carnivalcash-data/       ← Azure persistent storage (DATA_DIR)
 ├── profiles/<userId>.json     ← user/admin/stall-owner profiles
@@ -45,6 +48,7 @@ graph TB
 ```
 
 ### Token Flow
+
 ```
 Admin ──add tokens──▶ User wallet
 User  ──scan QR──────▶ picks items ──▶ tokens → Stall balance
@@ -58,11 +62,11 @@ Kid QR ─────────────▶ deducted from parent's wallet
 
 ### Local → Azure (end-to-end)
 
-| Step | What happens |
-|------|-------------|
-| `git push` to `main` | GitHub Actions triggers automatically |
-| `backend/**` changed | `deploy-backend.yml` → pip install → ZIP → Azure App Service |
-| `frontend/**` changed | `deploy-frontend.yml` → npm build → Azure Static Web Apps |
+| Step                  | What happens                                                 |
+| --------------------- | ------------------------------------------------------------ |
+| `git push` to `main`  | GitHub Actions triggers automatically                        |
+| `backend/**` changed  | `deploy-backend.yml` → pip install → ZIP → Azure App Service |
+| `frontend/**` changed | `deploy-frontend.yml` → npm build → Azure Static Web Apps    |
 
 ```
 [local dev]
@@ -83,18 +87,19 @@ Kid QR ─────────────▶ deducted from parent's wallet
 
 ### Required GitHub Secrets
 
-| Secret | Used by |
-|--------|---------|
-| `AZURE_CLIENT_ID` | Backend deploy (OIDC) |
-| `AZURE_TENANT_ID` | Backend deploy (OIDC) |
-| `AZURE_SUBSCRIPTION_ID` | Backend deploy (OIDC) |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Frontend deploy |
+| Secret                            | Used by               |
+| --------------------------------- | --------------------- |
+| `AZURE_CLIENT_ID`                 | Backend deploy (OIDC) |
+| `AZURE_TENANT_ID`                 | Backend deploy (OIDC) |
+| `AZURE_SUBSCRIPTION_ID`           | Backend deploy (OIDC) |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Frontend deploy       |
 
 ---
 
-## 💻 Local Development 
+## 💻 Local Development
 
 ### Backend
+
 ```bash
 cd backend
 python -m venv venv && source venv/bin/activate
@@ -103,6 +108,7 @@ DATA_DIR=../data python run.py          # http://localhost:5000
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
@@ -110,6 +116,7 @@ REACT_APP_API_BASE_URL=http://localhost:5000 npm start   # http://localhost:3000
 ```
 
 ### Tests
+
 ```bash
 cd backend && source venv/bin/activate
 python -m pytest tests/ -q
@@ -117,15 +124,16 @@ python -m pytest tests/ -q
 
 ### Environments
 
-| | Local | Azure |
-|--|-------|-------|
-| **Frontend** | `localhost:3000` | `mango-sky-007c1e70f.7.azurestaticapps.net` |
-| **Backend** | `localhost:5000` | `carnivalcash-api.azurewebsites.net` |
-| **Data** | `./data/` (local clone) | `/home/carnivalcash-data/` (persistent volume) |
-| **Deploy** | `python run.py` + `npm start` | GitHub Actions on push to `main` |
+|              | Local                         | Azure                                          |
+| ------------ | ----------------------------- | ---------------------------------------------- |
+| **Frontend** | `localhost:3000`              | `mango-sky-007c1e70f.7.azurestaticapps.net`    |
+| **Backend**  | `localhost:5000`              | `carnivalcash-api.azurewebsites.net`           |
+| **Data**     | `./data/` (local clone)       | `/home/carnivalcash-data/` (persistent volume) |
+| **Deploy**   | `python run.py` + `npm start` | GitHub Actions on push to `main`               |
 
 ---
 
 ## 👥 Contributors
+
 - Harshan Kamesh
 - Kishore Pendyala

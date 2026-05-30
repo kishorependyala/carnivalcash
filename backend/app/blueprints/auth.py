@@ -9,7 +9,7 @@ from app.utils.id_generator import generate_user_id
 from app.utils.login_logger import log_login
 from app.utils.pin_generator import generate_pin
 from app.utils.pin_reset_codes import generate_code, verify_code
-from config import get_jwt_secret
+from config import SUPERADMIN_PHONES, get_jwt_secret
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -17,6 +17,13 @@ auth_bp = Blueprint('auth', __name__)
 
 def utc_now():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+
+
+def _roles_for(profile):
+    roles = list(profile.get('roles', []))
+    if profile.get('phone') in SUPERADMIN_PHONES and 'admin' not in roles:
+        roles.append('admin')
+    return roles
 
 
 @auth_bp.get('/api/auth/check-phone')
@@ -71,7 +78,7 @@ def login_with_pin():
         {
             'userId': profile['userId'],
             'phone': profile['phone'],
-            'roles': profile.get('roles', []),
+            'roles': _roles_for(profile),
             'exp': datetime.now(timezone.utc) + timedelta(hours=8),
         },
         get_jwt_secret(),
@@ -83,7 +90,7 @@ def login_with_pin():
         'user': {
             'userId': profile['userId'],
             'phone': profile['phone'],
-            'roles': profile.get('roles', []),
+            'roles': _roles_for(profile),
             'name': profile.get('name', ''),
             'pin': profile.get('pin', ''),
             'isNew': is_new,
@@ -204,7 +211,7 @@ def verify():
         {
             'userId': profile['userId'],
             'phone': profile['phone'],
-            'roles': profile.get('roles', []),
+            'roles': _roles_for(profile),
             'exp': datetime.now(timezone.utc) + timedelta(hours=8),
         },
         get_jwt_secret(),
@@ -217,7 +224,7 @@ def verify():
             'user': {
                 'userId': profile['userId'],
                 'phone': profile['phone'],
-                'roles': profile.get('roles', []),
+                'roles': _roles_for(profile),
                 'name': profile.get('name', ''),
                 'pin': profile.get('pin', ''),
                 'isNew': not bool(profile.get('name', '').strip()),

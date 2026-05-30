@@ -21,3 +21,7 @@ data/event/current.json
 data/admin/stats.json
 data/sequence.json
 data/**/*.lock
+data/*
+data/*/*
+data/admin.json
+data/cards.json

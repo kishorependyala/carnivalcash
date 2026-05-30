@@ -10,9 +10,9 @@
   {
     "cardId": "006ecb97-e936-4c04-baf2-984d3e81c47f",
     "qrPayload": "CARNIVAL_CARD:006ecb97-e936-4c04-baf2-984d3e81c47f",
-    "linkedUserId": null,
+    "linkedUserId": "202605130000000008",
     "linkedKidId": null,
-    "linkedName": null,
+    "linkedName": "aaaa",
     "createdAt": "2026-05-13T23:56:54Z"
   },
   {
@@ -798,5 +798,2405 @@
     "linkedKidId": null,
     "linkedName": null,
     "createdAt": "2026-05-13T23:56:54Z"
+  },
+  {
+    "cardId": "8122cab2-a624-4ffd-bbdd-4467f10dc768",
+    "qrPayload": "CARNIVAL_CARD:8122cab2-a624-4ffd-bbdd-4467f10dc768",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "50ff6b70-b691-4ac8-9ff3-51ed0223a3f7",
+    "qrPayload": "CARNIVAL_CARD:50ff6b70-b691-4ac8-9ff3-51ed0223a3f7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "9c2add7a-e5b2-42b3-a5a3-d8c5925d2dc8",
+    "qrPayload": "CARNIVAL_CARD:9c2add7a-e5b2-42b3-a5a3-d8c5925d2dc8",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "1f1a5e67-5964-4878-a271-cb89a5a8a366",
+    "qrPayload": "CARNIVAL_CARD:1f1a5e67-5964-4878-a271-cb89a5a8a366",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "f03fb855-b700-4172-8565-3a2a60bc2614",
+    "qrPayload": "CARNIVAL_CARD:f03fb855-b700-4172-8565-3a2a60bc2614",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "3debf9ce-7aa6-4a7d-b03e-8fb1043afb51",
+    "qrPayload": "CARNIVAL_CARD:3debf9ce-7aa6-4a7d-b03e-8fb1043afb51",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "ff79bc18-f4c6-4e94-9826-2dd45316538a",
+    "qrPayload": "CARNIVAL_CARD:ff79bc18-f4c6-4e94-9826-2dd45316538a",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "784d8a95-dd12-4096-935a-2e7da680cd83",
+    "qrPayload": "CARNIVAL_CARD:784d8a95-dd12-4096-935a-2e7da680cd83",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "404326ca-5bbc-4024-aaf8-c0a2068bf752",
+    "qrPayload": "CARNIVAL_CARD:404326ca-5bbc-4024-aaf8-c0a2068bf752",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "ecdf36f7-c78d-49a5-8836-f75098305e48",
+    "qrPayload": "CARNIVAL_CARD:ecdf36f7-c78d-49a5-8836-f75098305e48",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "7d95db6e-4242-43f7-91b2-4fba3502ff33",
+    "qrPayload": "CARNIVAL_CARD:7d95db6e-4242-43f7-91b2-4fba3502ff33",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "9ec8bbae-c62a-4cb4-83cf-80f3e5aa646d",
+    "qrPayload": "CARNIVAL_CARD:9ec8bbae-c62a-4cb4-83cf-80f3e5aa646d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "9e455c57-4ee4-4b4a-80f2-c6f7a71689f5",
+    "qrPayload": "CARNIVAL_CARD:9e455c57-4ee4-4b4a-80f2-c6f7a71689f5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "272e564c-85cc-4a2f-bdce-8c5d8ef0d4ec",
+    "qrPayload": "CARNIVAL_CARD:272e564c-85cc-4a2f-bdce-8c5d8ef0d4ec",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "c52b3f8c-3b96-456d-a24a-291b427245a9",
+    "qrPayload": "CARNIVAL_CARD:c52b3f8c-3b96-456d-a24a-291b427245a9",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "96f04be8-dc3d-43a4-b0c6-c1b1dd0c22ce",
+    "qrPayload": "CARNIVAL_CARD:96f04be8-dc3d-43a4-b0c6-c1b1dd0c22ce",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "23127154-7477-435d-807f-acd3157defc2",
+    "qrPayload": "CARNIVAL_CARD:23127154-7477-435d-807f-acd3157defc2",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "986b170c-abe5-4e7d-aaf5-e1654f3546a5",
+    "qrPayload": "CARNIVAL_CARD:986b170c-abe5-4e7d-aaf5-e1654f3546a5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "6053b031-6c98-4b54-afbc-a4edbeff639d",
+    "qrPayload": "CARNIVAL_CARD:6053b031-6c98-4b54-afbc-a4edbeff639d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "42443e31-2257-4c6d-95cc-844e27cc47fc",
+    "qrPayload": "CARNIVAL_CARD:42443e31-2257-4c6d-95cc-844e27cc47fc",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "04c0440b-4e37-40d7-9836-7ec056eaf02a",
+    "qrPayload": "CARNIVAL_CARD:04c0440b-4e37-40d7-9836-7ec056eaf02a",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "c2cdcdfd-8bc4-43b6-bc80-060cb380f9d9",
+    "qrPayload": "CARNIVAL_CARD:c2cdcdfd-8bc4-43b6-bc80-060cb380f9d9",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "0fc2418d-8339-4833-84f8-dd929f9c39e4",
+    "qrPayload": "CARNIVAL_CARD:0fc2418d-8339-4833-84f8-dd929f9c39e4",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "694e76f8-b465-4fa9-b68d-eaf4c358146e",
+    "qrPayload": "CARNIVAL_CARD:694e76f8-b465-4fa9-b68d-eaf4c358146e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "2622d65b-6453-4e86-969c-c043aac52c4b",
+    "qrPayload": "CARNIVAL_CARD:2622d65b-6453-4e86-969c-c043aac52c4b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "2b7565c1-2e72-427d-b645-e61584bdfbdb",
+    "qrPayload": "CARNIVAL_CARD:2b7565c1-2e72-427d-b645-e61584bdfbdb",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "70d5e2f4-0f46-4819-83bf-72325fa488cc",
+    "qrPayload": "CARNIVAL_CARD:70d5e2f4-0f46-4819-83bf-72325fa488cc",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "04481081-c29c-4b94-84d1-8d70c7c3ace1",
+    "qrPayload": "CARNIVAL_CARD:04481081-c29c-4b94-84d1-8d70c7c3ace1",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "a8d52db8-9589-42bc-a3a4-a8e986050d2b",
+    "qrPayload": "CARNIVAL_CARD:a8d52db8-9589-42bc-a3a4-a8e986050d2b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "d9ec3b6a-ec31-421b-8187-a495b55fadbf",
+    "qrPayload": "CARNIVAL_CARD:d9ec3b6a-ec31-421b-8187-a495b55fadbf",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "fe6d0b6c-36b5-4935-a492-6c61f8cb1abb",
+    "qrPayload": "CARNIVAL_CARD:fe6d0b6c-36b5-4935-a492-6c61f8cb1abb",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "cedeaf8e-8084-451d-b463-d5ee226f81a4",
+    "qrPayload": "CARNIVAL_CARD:cedeaf8e-8084-451d-b463-d5ee226f81a4",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "d7208ae6-ab17-45ee-92a9-7cd978b48332",
+    "qrPayload": "CARNIVAL_CARD:d7208ae6-ab17-45ee-92a9-7cd978b48332",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "742df56a-a0b4-4516-9942-d14e57b5f0e2",
+    "qrPayload": "CARNIVAL_CARD:742df56a-a0b4-4516-9942-d14e57b5f0e2",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "26d0c6a2-da0c-4a3e-ac0c-670a012e7f98",
+    "qrPayload": "CARNIVAL_CARD:26d0c6a2-da0c-4a3e-ac0c-670a012e7f98",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "6d2518c2-2ef4-4c42-a942-58d37a487c4c",
+    "qrPayload": "CARNIVAL_CARD:6d2518c2-2ef4-4c42-a942-58d37a487c4c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "c6eb65ab-39ea-41f5-aa37-a147ced7c7c6",
+    "qrPayload": "CARNIVAL_CARD:c6eb65ab-39ea-41f5-aa37-a147ced7c7c6",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "6a041710-33df-4d24-b600-63c08911c1f0",
+    "qrPayload": "CARNIVAL_CARD:6a041710-33df-4d24-b600-63c08911c1f0",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "f9590284-9693-4f12-8351-ca6401222e3f",
+    "qrPayload": "CARNIVAL_CARD:f9590284-9693-4f12-8351-ca6401222e3f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "17f93ad5-9ea1-43ee-8b03-07866a6be8bf",
+    "qrPayload": "CARNIVAL_CARD:17f93ad5-9ea1-43ee-8b03-07866a6be8bf",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "0c3cb8e2-6ba5-4057-87f6-c59aa0ad0a7c",
+    "qrPayload": "CARNIVAL_CARD:0c3cb8e2-6ba5-4057-87f6-c59aa0ad0a7c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "ec7071f6-5589-48c7-8715-2cadd0339b77",
+    "qrPayload": "CARNIVAL_CARD:ec7071f6-5589-48c7-8715-2cadd0339b77",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "dfbd6e12-6445-4c0a-b7d6-cc69fe6339a8",
+    "qrPayload": "CARNIVAL_CARD:dfbd6e12-6445-4c0a-b7d6-cc69fe6339a8",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "79754503-468d-4e40-b1e8-1df366ff22b3",
+    "qrPayload": "CARNIVAL_CARD:79754503-468d-4e40-b1e8-1df366ff22b3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "d1db11b3-e195-4fab-af04-dce174d11c40",
+    "qrPayload": "CARNIVAL_CARD:d1db11b3-e195-4fab-af04-dce174d11c40",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "2fa0a39e-f1f9-45f1-929c-73637ac10937",
+    "qrPayload": "CARNIVAL_CARD:2fa0a39e-f1f9-45f1-929c-73637ac10937",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "d9004f7c-a602-431b-a54c-b5f20e2f07b5",
+    "qrPayload": "CARNIVAL_CARD:d9004f7c-a602-431b-a54c-b5f20e2f07b5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "bf4618be-916e-4e9c-8672-646fd3bcbe6e",
+    "qrPayload": "CARNIVAL_CARD:bf4618be-916e-4e9c-8672-646fd3bcbe6e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "4be71e95-9339-40da-8026-4b25c4d63df5",
+    "qrPayload": "CARNIVAL_CARD:4be71e95-9339-40da-8026-4b25c4d63df5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "1678636c-2c4e-4562-9630-4dad05410c14",
+    "qrPayload": "CARNIVAL_CARD:1678636c-2c4e-4562-9630-4dad05410c14",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "fb2e023e-e566-4236-b193-3aec7647c6bc",
+    "qrPayload": "CARNIVAL_CARD:fb2e023e-e566-4236-b193-3aec7647c6bc",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "14a63db4-3ef9-478d-9309-cd777299bf53",
+    "qrPayload": "CARNIVAL_CARD:14a63db4-3ef9-478d-9309-cd777299bf53",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "73679d4d-e961-41e2-806a-c69dc0db9484",
+    "qrPayload": "CARNIVAL_CARD:73679d4d-e961-41e2-806a-c69dc0db9484",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "953e4e8d-0a6f-44fb-b8bc-786da094ec50",
+    "qrPayload": "CARNIVAL_CARD:953e4e8d-0a6f-44fb-b8bc-786da094ec50",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "d9945a4e-ea76-4d02-85d1-f56f36106c79",
+    "qrPayload": "CARNIVAL_CARD:d9945a4e-ea76-4d02-85d1-f56f36106c79",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "9992ac77-37a0-491a-8c23-7f0878af0075",
+    "qrPayload": "CARNIVAL_CARD:9992ac77-37a0-491a-8c23-7f0878af0075",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "ed32b62c-858e-4eeb-a2cb-9a3bf3e2793b",
+    "qrPayload": "CARNIVAL_CARD:ed32b62c-858e-4eeb-a2cb-9a3bf3e2793b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "b501cdb2-8355-40b2-94b4-23e620caa54f",
+    "qrPayload": "CARNIVAL_CARD:b501cdb2-8355-40b2-94b4-23e620caa54f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "8c2de6dd-1317-4299-95fa-f19554adfcf9",
+    "qrPayload": "CARNIVAL_CARD:8c2de6dd-1317-4299-95fa-f19554adfcf9",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "73842a19-10a6-4b8f-91c4-3b64743588e6",
+    "qrPayload": "CARNIVAL_CARD:73842a19-10a6-4b8f-91c4-3b64743588e6",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "93484f48-9fe6-4905-ba48-347e1ec53a8f",
+    "qrPayload": "CARNIVAL_CARD:93484f48-9fe6-4905-ba48-347e1ec53a8f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "4ef5f792-7c43-496a-8154-db2b0aa87ddf",
+    "qrPayload": "CARNIVAL_CARD:4ef5f792-7c43-496a-8154-db2b0aa87ddf",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "4a80625e-c35e-4f3a-899f-d8ec78a06ef0",
+    "qrPayload": "CARNIVAL_CARD:4a80625e-c35e-4f3a-899f-d8ec78a06ef0",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "5b39cbb1-e399-49d7-9115-913da37a77bc",
+    "qrPayload": "CARNIVAL_CARD:5b39cbb1-e399-49d7-9115-913da37a77bc",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "92711998-a4fe-47e4-966f-9e2847f4548e",
+    "qrPayload": "CARNIVAL_CARD:92711998-a4fe-47e4-966f-9e2847f4548e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "037c30e3-d8c8-4f03-883d-1c7b86e40d6f",
+    "qrPayload": "CARNIVAL_CARD:037c30e3-d8c8-4f03-883d-1c7b86e40d6f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "8e04a8f8-b969-4d3f-a2d3-c381b97b924d",
+    "qrPayload": "CARNIVAL_CARD:8e04a8f8-b969-4d3f-a2d3-c381b97b924d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "d88f3467-339b-4c64-883b-e1ab74eb58eb",
+    "qrPayload": "CARNIVAL_CARD:d88f3467-339b-4c64-883b-e1ab74eb58eb",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "e880d7ff-9c27-41ad-a4fc-402e0596ff9e",
+    "qrPayload": "CARNIVAL_CARD:e880d7ff-9c27-41ad-a4fc-402e0596ff9e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "0d5da0b4-b774-4ddb-980d-2fd4f419f684",
+    "qrPayload": "CARNIVAL_CARD:0d5da0b4-b774-4ddb-980d-2fd4f419f684",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "139cfa76-7cac-440b-adf1-6bcdd879f51c",
+    "qrPayload": "CARNIVAL_CARD:139cfa76-7cac-440b-adf1-6bcdd879f51c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "3a9f9725-86c7-44af-84ea-ce39356a4bba",
+    "qrPayload": "CARNIVAL_CARD:3a9f9725-86c7-44af-84ea-ce39356a4bba",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "bb5ed38d-211b-4c02-a0cf-96082bbaeebc",
+    "qrPayload": "CARNIVAL_CARD:bb5ed38d-211b-4c02-a0cf-96082bbaeebc",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "327cdebd-16be-46d7-b06f-de94ba5a29b3",
+    "qrPayload": "CARNIVAL_CARD:327cdebd-16be-46d7-b06f-de94ba5a29b3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "3a3828e7-e3fb-4b28-9685-c7a79357ab1f",
+    "qrPayload": "CARNIVAL_CARD:3a3828e7-e3fb-4b28-9685-c7a79357ab1f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "8a6e66a3-436c-41fe-b5d2-3cb9b308991c",
+    "qrPayload": "CARNIVAL_CARD:8a6e66a3-436c-41fe-b5d2-3cb9b308991c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "762da990-c39e-4e68-ad34-f4fd71da7c9b",
+    "qrPayload": "CARNIVAL_CARD:762da990-c39e-4e68-ad34-f4fd71da7c9b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "deb6b638-bb1c-493e-80b1-e57f9186214b",
+    "qrPayload": "CARNIVAL_CARD:deb6b638-bb1c-493e-80b1-e57f9186214b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "5b4d79e7-3fe3-4dce-b614-e56cc0674755",
+    "qrPayload": "CARNIVAL_CARD:5b4d79e7-3fe3-4dce-b614-e56cc0674755",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "f973c29a-d200-47e8-8a69-3280d5108daf",
+    "qrPayload": "CARNIVAL_CARD:f973c29a-d200-47e8-8a69-3280d5108daf",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "53325e53-51e9-4218-9bc8-d4804fe0efe4",
+    "qrPayload": "CARNIVAL_CARD:53325e53-51e9-4218-9bc8-d4804fe0efe4",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "7041dc71-a663-4675-8c7d-a498740a0d00",
+    "qrPayload": "CARNIVAL_CARD:7041dc71-a663-4675-8c7d-a498740a0d00",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "e9a71c20-ac6a-4d58-9fc0-3f535e849895",
+    "qrPayload": "CARNIVAL_CARD:e9a71c20-ac6a-4d58-9fc0-3f535e849895",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "bc2c06aa-9dc6-4890-afd2-1a3ae207b58c",
+    "qrPayload": "CARNIVAL_CARD:bc2c06aa-9dc6-4890-afd2-1a3ae207b58c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "feeef092-a658-4b9b-a52c-1bac63954581",
+    "qrPayload": "CARNIVAL_CARD:feeef092-a658-4b9b-a52c-1bac63954581",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "f9f1566e-e9a5-41bc-bca6-760e63d9b251",
+    "qrPayload": "CARNIVAL_CARD:f9f1566e-e9a5-41bc-bca6-760e63d9b251",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "c4a1200f-627e-4faa-bd1a-240772d3c6eb",
+    "qrPayload": "CARNIVAL_CARD:c4a1200f-627e-4faa-bd1a-240772d3c6eb",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "73f46817-d357-450f-b5b1-09b4f6f62080",
+    "qrPayload": "CARNIVAL_CARD:73f46817-d357-450f-b5b1-09b4f6f62080",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "5e24a8e5-ff32-4172-ad85-c9c835eb790b",
+    "qrPayload": "CARNIVAL_CARD:5e24a8e5-ff32-4172-ad85-c9c835eb790b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "79ef75cd-ad41-497c-a396-5e000e8a94c0",
+    "qrPayload": "CARNIVAL_CARD:79ef75cd-ad41-497c-a396-5e000e8a94c0",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "f8d1a9cd-139e-4a00-9210-947d48a4504e",
+    "qrPayload": "CARNIVAL_CARD:f8d1a9cd-139e-4a00-9210-947d48a4504e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "98a5ca7f-928d-438c-b2bb-1baf566ac50d",
+    "qrPayload": "CARNIVAL_CARD:98a5ca7f-928d-438c-b2bb-1baf566ac50d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "2fecd079-5bb7-4bfd-a716-efc2132d50fe",
+    "qrPayload": "CARNIVAL_CARD:2fecd079-5bb7-4bfd-a716-efc2132d50fe",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "6fc5977c-5f88-4e15-84c2-d5b8b45bcfaa",
+    "qrPayload": "CARNIVAL_CARD:6fc5977c-5f88-4e15-84c2-d5b8b45bcfaa",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "f3472168-5350-4f8a-a130-ed7f6df1f583",
+    "qrPayload": "CARNIVAL_CARD:f3472168-5350-4f8a-a130-ed7f6df1f583",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "491e8a62-37d2-4ae3-8280-6475e12c92e5",
+    "qrPayload": "CARNIVAL_CARD:491e8a62-37d2-4ae3-8280-6475e12c92e5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "e9b6ca1a-f3cc-4879-9b7d-80bbf7a21ca3",
+    "qrPayload": "CARNIVAL_CARD:e9b6ca1a-f3cc-4879-9b7d-80bbf7a21ca3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "ec5ca0cc-2425-46f7-bb16-6b4c5a173fc3",
+    "qrPayload": "CARNIVAL_CARD:ec5ca0cc-2425-46f7-bb16-6b4c5a173fc3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "5a2d9730-00aa-4d23-bccf-f316071d4688",
+    "qrPayload": "CARNIVAL_CARD:5a2d9730-00aa-4d23-bccf-f316071d4688",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "b54db00d-f65d-4b6a-bb68-4da24d42e800",
+    "qrPayload": "CARNIVAL_CARD:b54db00d-f65d-4b6a-bb68-4da24d42e800",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:25:13Z"
+  },
+  {
+    "cardId": "65a38db1-977d-41d4-8a66-b2e674e65792",
+    "qrPayload": "CARNIVAL_CARD:65a38db1-977d-41d4-8a66-b2e674e65792",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "0d1bb8c1-56c9-4a71-82ca-9c6143383104",
+    "qrPayload": "CARNIVAL_CARD:0d1bb8c1-56c9-4a71-82ca-9c6143383104",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "51d40f85-f004-4d22-9c6d-b37c085621e3",
+    "qrPayload": "CARNIVAL_CARD:51d40f85-f004-4d22-9c6d-b37c085621e3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "1bc16200-34cb-4fcc-8c7e-1a407764096e",
+    "qrPayload": "CARNIVAL_CARD:1bc16200-34cb-4fcc-8c7e-1a407764096e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "f6a26c5e-d0e5-4d37-a315-36ee4fda5f70",
+    "qrPayload": "CARNIVAL_CARD:f6a26c5e-d0e5-4d37-a315-36ee4fda5f70",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "caa7ef3c-cea4-42f2-b2b9-fb98283abfa7",
+    "qrPayload": "CARNIVAL_CARD:caa7ef3c-cea4-42f2-b2b9-fb98283abfa7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "a54cc9be-27a6-45ff-8e9a-c9bcc5751b0e",
+    "qrPayload": "CARNIVAL_CARD:a54cc9be-27a6-45ff-8e9a-c9bcc5751b0e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "d526b1c6-6b1b-4f01-99f9-d8bf9aa9a422",
+    "qrPayload": "CARNIVAL_CARD:d526b1c6-6b1b-4f01-99f9-d8bf9aa9a422",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "3c3cb820-64ae-4d9b-b79b-a2d3a871f8b1",
+    "qrPayload": "CARNIVAL_CARD:3c3cb820-64ae-4d9b-b79b-a2d3a871f8b1",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "98849d85-8873-4763-b636-1997ccbd96d1",
+    "qrPayload": "CARNIVAL_CARD:98849d85-8873-4763-b636-1997ccbd96d1",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "93bbc144-f960-41b1-ba50-a3cbf64f2acb",
+    "qrPayload": "CARNIVAL_CARD:93bbc144-f960-41b1-ba50-a3cbf64f2acb",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "965adb71-955b-4783-ae72-069bbdbfb25e",
+    "qrPayload": "CARNIVAL_CARD:965adb71-955b-4783-ae72-069bbdbfb25e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "040de0cf-5270-4245-9f19-d9a26d3d6c63",
+    "qrPayload": "CARNIVAL_CARD:040de0cf-5270-4245-9f19-d9a26d3d6c63",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "20232f9d-6cab-4342-acd2-a417640b6ab7",
+    "qrPayload": "CARNIVAL_CARD:20232f9d-6cab-4342-acd2-a417640b6ab7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "215f487d-c11b-4ecc-bc50-f5ad65420340",
+    "qrPayload": "CARNIVAL_CARD:215f487d-c11b-4ecc-bc50-f5ad65420340",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "0444b8e5-942d-48cb-ad00-ebba67080fad",
+    "qrPayload": "CARNIVAL_CARD:0444b8e5-942d-48cb-ad00-ebba67080fad",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "2764b3dc-9566-4165-8813-b4ed15d3b1d5",
+    "qrPayload": "CARNIVAL_CARD:2764b3dc-9566-4165-8813-b4ed15d3b1d5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "b9d5dec0-176c-4e4b-bbc8-919886a377f0",
+    "qrPayload": "CARNIVAL_CARD:b9d5dec0-176c-4e4b-bbc8-919886a377f0",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "5f8929df-2f25-4421-be54-6493ec8eb9a3",
+    "qrPayload": "CARNIVAL_CARD:5f8929df-2f25-4421-be54-6493ec8eb9a3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "9b5951c9-3ca0-4a1a-bb99-af05f24e4f5a",
+    "qrPayload": "CARNIVAL_CARD:9b5951c9-3ca0-4a1a-bb99-af05f24e4f5a",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "192824f2-c628-44da-8e97-483ee9fcdd27",
+    "qrPayload": "CARNIVAL_CARD:192824f2-c628-44da-8e97-483ee9fcdd27",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "6da1141f-aab4-4f86-850c-283f22402d2e",
+    "qrPayload": "CARNIVAL_CARD:6da1141f-aab4-4f86-850c-283f22402d2e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "4e415ca6-b7c0-402c-983d-ac06c3f8cb13",
+    "qrPayload": "CARNIVAL_CARD:4e415ca6-b7c0-402c-983d-ac06c3f8cb13",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "6eeaf502-4ae6-4de9-884b-99d939be3832",
+    "qrPayload": "CARNIVAL_CARD:6eeaf502-4ae6-4de9-884b-99d939be3832",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "d5e4fe84-fc06-4a7d-97f1-99441b8b7495",
+    "qrPayload": "CARNIVAL_CARD:d5e4fe84-fc06-4a7d-97f1-99441b8b7495",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "eb653d5c-8734-458b-8b1d-d9ecc07b0004",
+    "qrPayload": "CARNIVAL_CARD:eb653d5c-8734-458b-8b1d-d9ecc07b0004",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "c531be4a-eee2-4253-90ad-2f5f1664b1fe",
+    "qrPayload": "CARNIVAL_CARD:c531be4a-eee2-4253-90ad-2f5f1664b1fe",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "1b412666-6217-4fbb-abd3-614ea73af330",
+    "qrPayload": "CARNIVAL_CARD:1b412666-6217-4fbb-abd3-614ea73af330",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "550818e6-901c-40ad-9642-901e0282e752",
+    "qrPayload": "CARNIVAL_CARD:550818e6-901c-40ad-9642-901e0282e752",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "f59bb97b-ff08-4db6-b37e-da7ac10a54e6",
+    "qrPayload": "CARNIVAL_CARD:f59bb97b-ff08-4db6-b37e-da7ac10a54e6",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "b1cc3f4b-9822-4ac5-9d1f-301644958d6f",
+    "qrPayload": "CARNIVAL_CARD:b1cc3f4b-9822-4ac5-9d1f-301644958d6f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "b52c982d-f808-4a4d-8dad-57e8128f9689",
+    "qrPayload": "CARNIVAL_CARD:b52c982d-f808-4a4d-8dad-57e8128f9689",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e2da9314-e10d-42e6-9e8a-5f34b8cad84e",
+    "qrPayload": "CARNIVAL_CARD:e2da9314-e10d-42e6-9e8a-5f34b8cad84e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "986d6b38-82a3-43f1-9623-e4ff28619334",
+    "qrPayload": "CARNIVAL_CARD:986d6b38-82a3-43f1-9623-e4ff28619334",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "274ecc34-2098-46f8-8dc8-1f84520d6ce1",
+    "qrPayload": "CARNIVAL_CARD:274ecc34-2098-46f8-8dc8-1f84520d6ce1",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "5cb80031-5eef-463e-afde-aa9394ead750",
+    "qrPayload": "CARNIVAL_CARD:5cb80031-5eef-463e-afde-aa9394ead750",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "fddc1245-bb29-4a11-9f7f-92d8c96da559",
+    "qrPayload": "CARNIVAL_CARD:fddc1245-bb29-4a11-9f7f-92d8c96da559",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e2b613fd-709f-4eb3-a66c-2b7a3588e18f",
+    "qrPayload": "CARNIVAL_CARD:e2b613fd-709f-4eb3-a66c-2b7a3588e18f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "d1ff0cbd-089e-409c-8000-2af0946fc647",
+    "qrPayload": "CARNIVAL_CARD:d1ff0cbd-089e-409c-8000-2af0946fc647",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "76ff16c1-aac0-4880-bd57-145d9d4fc3c3",
+    "qrPayload": "CARNIVAL_CARD:76ff16c1-aac0-4880-bd57-145d9d4fc3c3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "63590499-ab89-4931-bf8e-89c6f610f7b6",
+    "qrPayload": "CARNIVAL_CARD:63590499-ab89-4931-bf8e-89c6f610f7b6",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "1c69a425-f2da-4409-b759-f8f2c856f2b7",
+    "qrPayload": "CARNIVAL_CARD:1c69a425-f2da-4409-b759-f8f2c856f2b7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e1cbad7d-8f88-4f55-8bbf-2df0ed610eef",
+    "qrPayload": "CARNIVAL_CARD:e1cbad7d-8f88-4f55-8bbf-2df0ed610eef",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "323ec4b3-addd-43e0-bf95-e5f3ca8e1273",
+    "qrPayload": "CARNIVAL_CARD:323ec4b3-addd-43e0-bf95-e5f3ca8e1273",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "cecf1be8-0e0c-4c3b-96b3-edb7ba8448e9",
+    "qrPayload": "CARNIVAL_CARD:cecf1be8-0e0c-4c3b-96b3-edb7ba8448e9",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "7569c238-cbdf-43ae-bcf6-ecfa72352369",
+    "qrPayload": "CARNIVAL_CARD:7569c238-cbdf-43ae-bcf6-ecfa72352369",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "155d2630-22ee-466a-9d06-5b7edb0f1656",
+    "qrPayload": "CARNIVAL_CARD:155d2630-22ee-466a-9d06-5b7edb0f1656",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e716c53b-0309-47b7-85bc-4b8c5d41aefb",
+    "qrPayload": "CARNIVAL_CARD:e716c53b-0309-47b7-85bc-4b8c5d41aefb",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "6f7a3289-27f9-4213-8faa-79e72610b065",
+    "qrPayload": "CARNIVAL_CARD:6f7a3289-27f9-4213-8faa-79e72610b065",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "2a50d1a4-a5a4-4f4c-9e4f-04cfa8b78d0f",
+    "qrPayload": "CARNIVAL_CARD:2a50d1a4-a5a4-4f4c-9e4f-04cfa8b78d0f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "fc216c20-ea38-4e46-a25c-d41c366ee049",
+    "qrPayload": "CARNIVAL_CARD:fc216c20-ea38-4e46-a25c-d41c366ee049",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "a2e9871f-82f6-4d93-885a-5c9b5dbf4cd6",
+    "qrPayload": "CARNIVAL_CARD:a2e9871f-82f6-4d93-885a-5c9b5dbf4cd6",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "7a4aa67a-a8e5-445b-bc24-22de8c6ec2bd",
+    "qrPayload": "CARNIVAL_CARD:7a4aa67a-a8e5-445b-bc24-22de8c6ec2bd",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "b5788dbb-e2f3-46ea-908e-bf4b69870cb2",
+    "qrPayload": "CARNIVAL_CARD:b5788dbb-e2f3-46ea-908e-bf4b69870cb2",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "71179ee5-fe15-4f25-9700-ce974b766d5e",
+    "qrPayload": "CARNIVAL_CARD:71179ee5-fe15-4f25-9700-ce974b766d5e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "09c828d8-e8e2-43ae-8a7d-402f6840b9a3",
+    "qrPayload": "CARNIVAL_CARD:09c828d8-e8e2-43ae-8a7d-402f6840b9a3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "f013dd13-7164-4a1e-869d-3f3eab4fa49a",
+    "qrPayload": "CARNIVAL_CARD:f013dd13-7164-4a1e-869d-3f3eab4fa49a",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "4c6d936f-a5e2-4029-af72-bbac52ac76b6",
+    "qrPayload": "CARNIVAL_CARD:4c6d936f-a5e2-4029-af72-bbac52ac76b6",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "c0a42161-eb55-4087-a5f5-bb8409812f76",
+    "qrPayload": "CARNIVAL_CARD:c0a42161-eb55-4087-a5f5-bb8409812f76",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "a0f0cfec-9f31-44d1-bed6-728dff119db4",
+    "qrPayload": "CARNIVAL_CARD:a0f0cfec-9f31-44d1-bed6-728dff119db4",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "d08f7742-06b4-489e-aad7-eee272355b4e",
+    "qrPayload": "CARNIVAL_CARD:d08f7742-06b4-489e-aad7-eee272355b4e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "61a2baea-2509-48a7-ad8f-11ea2b6daa80",
+    "qrPayload": "CARNIVAL_CARD:61a2baea-2509-48a7-ad8f-11ea2b6daa80",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "b4a93217-0c04-4ec1-8266-1c5f9dd2c92c",
+    "qrPayload": "CARNIVAL_CARD:b4a93217-0c04-4ec1-8266-1c5f9dd2c92c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "32e389c0-26ba-487d-9be7-0ffeaf47915d",
+    "qrPayload": "CARNIVAL_CARD:32e389c0-26ba-487d-9be7-0ffeaf47915d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "54646d4a-26e5-4654-a7a4-36433353dd15",
+    "qrPayload": "CARNIVAL_CARD:54646d4a-26e5-4654-a7a4-36433353dd15",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "3f7672bf-5ab5-45d9-a14f-746e430a9ae5",
+    "qrPayload": "CARNIVAL_CARD:3f7672bf-5ab5-45d9-a14f-746e430a9ae5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "29f7f86e-f389-4cae-93d2-8815d805be09",
+    "qrPayload": "CARNIVAL_CARD:29f7f86e-f389-4cae-93d2-8815d805be09",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e3c1da1c-8bbd-4456-894d-d0e04d0d1a03",
+    "qrPayload": "CARNIVAL_CARD:e3c1da1c-8bbd-4456-894d-d0e04d0d1a03",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "726cb868-bedd-4eab-ada3-078e8aafe073",
+    "qrPayload": "CARNIVAL_CARD:726cb868-bedd-4eab-ada3-078e8aafe073",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e05aab63-ea38-4b2a-91cc-9b9ff9740067",
+    "qrPayload": "CARNIVAL_CARD:e05aab63-ea38-4b2a-91cc-9b9ff9740067",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "570555a3-4873-4af5-aed8-0952bbc724f7",
+    "qrPayload": "CARNIVAL_CARD:570555a3-4873-4af5-aed8-0952bbc724f7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "04fa5939-6862-4ee8-b506-578adea352ed",
+    "qrPayload": "CARNIVAL_CARD:04fa5939-6862-4ee8-b506-578adea352ed",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "2b53b0a0-74c3-48a0-b8c5-2c59580937c5",
+    "qrPayload": "CARNIVAL_CARD:2b53b0a0-74c3-48a0-b8c5-2c59580937c5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "9a2c2ad3-88ff-416f-ba0f-a017152b9f78",
+    "qrPayload": "CARNIVAL_CARD:9a2c2ad3-88ff-416f-ba0f-a017152b9f78",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e76f7aa0-f5ed-45ca-97b3-97d1695ca5ba",
+    "qrPayload": "CARNIVAL_CARD:e76f7aa0-f5ed-45ca-97b3-97d1695ca5ba",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "21a071d7-e236-4d75-b991-b5a38cf31aaa",
+    "qrPayload": "CARNIVAL_CARD:21a071d7-e236-4d75-b991-b5a38cf31aaa",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "fcf14ac8-8c97-4a41-b080-63ed40e1d33e",
+    "qrPayload": "CARNIVAL_CARD:fcf14ac8-8c97-4a41-b080-63ed40e1d33e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e37046d8-a5fb-45ad-a6dd-0240439b245f",
+    "qrPayload": "CARNIVAL_CARD:e37046d8-a5fb-45ad-a6dd-0240439b245f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "e1ef197b-ef97-4f72-b860-adc04f62db3f",
+    "qrPayload": "CARNIVAL_CARD:e1ef197b-ef97-4f72-b860-adc04f62db3f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "f06d3d11-c45d-4cca-bbd1-0fb669977c3a",
+    "qrPayload": "CARNIVAL_CARD:f06d3d11-c45d-4cca-bbd1-0fb669977c3a",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "0afb8fa7-d6d7-4b38-b014-78ae09bb7942",
+    "qrPayload": "CARNIVAL_CARD:0afb8fa7-d6d7-4b38-b014-78ae09bb7942",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "c0e330cb-4157-4e1e-a77a-4b82b9758760",
+    "qrPayload": "CARNIVAL_CARD:c0e330cb-4157-4e1e-a77a-4b82b9758760",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "2943e6a5-6030-459c-8ad7-223e97088d03",
+    "qrPayload": "CARNIVAL_CARD:2943e6a5-6030-459c-8ad7-223e97088d03",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "7db89179-8266-431d-aefa-f1aab8d05263",
+    "qrPayload": "CARNIVAL_CARD:7db89179-8266-431d-aefa-f1aab8d05263",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "15acb3f0-c434-4004-8ca6-0d2fe637033d",
+    "qrPayload": "CARNIVAL_CARD:15acb3f0-c434-4004-8ca6-0d2fe637033d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "98be9bf5-40bf-461f-bf46-af1da1834dd0",
+    "qrPayload": "CARNIVAL_CARD:98be9bf5-40bf-461f-bf46-af1da1834dd0",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "aafae7f2-a028-48b6-9ccd-81dd79144526",
+    "qrPayload": "CARNIVAL_CARD:aafae7f2-a028-48b6-9ccd-81dd79144526",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "4da87334-caf1-4a91-990c-9b339a116517",
+    "qrPayload": "CARNIVAL_CARD:4da87334-caf1-4a91-990c-9b339a116517",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "3b5b6212-04d7-4262-93ef-be47a3c64097",
+    "qrPayload": "CARNIVAL_CARD:3b5b6212-04d7-4262-93ef-be47a3c64097",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "d6cad2e4-877c-4b3b-b2a4-3395da3c9829",
+    "qrPayload": "CARNIVAL_CARD:d6cad2e4-877c-4b3b-b2a4-3395da3c9829",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "2a174b77-db91-44b2-82d8-963ef8bb48a7",
+    "qrPayload": "CARNIVAL_CARD:2a174b77-db91-44b2-82d8-963ef8bb48a7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "a23854b7-4bcf-4d43-b6fd-5b8c904a3ab8",
+    "qrPayload": "CARNIVAL_CARD:a23854b7-4bcf-4d43-b6fd-5b8c904a3ab8",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "40ab75a3-37ef-4d87-a37e-a40af7142bf7",
+    "qrPayload": "CARNIVAL_CARD:40ab75a3-37ef-4d87-a37e-a40af7142bf7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "51386ac7-5af1-4431-8cff-ee3876b11a6e",
+    "qrPayload": "CARNIVAL_CARD:51386ac7-5af1-4431-8cff-ee3876b11a6e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "5e6ad098-105a-4a4d-9fd3-908afcdb00b5",
+    "qrPayload": "CARNIVAL_CARD:5e6ad098-105a-4a4d-9fd3-908afcdb00b5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "d479cc50-ddf9-49db-92ac-f35d7d348f0b",
+    "qrPayload": "CARNIVAL_CARD:d479cc50-ddf9-49db-92ac-f35d7d348f0b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "9871276b-0cde-440a-95ee-99898a258447",
+    "qrPayload": "CARNIVAL_CARD:9871276b-0cde-440a-95ee-99898a258447",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "f74232b0-2c62-4487-8543-9601eb77a666",
+    "qrPayload": "CARNIVAL_CARD:f74232b0-2c62-4487-8543-9601eb77a666",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "4e3387a8-3ff0-41cd-9095-105bfb57f42d",
+    "qrPayload": "CARNIVAL_CARD:4e3387a8-3ff0-41cd-9095-105bfb57f42d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "742b55ff-cc5a-43d7-8940-e23866eb4315",
+    "qrPayload": "CARNIVAL_CARD:742b55ff-cc5a-43d7-8940-e23866eb4315",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:28:43Z"
+  },
+  {
+    "cardId": "ca92059c-338d-435a-8de7-207fd17acfb7",
+    "qrPayload": "CARNIVAL_CARD:ca92059c-338d-435a-8de7-207fd17acfb7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "4570350e-1298-41f7-a38b-0a06086e62f9",
+    "qrPayload": "CARNIVAL_CARD:4570350e-1298-41f7-a38b-0a06086e62f9",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "f11594bd-dd17-4b22-89be-f9da08b83d81",
+    "qrPayload": "CARNIVAL_CARD:f11594bd-dd17-4b22-89be-f9da08b83d81",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "e07d64f9-a044-4e1c-bcff-26a174e0174d",
+    "qrPayload": "CARNIVAL_CARD:e07d64f9-a044-4e1c-bcff-26a174e0174d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "234f130e-eec8-4672-8acd-db4f73b01859",
+    "qrPayload": "CARNIVAL_CARD:234f130e-eec8-4672-8acd-db4f73b01859",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "950c044a-d277-471d-82b2-d9250102f695",
+    "qrPayload": "CARNIVAL_CARD:950c044a-d277-471d-82b2-d9250102f695",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "97526363-17a9-4e4b-87b1-4ea6f65f8f70",
+    "qrPayload": "CARNIVAL_CARD:97526363-17a9-4e4b-87b1-4ea6f65f8f70",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "2208440b-bea4-47c4-8313-2d4e434f8dc3",
+    "qrPayload": "CARNIVAL_CARD:2208440b-bea4-47c4-8313-2d4e434f8dc3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "ee898f83-1f5a-44b3-812f-a792e048696f",
+    "qrPayload": "CARNIVAL_CARD:ee898f83-1f5a-44b3-812f-a792e048696f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "4067f86f-8c8c-44d3-aedb-53100ad52c76",
+    "qrPayload": "CARNIVAL_CARD:4067f86f-8c8c-44d3-aedb-53100ad52c76",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "91e5aeab-1d4c-439f-9e0a-25e77dfaaba2",
+    "qrPayload": "CARNIVAL_CARD:91e5aeab-1d4c-439f-9e0a-25e77dfaaba2",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "a43fe522-220e-4ed6-8a3a-f91ddf4c058d",
+    "qrPayload": "CARNIVAL_CARD:a43fe522-220e-4ed6-8a3a-f91ddf4c058d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "f3112fb1-33a2-4512-bfde-1d53df9744aa",
+    "qrPayload": "CARNIVAL_CARD:f3112fb1-33a2-4512-bfde-1d53df9744aa",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "69cc8d45-de41-4328-9ee9-7354dd430017",
+    "qrPayload": "CARNIVAL_CARD:69cc8d45-de41-4328-9ee9-7354dd430017",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "a5e9e69f-fa20-425d-af08-4adf06bf5af8",
+    "qrPayload": "CARNIVAL_CARD:a5e9e69f-fa20-425d-af08-4adf06bf5af8",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "1b4fe1f1-7318-4004-b61e-8b9089696d19",
+    "qrPayload": "CARNIVAL_CARD:1b4fe1f1-7318-4004-b61e-8b9089696d19",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "bb2e97f5-9738-43af-a260-1190c35492ae",
+    "qrPayload": "CARNIVAL_CARD:bb2e97f5-9738-43af-a260-1190c35492ae",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "67cbb773-b32c-48b7-872e-8ba5d1922901",
+    "qrPayload": "CARNIVAL_CARD:67cbb773-b32c-48b7-872e-8ba5d1922901",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "7a1875e0-f1e8-468f-a67e-b0d7a8a2cf8c",
+    "qrPayload": "CARNIVAL_CARD:7a1875e0-f1e8-468f-a67e-b0d7a8a2cf8c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "8cbfcae1-0e1b-4a45-890f-2f399557ae4e",
+    "qrPayload": "CARNIVAL_CARD:8cbfcae1-0e1b-4a45-890f-2f399557ae4e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "b4bc6fdf-5cdb-4e11-a7c0-06336480e186",
+    "qrPayload": "CARNIVAL_CARD:b4bc6fdf-5cdb-4e11-a7c0-06336480e186",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "1d8e1fc9-a3e7-41dd-a813-30b5c84fc3ad",
+    "qrPayload": "CARNIVAL_CARD:1d8e1fc9-a3e7-41dd-a813-30b5c84fc3ad",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "c3ef8323-6d9a-42f4-8706-54fa2147f1e7",
+    "qrPayload": "CARNIVAL_CARD:c3ef8323-6d9a-42f4-8706-54fa2147f1e7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "40feccec-ecdc-43c1-aa1c-4a1503f85949",
+    "qrPayload": "CARNIVAL_CARD:40feccec-ecdc-43c1-aa1c-4a1503f85949",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "8629adad-e4ea-4182-9391-979a732559dc",
+    "qrPayload": "CARNIVAL_CARD:8629adad-e4ea-4182-9391-979a732559dc",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "2405e168-73ec-484f-91a0-879e11523e53",
+    "qrPayload": "CARNIVAL_CARD:2405e168-73ec-484f-91a0-879e11523e53",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "f6ee4e53-d5fc-4de9-adc4-775813fede2a",
+    "qrPayload": "CARNIVAL_CARD:f6ee4e53-d5fc-4de9-adc4-775813fede2a",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "0acf380d-2874-48af-aca4-c8a6feeeb0c7",
+    "qrPayload": "CARNIVAL_CARD:0acf380d-2874-48af-aca4-c8a6feeeb0c7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "559405c8-ca2e-4758-93a5-95b8b083da92",
+    "qrPayload": "CARNIVAL_CARD:559405c8-ca2e-4758-93a5-95b8b083da92",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "b74db946-30d5-409b-99ba-881fb63d23d9",
+    "qrPayload": "CARNIVAL_CARD:b74db946-30d5-409b-99ba-881fb63d23d9",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "a7b7db72-97c5-42ee-9645-a2fbdad1dce1",
+    "qrPayload": "CARNIVAL_CARD:a7b7db72-97c5-42ee-9645-a2fbdad1dce1",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "f3eaca65-33cf-4230-89d8-d889190dba0f",
+    "qrPayload": "CARNIVAL_CARD:f3eaca65-33cf-4230-89d8-d889190dba0f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "4b75d008-dc75-4f67-93c4-37a19e11164e",
+    "qrPayload": "CARNIVAL_CARD:4b75d008-dc75-4f67-93c4-37a19e11164e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "cab53d83-aea8-44e4-a21c-073866594b27",
+    "qrPayload": "CARNIVAL_CARD:cab53d83-aea8-44e4-a21c-073866594b27",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "afff0307-1b04-40f3-8434-31ec002db9c7",
+    "qrPayload": "CARNIVAL_CARD:afff0307-1b04-40f3-8434-31ec002db9c7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "8c314d51-d1bc-4f13-852e-83005d1d0bb7",
+    "qrPayload": "CARNIVAL_CARD:8c314d51-d1bc-4f13-852e-83005d1d0bb7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "147bc75f-1215-4293-9b32-ae65660f40f2",
+    "qrPayload": "CARNIVAL_CARD:147bc75f-1215-4293-9b32-ae65660f40f2",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "724df874-b31e-4705-9d3a-4c70915f6349",
+    "qrPayload": "CARNIVAL_CARD:724df874-b31e-4705-9d3a-4c70915f6349",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "e95ae640-3b60-4955-bb72-d13d86db284e",
+    "qrPayload": "CARNIVAL_CARD:e95ae640-3b60-4955-bb72-d13d86db284e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "1b4136d7-f6c6-483a-bd49-fd3ae3718651",
+    "qrPayload": "CARNIVAL_CARD:1b4136d7-f6c6-483a-bd49-fd3ae3718651",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "9c42a163-fc01-4770-937d-0fd022e2e571",
+    "qrPayload": "CARNIVAL_CARD:9c42a163-fc01-4770-937d-0fd022e2e571",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "bb0aa4bd-84a9-48c1-b7e7-cf0feffd8939",
+    "qrPayload": "CARNIVAL_CARD:bb0aa4bd-84a9-48c1-b7e7-cf0feffd8939",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "032a39f3-e87c-453c-8e6c-e4bfca588bbe",
+    "qrPayload": "CARNIVAL_CARD:032a39f3-e87c-453c-8e6c-e4bfca588bbe",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "ce1dbd0c-1827-43d2-9ba7-c9038ecc18b2",
+    "qrPayload": "CARNIVAL_CARD:ce1dbd0c-1827-43d2-9ba7-c9038ecc18b2",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "cc6277e5-0866-4ac6-9660-948c96a6d780",
+    "qrPayload": "CARNIVAL_CARD:cc6277e5-0866-4ac6-9660-948c96a6d780",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "8fd8b32c-7aed-490e-9aad-5d5da85d2f9f",
+    "qrPayload": "CARNIVAL_CARD:8fd8b32c-7aed-490e-9aad-5d5da85d2f9f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "62e2da7e-5f14-4550-a5a0-b81fb152d7d6",
+    "qrPayload": "CARNIVAL_CARD:62e2da7e-5f14-4550-a5a0-b81fb152d7d6",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "44d2cc93-c2e5-4743-a1eb-5bac436f8213",
+    "qrPayload": "CARNIVAL_CARD:44d2cc93-c2e5-4743-a1eb-5bac436f8213",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "58952778-5c4b-4bed-9881-ca2bdab986d5",
+    "qrPayload": "CARNIVAL_CARD:58952778-5c4b-4bed-9881-ca2bdab986d5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "c28e08ba-0584-4105-bb12-8b73d5b21487",
+    "qrPayload": "CARNIVAL_CARD:c28e08ba-0584-4105-bb12-8b73d5b21487",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "f706bb5e-1337-4f99-92dd-d90b2860e9d6",
+    "qrPayload": "CARNIVAL_CARD:f706bb5e-1337-4f99-92dd-d90b2860e9d6",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "3421d314-e99a-41c3-ba15-bead9701261f",
+    "qrPayload": "CARNIVAL_CARD:3421d314-e99a-41c3-ba15-bead9701261f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "e4fa74b1-2061-434d-ab58-61ce4411d0de",
+    "qrPayload": "CARNIVAL_CARD:e4fa74b1-2061-434d-ab58-61ce4411d0de",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "424053b4-44a9-46cc-9dd0-77bde4d765c2",
+    "qrPayload": "CARNIVAL_CARD:424053b4-44a9-46cc-9dd0-77bde4d765c2",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "a09910e1-56b3-4d77-b354-54c639db53a5",
+    "qrPayload": "CARNIVAL_CARD:a09910e1-56b3-4d77-b354-54c639db53a5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "8e13a256-e7a4-4bc3-9ece-8e424bf212c2",
+    "qrPayload": "CARNIVAL_CARD:8e13a256-e7a4-4bc3-9ece-8e424bf212c2",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "7d51df6e-1c7b-41e5-a0e2-9a5082060d7f",
+    "qrPayload": "CARNIVAL_CARD:7d51df6e-1c7b-41e5-a0e2-9a5082060d7f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "866f45dd-e1c2-4b16-8508-0f354e4c5deb",
+    "qrPayload": "CARNIVAL_CARD:866f45dd-e1c2-4b16-8508-0f354e4c5deb",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "3d5a58d0-298d-42c1-bbfb-1746632ee839",
+    "qrPayload": "CARNIVAL_CARD:3d5a58d0-298d-42c1-bbfb-1746632ee839",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "62eb55a3-6650-4529-b63e-d23ace705b01",
+    "qrPayload": "CARNIVAL_CARD:62eb55a3-6650-4529-b63e-d23ace705b01",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "d317eaa0-3ae3-49a9-850f-6054d8b2e90c",
+    "qrPayload": "CARNIVAL_CARD:d317eaa0-3ae3-49a9-850f-6054d8b2e90c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "5afbbd76-5331-41fa-be51-d08fcf921d96",
+    "qrPayload": "CARNIVAL_CARD:5afbbd76-5331-41fa-be51-d08fcf921d96",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "dd9c64be-122c-4313-bbad-3c1f65c2af0e",
+    "qrPayload": "CARNIVAL_CARD:dd9c64be-122c-4313-bbad-3c1f65c2af0e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "14e675ce-ad11-42d1-9d93-3bc58595e802",
+    "qrPayload": "CARNIVAL_CARD:14e675ce-ad11-42d1-9d93-3bc58595e802",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "0e580678-1f4a-4834-a66a-25b7b73366cb",
+    "qrPayload": "CARNIVAL_CARD:0e580678-1f4a-4834-a66a-25b7b73366cb",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "42de82bd-d4ac-47e3-8c26-e3712651bf3c",
+    "qrPayload": "CARNIVAL_CARD:42de82bd-d4ac-47e3-8c26-e3712651bf3c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "55171973-4778-4735-9453-591352aa7442",
+    "qrPayload": "CARNIVAL_CARD:55171973-4778-4735-9453-591352aa7442",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "d1d916c2-4849-430d-88f6-11f385e1d436",
+    "qrPayload": "CARNIVAL_CARD:d1d916c2-4849-430d-88f6-11f385e1d436",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "258336de-b012-45b6-b710-a72aeeb089e5",
+    "qrPayload": "CARNIVAL_CARD:258336de-b012-45b6-b710-a72aeeb089e5",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "1be2b419-7205-41aa-b0e6-f9e4d0d73d23",
+    "qrPayload": "CARNIVAL_CARD:1be2b419-7205-41aa-b0e6-f9e4d0d73d23",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "5baf90a6-5a73-44e0-968f-9bbd3cac2fa1",
+    "qrPayload": "CARNIVAL_CARD:5baf90a6-5a73-44e0-968f-9bbd3cac2fa1",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "fb076538-dd1e-4516-af04-d94891a3671f",
+    "qrPayload": "CARNIVAL_CARD:fb076538-dd1e-4516-af04-d94891a3671f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "066b1a6d-c029-4757-ac02-921456920b93",
+    "qrPayload": "CARNIVAL_CARD:066b1a6d-c029-4757-ac02-921456920b93",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "ea6e7f83-1a70-45f6-9fd7-0248ffd4015b",
+    "qrPayload": "CARNIVAL_CARD:ea6e7f83-1a70-45f6-9fd7-0248ffd4015b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "5a144013-2630-4f8c-849d-58d9a8496dfe",
+    "qrPayload": "CARNIVAL_CARD:5a144013-2630-4f8c-849d-58d9a8496dfe",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "84953f6c-dbf7-42a1-97f4-8a3cff109163",
+    "qrPayload": "CARNIVAL_CARD:84953f6c-dbf7-42a1-97f4-8a3cff109163",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "2e0d35d0-d0fd-4e31-8637-626a3216ece7",
+    "qrPayload": "CARNIVAL_CARD:2e0d35d0-d0fd-4e31-8637-626a3216ece7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "ae01918b-4cb7-4965-84b0-bff15904e84c",
+    "qrPayload": "CARNIVAL_CARD:ae01918b-4cb7-4965-84b0-bff15904e84c",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "b56cc3fe-750e-4e55-b986-2392fd330dc7",
+    "qrPayload": "CARNIVAL_CARD:b56cc3fe-750e-4e55-b986-2392fd330dc7",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "5da16c94-01be-4f91-bb72-7b6ea77968c3",
+    "qrPayload": "CARNIVAL_CARD:5da16c94-01be-4f91-bb72-7b6ea77968c3",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "98be1e92-54cb-4d11-98e2-18224b3bede4",
+    "qrPayload": "CARNIVAL_CARD:98be1e92-54cb-4d11-98e2-18224b3bede4",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "addae578-b170-48d2-afa6-3cfbd048bd3a",
+    "qrPayload": "CARNIVAL_CARD:addae578-b170-48d2-afa6-3cfbd048bd3a",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "51971141-f58e-4e93-a536-69cedb33390b",
+    "qrPayload": "CARNIVAL_CARD:51971141-f58e-4e93-a536-69cedb33390b",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "a1006629-6a1d-489d-b630-39e540ccf345",
+    "qrPayload": "CARNIVAL_CARD:a1006629-6a1d-489d-b630-39e540ccf345",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "2ac40f76-4284-4bb9-9121-279a3d683b96",
+    "qrPayload": "CARNIVAL_CARD:2ac40f76-4284-4bb9-9121-279a3d683b96",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "c5cb970c-2d55-40eb-937f-9ba4a8588559",
+    "qrPayload": "CARNIVAL_CARD:c5cb970c-2d55-40eb-937f-9ba4a8588559",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "b604e33b-6ad6-4334-9946-9ee255cd3303",
+    "qrPayload": "CARNIVAL_CARD:b604e33b-6ad6-4334-9946-9ee255cd3303",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "a1e9f1ac-7885-4551-9f4a-c0d4984c7209",
+    "qrPayload": "CARNIVAL_CARD:a1e9f1ac-7885-4551-9f4a-c0d4984c7209",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "df17d626-b556-45dd-8792-6e9d82001c67",
+    "qrPayload": "CARNIVAL_CARD:df17d626-b556-45dd-8792-6e9d82001c67",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "cc529b5f-b022-41c8-819d-50b7f1739559",
+    "qrPayload": "CARNIVAL_CARD:cc529b5f-b022-41c8-819d-50b7f1739559",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "f3c932cb-6485-490e-b056-fdf92f61aa29",
+    "qrPayload": "CARNIVAL_CARD:f3c932cb-6485-490e-b056-fdf92f61aa29",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "c827d882-dbba-4282-9565-e18b8312fb16",
+    "qrPayload": "CARNIVAL_CARD:c827d882-dbba-4282-9565-e18b8312fb16",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "3f14a697-9b47-480a-93e4-d5d5faf8827f",
+    "qrPayload": "CARNIVAL_CARD:3f14a697-9b47-480a-93e4-d5d5faf8827f",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "ce7d7dd0-61d0-445b-9fa1-c49fbb157c26",
+    "qrPayload": "CARNIVAL_CARD:ce7d7dd0-61d0-445b-9fa1-c49fbb157c26",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "fb00dc83-f4bc-41ea-afd3-c9ac91fafb9a",
+    "qrPayload": "CARNIVAL_CARD:fb00dc83-f4bc-41ea-afd3-c9ac91fafb9a",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "677dc785-de51-4df0-a8bf-45447acd1d4e",
+    "qrPayload": "CARNIVAL_CARD:677dc785-de51-4df0-a8bf-45447acd1d4e",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "3e8ed462-67f7-43fe-a1ba-1a2b36a92293",
+    "qrPayload": "CARNIVAL_CARD:3e8ed462-67f7-43fe-a1ba-1a2b36a92293",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "a95324dd-89bc-4c57-8c72-300662d869dd",
+    "qrPayload": "CARNIVAL_CARD:a95324dd-89bc-4c57-8c72-300662d869dd",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "b33e6ac2-e107-4f2c-a052-d9fade9641fe",
+    "qrPayload": "CARNIVAL_CARD:b33e6ac2-e107-4f2c-a052-d9fade9641fe",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
+  },
+  {
+    "cardId": "6e382df0-1862-40c1-bfed-3173556c406d",
+    "qrPayload": "CARNIVAL_CARD:6e382df0-1862-40c1-bfed-3173556c406d",
+    "linkedUserId": null,
+    "linkedKidId": null,
+    "linkedName": null,
+    "createdAt": "2026-05-14T00:39:37Z"
   }
 ]

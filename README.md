@@ -1,6 +1,6 @@
 # 🎡 CarnivalCash
 **Digital token bank for carnival & donation events** — scan QR codes to pay stalls, manage kids' wallets, track everything in real time.
-
+Harshan
 ---
 
 ## 🏗️ Architecture
@@ -92,7 +92,7 @@ Kid QR ─────────────▶ deducted from parent's wallet
 
 ---
 
-## 💻 Local Development
+## 💻 Local Development 
 
 ### Backend
 ```bash

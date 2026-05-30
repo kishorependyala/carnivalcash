@@ -1,4 +1,5 @@
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from config import get_data_dir
@@ -28,7 +29,12 @@ def get_profile(user_id):
 
 def list_profiles():
     ensure_dir(profiles_dir())
-    return [read_json(path) for path in sorted(profiles_dir().glob('*.json')) if read_json(path) is not None]
+    paths = sorted(profiles_dir().glob('*.json'))
+    if not paths:
+        return []
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(read_json, paths))
+    return [r for r in results if r is not None]
 
 
 def normalize_phone(phone):

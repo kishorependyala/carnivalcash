@@ -127,7 +127,11 @@ def test_family_link_and_unlink_updates_both_profiles(client, seed_profile, auth
 
     assert link_response.status_code == 200
     assert family_response.status_code == 200
-    assert family_response.get_json() == [{'userId': other['userId'], 'name': 'Parent Two', 'phone': other['phone']}]
+    family_data = family_response.get_json()
+    assert len(family_data) == 1
+    assert family_data[0]['userId'] == other['userId']
+    assert family_data[0]['name'] == 'Parent Two'
+    assert family_data[0]['phone'] == other['phone']
 
     unlink_response = client.delete(f"/api/users/link-family/{other['userId']}", headers=auth_header(user))
     family_after_unlink = client.get('/api/users/family', headers=auth_header(user))

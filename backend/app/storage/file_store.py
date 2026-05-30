@@ -10,7 +10,8 @@ def ensure_dir(path):
 
 def read_json(path):
     file_path = Path(path)
-    ensure_dir(file_path.parent)
+    if not file_path.exists():
+        return None
     lock = FileLock(f'{file_path}.lock')
     with lock:
         if not file_path.exists():

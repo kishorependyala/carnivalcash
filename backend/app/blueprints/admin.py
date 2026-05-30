@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from uuid import uuid4
 import json
@@ -92,7 +93,8 @@ def create_tokens():
 
     profile['tokenBalance'] = int(profile.get('tokenBalance', 0)) + amount
     save_profile(profile['userId'], profile)
-    log_admin_action(g.user['userId'], 'add_tokens', {'phone': phone, 'amount': amount, 'newBalance': profile['tokenBalance']})
+    log_admin_action(g.user['userId'], 'add_tokens', {
+                     'phone': phone, 'amount': amount, 'newBalance': profile['tokenBalance']})
     return jsonify({'userId': profile['userId'], 'tokenBalance': profile['tokenBalance']})
 
 
@@ -206,7 +208,8 @@ def zero_balance(user_id):
         return jsonify({'error': 'User not found'}), 404
     profile['tokenBalance'] = 0
     save_profile(user_id, profile)
-    log_admin_action(g.user['userId'], 'zero_balance', {'targetUserId': user_id})
+    log_admin_action(g.user['userId'], 'zero_balance',
+                     {'targetUserId': user_id})
     return jsonify({'userId': user_id, 'tokenBalance': 0})
 
 
@@ -233,24 +236,29 @@ def get_stats():
                 users: {type: array, items: {type: object}}
     """
     profiles = list_profiles()
-    user_profiles = [profile for profile in profiles if 'user' in profile.get('roles', [])]
-    vendor_profiles = [profile for profile in profiles if 'vendor' in profile.get('roles', [])]
+    user_profiles = [
+        profile for profile in profiles if 'user' in profile.get('roles', [])]
+    vendor_profiles = [
+        profile for profile in profiles if 'vendor' in profile.get('roles', [])]
 
     vendors = []
     total_tokens_spent = 0
-    for vendor in vendor_profiles:
+
+    def _fetch_vendor(vendor):
         transactions = get_vendor_transactions(vendor['userId'])
         total_received = sum(int(tx.get('amount', 0)) for tx in transactions)
-        total_tokens_spent += total_received
-        vendors.append(
-            {
-                'vendorId': vendor['userId'],
-                'vendorName': vendor.get('name') or vendor.get('phone', ''),
-                'totalReceived': total_received,
-                'transactionCount': len(transactions),
-                'transactions': transactions,
-            }
-        )
+        return {
+            'vendorId': vendor['userId'],
+            'vendorName': vendor.get('name') or vendor.get('phone', ''),
+            'totalReceived': total_received,
+            'transactionCount': len(transactions),
+            'transactions': transactions,
+        }
+
+    with ThreadPoolExecutor() as executor:
+        vendors = list(executor.map(_fetch_vendor, vendor_profiles))
+
+    total_tokens_spent = sum(v['totalReceived'] for v in vendors)
 
     users = [
         {
@@ -324,7 +332,8 @@ def set_user_roles(user_id):
 
     profile['roles'] = list(set(roles))
     save_profile(user_id, profile)
-    log_admin_action(g.user['userId'], 'set_roles', {'targetUserId': user_id, 'roles': profile['roles']})
+    log_admin_action(g.user['userId'], 'set_roles', {
+                     'targetUserId': user_id, 'roles': profile['roles']})
     return jsonify({'userId': user_id, 'phone': profile.get('phone'), 'roles': profile['roles']})
 
 
@@ -390,7 +399,8 @@ def list_users():
 def get_pin_reset_requests():
     users = list_profiles()
     requests_list = [
-        {'userId': u['userId'], 'name': u.get('name', ''), 'phone': u.get('phone', '')}
+        {'userId': u['userId'], 'name': u.get(
+            'name', ''), 'phone': u.get('phone', '')}
         for u in users if u.get('pinResetRequested')
     ]
     return jsonify(requests_list)
@@ -448,7 +458,8 @@ def delete_user(user_id):
     profile = get_profile(user_id)
     if profile is None:
         return jsonify({'error': 'User not found'}), 404
-    log_admin_action(g.user['userId'], 'delete_user', {'targetUserId': user_id, 'phone': profile.get('phone')})
+    log_admin_action(g.user['userId'], 'delete_user', {
+                     'targetUserId': user_id, 'phone': profile.get('phone')})
     delete_profile(user_id)
     return jsonify({'deleted': user_id})
 

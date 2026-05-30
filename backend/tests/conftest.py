@@ -15,7 +15,6 @@ if str(BACKEND_ROOT) not in sys.path:
 from app import create_app
 from app.storage.file_store import ensure_dir
 from app.storage.user_store import ensure_user_storage, ensure_vendor_storage, save_profile
-from app.utils.pin_generator import generate_pin
 from config import get_jwt_secret
 
 
@@ -55,7 +54,6 @@ def seed_profile():
             'name': name,
             'emails': [],
             'roles': roles,
-            'pin': generate_pin(phone),
             'birthYear': birth_year,
             'tokenBalance': token_balance,
             'createdAt': '2026-05-10T10:00:00Z',

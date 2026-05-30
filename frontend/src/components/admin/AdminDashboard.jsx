@@ -626,6 +626,53 @@ function AdminDashboard() {
   const [allStalls, setAllStalls] = useState([]);
   const [stallsLoaded, setStallsLoaded] = useState(false);
   const [expandedStall, setExpandedStall] = useState(null);
+
+  const stallCards = useMemo(() => allStalls.map((stall) => {
+    const typeMeta = TYPE_META[stall.stallType] || TYPE_META.game;
+    const isExpanded = expandedStall === stall.stallId;
+    const members = stall.members || [];
+    const stallAdmins = new Set(stall.stallAdmins || []);
+    const memberNames = stall.memberNames || {};
+    return (
+      <div key={stall.stallId} style={{ background: '#fffbeb', borderRadius: '0.85rem', padding: '1rem', display: 'grid', gap: '0.4rem', border: isExpanded ? '2px solid #f59e0b' : '2px solid transparent' }}>
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => setExpandedStall(isExpanded ? null : stall.stallId)}
+        >
+          <strong style={{ fontSize: '1rem' }}>{stall.stallName}</strong>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ background: typeMeta.bg, color: typeMeta.color, borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{typeMeta.icon} {typeMeta.label}</span>
+            <span style={{ fontSize: '1rem', color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
+          </div>
+        </div>
+        <div style={{ color: '#6b7280', fontSize: '0.82rem', fontFamily: 'monospace' }}>{stall.stallId}</div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ background: '#e0e7ff', color: '#3730a3', borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{stall.memberCount} members</span>
+          <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{stall.tokenBalance} tokens</span>
+        </div>
+        {isExpanded && (
+          <div style={{ marginTop: '0.5rem', borderTop: '1px solid #fde68a', paddingTop: '0.75rem', display: 'grid', gap: '0.4rem' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#92400e', marginBottom: '0.25rem' }}>Members</div>
+            {members.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.85rem', margin: 0 }}>No members.</p>}
+            {members.map((memberId) => {
+              const isAdmin = stallAdmins.has(memberId);
+              const displayName = memberNames[memberId] || memberId;
+              return (
+                <div key={memberId} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.6rem', background: '#fff', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ flex: 1 }}>{displayName}</span>
+                  {isAdmin && (
+                    <span style={{ background: '#dc2626', color: '#fff', borderRadius: '0.4rem', padding: '0.15rem 0.55rem', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.03em' }}>
+                      Admin
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }), [allStalls, expandedStall]);
   const [charities, setCharities] = useState([]);
   const [charitiesLoaded, setCharitiesLoaded] = useState(false);
   const [resetCode, setResetCode] = useState('');
@@ -1337,52 +1384,8 @@ function AdminDashboard() {
                 </div>
                 {allStalls.length === 0 && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
-                  {allStalls.map((stall) => {
-                    const typeMeta = TYPE_META[stall.stallType] || TYPE_META.game;
-                    const isExpanded = expandedStall === stall.stallId;
-                    const members = stall.members || [];
-                    const stallAdmins = new Set(stall.stallAdmins || []);
-                    const memberNames = stall.memberNames || {};
-                    return (
-                      <div key={stall.stallId} style={{ background: '#fffbeb', borderRadius: '0.85rem', padding: '1rem', display: 'grid', gap: '0.4rem', border: isExpanded ? '2px solid #f59e0b' : '2px solid transparent' }}>
-                        <div
-                          style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}
-                          onClick={() => setExpandedStall(isExpanded ? null : stall.stallId)}
-                        >
-                          <strong style={{ fontSize: '1rem' }}>{stall.stallName}</strong>
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <span style={{ background: typeMeta.bg, color: typeMeta.color, borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{typeMeta.icon} {typeMeta.label}</span>
-                            <span style={{ fontSize: '1rem', color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
-                          </div>
-                        </div>
-                        <div style={{ color: '#6b7280', fontSize: '0.82rem', fontFamily: 'monospace' }}>{stall.stallId}</div>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <span style={{ background: '#e0e7ff', color: '#3730a3', borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{stall.memberCount} members</span>
-                          <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{stall.tokenBalance} tokens</span>
-                        </div>
-                        {isExpanded && (
-                          <div style={{ marginTop: '0.5rem', borderTop: '1px solid #fde68a', paddingTop: '0.75rem', display: 'grid', gap: '0.4rem' }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#92400e', marginBottom: '0.25rem' }}>Members</div>
-                            {members.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.85rem', margin: 0 }}>No members.</p>}
-                            {members.map((memberId) => {
-                              const isAdmin = stallAdmins.has(memberId);
-                              const displayName = memberNames[memberId] || memberId;
-                              return (
-                                <div key={memberId} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.6rem', background: '#fff', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
-                                  <span style={{ flex: 1 }}>{displayName}</span>
-                                  {isAdmin && (
-                                    <span style={{ background: '#dc2626', color: '#fff', borderRadius: '0.4rem', padding: '0.15rem 0.55rem', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.03em' }}>
-                                      Admin
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {stallCards}
+                </div>
                 </div>
               </>
             )}

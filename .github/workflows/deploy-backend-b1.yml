@@ -47,7 +47,6 @@ jobs:
           app-name: carnivalcash-backend-westus
           package: backend-deploy.zip
           startup-command: 'gunicorn --bind=0.0.0.0:8000 --timeout 120 --workers 2 run:app'
-          type: zip
 
       - name: Warm up backend
         run: |

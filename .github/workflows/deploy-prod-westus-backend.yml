@@ -3,9 +3,6 @@ name: Deploy prod-westus-backend
 on:
   push:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/deploy-prod-westus-backend.yml'
   workflow_dispatch:
 
 permissions:
@@ -39,14 +36,22 @@ jobs:
       - name: Zip backend for deployment
         run: |
           cd backend
-          zip -r ../backend-deploy.zip . -x "venv/*" -x "__pycache__/*" -x "*.pyc" -x "tests/*" -x ".pytest_cache/*"
+          zip -r ../backend-deploy.zip . -x "venv/*" -x "__pycache__/*" -x "*.pyc" -x "tests/*" -x ".pytest_cache/*" -x ".python_packages/*"
+
+      - name: Set startup command
+        run: |
+          az webapp config set \
+            --name carnivalcash-backend-westus \
+            --resource-group LadderLeagueRG \
+            --startup-file 'gunicorn --bind=0.0.0.0:8000 --timeout 120 --workers 2 run:app'
 
       - name: Deploy to Azure Web App (B1 Prod)
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: carnivalcash-backend-westus
-          package: backend-deploy.zip
-          startup-command: 'gunicorn --bind=0.0.0.0:8000 --timeout 120 --workers 2 run:app'
+        run: |
+          az webapp deploy \
+            --name carnivalcash-backend-westus \
+            --resource-group LadderLeagueRG \
+            --src-path backend-deploy.zip \
+            --type zip
 
       - name: Warm up backend
         run: |

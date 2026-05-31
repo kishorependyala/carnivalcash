@@ -81,6 +81,10 @@ const adminApi = {
     const response = await api.get('/api/admin/stalls');
     return response.data;
   },
+  async updateSettings(payload) {
+    const response = await api.post('/api/admin/settings', payload);
+    return response.data;
+  },
 };
 
 export default adminApi;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, memo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { usePolling } from '../../hooks/usePolling';
+import { useSettings } from '../../context/SettingsContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import adminApi from '../../api/admin';
@@ -719,6 +720,28 @@ function AdminDashboard() {
   const [offlineSaving, setOfflineSaving] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [offlineScannerActive, setOfflineScannerActive] = useState(false);
+  const [pollInterval, setPollInterval] = useState(3);
+  const [pollIntervalInput, setPollIntervalInput] = useState('3');
+  const [savingSettings, setSavingSettings] = useState(false);
+  const { pollIntervalSec } = useSettings();
+
+  // keep local input in sync with context on load
+  useEffect(() => {
+    setPollInterval(pollIntervalSec);
+    setPollIntervalInput(String(pollIntervalSec));
+  }, [pollIntervalSec]);
+
+  const savePollInterval = async () => {
+    const val = parseInt(pollIntervalInput, 10);
+    if (!val || val < 1) { setStatus('Interval must be at least 1 second.'); return; }
+    setSavingSettings(true);
+    try {
+      await adminApi.updateSettings({ pollIntervalSec: val });
+      setPollInterval(val);
+      setStatus(`Poll interval updated to ${val}s. Clients will use it on next refresh.`);
+    } catch { setStatus('Failed to save setting.'); }
+    setSavingSettings(false);
+  };
 
   const loadAdmin = async () => {
     const [statsRes, eventRes, usersRes] = await Promise.all([
@@ -1377,6 +1400,23 @@ function AdminDashboard() {
                     }}
                   />
                   <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Start typing to find a user — select to grant admin role</div>
+                </div>
+                <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '1rem', display: 'grid', gap: '0.5rem' }}>
+                  <div style={{ fontWeight: 600 }}>⚙️ App Settings</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <label style={{ fontSize: '0.9rem', color: '#374151' }}>Poll interval (seconds):</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={pollIntervalInput}
+                      onChange={(e) => setPollIntervalInput(e.target.value)}
+                      style={{ width: '5rem', padding: '0.35rem 0.5rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', fontSize: '0.9rem' }}
+                    />
+                    <button style={btn('primary')} onClick={savePollInterval} disabled={savingSettings}>
+                      {savingSettings ? 'Saving…' : 'Save'}
+                    </button>
+                    <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Currently: {pollInterval}s — clients pick up change on next page refresh</span>
+                  </div>
                 </div>
               </>
             )}

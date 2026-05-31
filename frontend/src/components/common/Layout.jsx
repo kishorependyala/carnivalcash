@@ -5,6 +5,7 @@ import eventsApi from '../../api/events';
 import statsApi from '../../api/stats';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import { usePolling } from '../../hooks/usePolling';
 
 const shellStyle = {
@@ -449,6 +450,7 @@ const ROOT_PATHS = ['/user', '/vendor', '/admin', '/'];
 
 function Layout({ children }) {
   const { user, logout } = useAuth();
+  const { pollIntervalSec } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const isSubPage = !ROOT_PATHS.includes(location.pathname);
@@ -488,7 +490,7 @@ function Layout({ children }) {
           </div>
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <RefreshTimer intervalSec={15} />
+              <RefreshTimer intervalSec={pollIntervalSec} />
               <button type="button" onClick={logout} style={{ border: 0, borderRadius: '999px', padding: '0.65rem 1rem', fontWeight: 700 }}>
                 Logout
               </button>

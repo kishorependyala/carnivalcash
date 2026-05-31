@@ -6,7 +6,7 @@ import json
 
 from flask import Blueprint, g, jsonify, request
 
-from app.storage.admin_store import get_admin_data, get_event, log_admin_action, save_event
+from app.storage.admin_store import get_admin_data, get_event, get_settings, log_admin_action, save_event, save_settings
 from app.storage.stall_store import list_stalls, save_stall
 from app.storage.user_store import (
     delete_profile,
@@ -56,6 +56,28 @@ def current_event():
         description: Current event object
     """
     return jsonify(get_event() or default_event())
+
+
+@admin_bp.get('/api/settings')
+def public_settings():
+    """Public app settings (no auth required). Used by clients on load."""
+    return jsonify(get_settings())
+
+
+@admin_bp.post('/api/admin/settings')
+@require_auth
+@require_role('admin')
+def update_settings():
+    """Update app settings (admin only)."""
+    payload = request.get_json(silent=True) or {}
+    settings = get_settings()
+    if 'pollIntervalSec' in payload:
+        val = int(payload['pollIntervalSec'])
+        if val < 1:
+            return jsonify({'error': 'pollIntervalSec must be at least 1'}), 400
+        settings['pollIntervalSec'] = val
+    save_settings(settings, admin_id=g.user['userId'])
+    return jsonify(settings)
 
 
 @admin_bp.post('/api/admin/tokens')

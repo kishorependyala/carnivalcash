@@ -26,6 +26,13 @@ function getStoredAuth() {
     return { token: null, user: null };
   }
 
+  // Clear expired tokens so the UI doesn't show a stale logged-in state
+  if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return { token: null, user: null };
+  }
+
   return {
     token,
     user: {
@@ -44,6 +51,15 @@ export function AuthProvider({ children }) {
       setAuthState(nextState);
     }
   }, [authState.token, authState.user]);
+
+  // Listen for 401 responses from the API interceptor and clear auth state
+  useEffect(() => {
+    const handleForceLogout = () => {
+      setAuthState({ token: null, user: null });
+    };
+    window.addEventListener('auth:logout', handleForceLogout);
+    return () => window.removeEventListener('auth:logout', handleForceLogout);
+  }, []);
 
   const value = useMemo(
     () => ({

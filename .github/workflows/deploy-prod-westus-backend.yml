@@ -3,9 +3,6 @@ name: Deploy prod-westus-backend
 on:
   push:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/deploy-prod-westus-backend.yml'
   workflow_dispatch:
 
 permissions:

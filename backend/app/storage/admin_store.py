@@ -32,6 +32,9 @@ def _default():
             'openedAt': None,
             'closedAt': None,
         },
+        'config': {
+            'pollIntervalMs': 3000,
+        },
         'auditLog': [],
     }
 
@@ -69,6 +72,7 @@ def get_admin_data():
                 return d
         return _default()
     data.setdefault('event', _default()['event'])
+    data.setdefault('config', _default()['config'])
     data.setdefault('auditLog', [])
     return data
 
@@ -92,6 +96,20 @@ def save_event(event, admin_id=None, action=None):
         _append_log(data, admin_id, action, {'eventId': event.get('eventId'), 'status': event.get('status')})
     save_admin_data(data)
     return event
+
+
+# ── config helpers ────────────────────────────────────────────────────────────
+
+def get_config():
+    data = get_admin_data()
+    return {**_default()['config'], **data.get('config', {})}
+
+
+def save_config(config):
+    data = get_admin_data()
+    data['config'] = {**_default()['config'], **config}
+    save_admin_data(data)
+    return data['config']
 
 
 # ── audit log helpers ─────────────────────────────────────────────────────────

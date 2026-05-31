@@ -81,6 +81,10 @@ const adminApi = {
     const response = await api.get('/api/admin/stalls');
     return response.data;
   },
+  async deleteStall(stallId, code) {
+    const response = await api.delete(`/api/admin/stalls/${stallId}`, { data: { code } });
+    return response.data;
+  },
 };
 
 export default adminApi;

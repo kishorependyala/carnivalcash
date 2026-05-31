@@ -78,6 +78,14 @@ def create_stall(stall_name, stall_type, tokens_per_item, description, creator_i
     return stall
 
 
+def delete_stall(stall_id):
+    stall_file = _stalls_dir() / f'{stall_id}.json'
+    if stall_file.exists():
+        stall_file.unlink()
+        return True
+    return False
+
+
 def get_stall_transactions(stall_id):
     ensure_dir(_stall_txns_dir())
     return read_json(_stall_txns_dir() / f'{stall_id}.json') or []

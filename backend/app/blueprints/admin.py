@@ -2,9 +2,11 @@ from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from uuid import uuid4
+import io
 import json
+import zipfile
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request, send_file
 
 from app.storage.admin_store import get_admin_data, get_event, get_settings, log_admin_action, save_event, save_settings
 from app.storage.stall_store import list_stalls, save_stall, delete_stall
@@ -608,6 +610,35 @@ def browse_files():
         'path': str(target.relative_to(DATA_DIR)) if target != DATA_DIR.resolve() else '',
         'items': items,
     })
+
+
+@admin_bp.get('/api/admin/files/download')
+@require_auth
+@require_role('admin')
+def download_files():
+    rel = request.args.get('path', '').lstrip('/')
+    target = (DATA_DIR / rel).resolve() if rel else DATA_DIR.resolve()
+
+    if not str(target).startswith(str(DATA_DIR.resolve())):
+        return jsonify({'error': 'Invalid path'}), 400
+    if not target.exists():
+        return jsonify({'error': 'Not found'}), 404
+
+    if target.is_file():
+        return send_file(target, as_attachment=True, download_name=target.name)
+
+    folder_name = target.name if rel else 'carnivalcash-data'
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for file in target.rglob('*'):
+            if file.is_file():
+                zf.write(file, file.relative_to(target.parent))
+    buf.seek(0)
+    return Response(
+        buf,
+        mimetype='application/zip',
+        headers={'Content-Disposition': f'attachment; filename={folder_name}.zip'},
+    )
 
 
 RESET_CODE = '1234567'

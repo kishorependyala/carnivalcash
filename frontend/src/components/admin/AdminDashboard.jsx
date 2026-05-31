@@ -482,6 +482,7 @@ function DataFilesTab() {
   const [path, setPath] = useState('');
   const [node, setNode] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
 
   const formattedContent = useMemo(() => {
@@ -499,6 +500,13 @@ function DataFilesTab() {
   };
 
   useEffect(() => { browse(''); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const download = (dlPath) => {
+    setDownloading(true);
+    adminApi.downloadFiles(dlPath)
+      .catch((err) => setError(err.message || 'Download failed.'))
+      .finally(() => setDownloading(false));
+  };
 
   const breadcrumbs = path ? path.split('/') : [];
   const parentPath = breadcrumbs.slice(0, -1).join('/');
@@ -533,26 +541,38 @@ function DataFilesTab() {
         >
           ↺
         </button>
+        {node?.type === 'dir' && (
+          <button
+            type="button"
+            onClick={() => download(path)}
+            disabled={downloading}
+            style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '0.6rem', padding: '0.4rem 0.8rem', cursor: downloading ? 'default' : 'pointer', fontSize: '0.82rem', color: '#92400e', fontWeight: 600, opacity: downloading ? 0.6 : 1 }}
+          >
+            {downloading ? '⏳' : '⬇'} {path ? 'Download folder' : 'Download all'}
+          </button>
+        )}
       </div>
 
       {/* Breadcrumb trail */}
-      {breadcrumbs.length > 0 && (
-        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.82rem', color: '#9ca3af' }}>
-          <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: 0, fontWeight: 600 }} onClick={() => browse('')}>data</button>
-          {breadcrumbs.map((part, i) => {
-            const crumbPath = breadcrumbs.slice(0, i + 1).join('/');
-            const isLast = i === breadcrumbs.length - 1;
-            return (
-              <span key={crumbPath} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span>/</span>
-                {isLast
-                  ? <span style={{ color: '#374151', fontWeight: 600 }}>{part}</span>
-                  : <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: 0, fontWeight: 600 }} onClick={() => browse(crumbPath)}>{part}</button>}
-              </span>
-            );
-          })}
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.82rem', color: '#9ca3af', background: '#f8fafc', borderRadius: '0.5rem', padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0' }}>
+        <span style={{ marginRight: '0.1rem' }}>📂</span>
+        {breadcrumbs.length === 0
+          ? <span style={{ color: '#374151', fontWeight: 700 }}>data</span>
+          : <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: 0, fontWeight: 600 }} onClick={() => browse('')}>data</button>
+        }
+        {breadcrumbs.map((part, i) => {
+          const crumbPath = breadcrumbs.slice(0, i + 1).join('/');
+          const isLast = i === breadcrumbs.length - 1;
+          return (
+            <span key={crumbPath} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span>/</span>
+              {isLast
+                ? <span style={{ color: '#374151', fontWeight: 700 }}>{part}</span>
+                : <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: 0, fontWeight: 600 }} onClick={() => browse(crumbPath)}>{part}</button>}
+            </span>
+          );
+        })}
+      </div>
 
       {loading && <p style={{ color: '#6b7280', margin: 0 }}>Loading…</p>}
       {error   && <p style={{ color: '#dc2626', margin: 0 }}>{error}</p>}
@@ -578,17 +598,26 @@ function DataFilesTab() {
 
           {/* Files */}
           {files.map((item) => (
-            <button
-              key={item.path}
-              type="button"
-              onClick={() => browse(item.path)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left', padding: '0.65rem 1rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}
-            >
-              <span style={{ fontSize: '1.1rem', lineHeight: 1, color: '#6b7280' }}>{fileIcon(item.name)}</span>
-              <span style={{ flex: 1, color: '#374151' }}>{item.name}</span>
-              {fileTypeBadge(item.name)}
-              <span style={{ fontSize: '0.78rem', color: '#9ca3af', minWidth: '3.5rem', textAlign: 'right' }}>{fmtSize(item.size)}</span>
-            </button>
+            <div key={item.path} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => browse(item.path)}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left', padding: '0.65rem 1rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}
+              >
+                <span style={{ fontSize: '1.1rem', lineHeight: 1, color: '#6b7280' }}>{fileIcon(item.name)}</span>
+                <span style={{ flex: 1, color: '#374151' }}>{item.name}</span>
+                {fileTypeBadge(item.name)}
+                <span style={{ fontSize: '0.78rem', color: '#9ca3af', minWidth: '3.5rem', textAlign: 'right' }}>{fmtSize(item.size)}</span>
+              </button>
+              <button
+                type="button"
+                title="Download file"
+                onClick={() => download(item.path)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#9ca3af', padding: '0.4rem', borderRadius: '0.4rem', lineHeight: 1 }}
+                onMouseOver={e => (e.currentTarget.style.color = '#d97706')}
+                onMouseOut={e => (e.currentTarget.style.color = '#9ca3af')}
+              >⬇</button>
+            </div>
           ))}
         </div>
       )}

@@ -45,6 +45,22 @@ const adminApi = {
     const response = await api.get('/api/admin/files', { params: path ? { path } : {} });
     return response.data;
   },
+  async downloadFiles(path = '') {
+    const response = await api.get('/api/admin/files/download', {
+      params: path ? { path } : {},
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(response.data);
+    const a = document.createElement('a');
+    const cd = response.headers['content-disposition'] || '';
+    const match = cd.match(/filename=([^;]+)/);
+    a.href = url;
+    a.download = match ? match[1].trim() : (path ? path.split('/').pop() : 'carnivalcash-data.zip');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
   async resetTokens(code) {
     const response = await api.post('/api/admin/reset-tokens', { code });
     return response.data;

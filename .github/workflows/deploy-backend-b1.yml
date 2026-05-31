@@ -45,7 +45,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: carnivalcash-backend
-          resource-group-name: LadderLeagueRG
           package: backend-deploy.zip
           startup-command: 'gunicorn --bind=0.0.0.0:8000 --timeout 120 --workers 2 run:app'
           type: zip

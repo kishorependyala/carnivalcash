@@ -1,11 +1,11 @@
-name: Deploy Backend to Azure
+name: Deploy prod-eastus2-backend
 
 on:
   push:
     branches: [main]
     paths:
       - 'backend/**'
-      - '.github/workflows/deploy-backend.yml'
+      - '.github/workflows/deploy-prod-eastus2-backend.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,11 +1,11 @@
-name: Deploy Frontend to Azure Static Web Apps (Dev)
+name: Deploy dev-westus2-frontend
 
 on:
   push:
     branches: [dev]
     paths:
       - 'frontend/**'
-      - '.github/workflows/deploy-frontend-dev.yml'
+      - '.github/workflows/deploy-dev-westus2-frontend.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches: [dev]

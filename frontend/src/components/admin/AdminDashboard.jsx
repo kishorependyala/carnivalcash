@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, memo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { usePolling } from '../../hooks/usePolling';
+import { useSettings } from '../../context/SettingsContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import adminApi from '../../api/admin';
@@ -631,10 +632,13 @@ function AdminDashboard() {
   const [allStalls, setAllStalls] = useState([]);
   const [stallsLoaded, setStallsLoaded] = useState(false);
   const [expandedStall, setExpandedStall] = useState(null);
+  const [deletingStall, setDeletingStall] = useState(null);
+  const [stallDelCode, setStallDelCode] = useState('');
 
   const stallCards = useMemo(() => allStalls.map((stall) => {
     const typeMeta = TYPE_META[stall.stallType] || TYPE_META.game;
     const isExpanded = expandedStall === stall.stallId;
+    const isDeleting = deletingStall === stall.stallId;
     const members = stall.members || [];
     const stallAdmins = new Set(stall.stallAdmins || []);
     const memberNames = stall.memberNames || {};
@@ -651,10 +655,58 @@ function AdminDashboard() {
           </div>
         </div>
         <div style={{ color: '#6b7280', fontSize: '0.82rem', fontFamily: 'monospace' }}>{stall.stallId}</div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ background: '#e0e7ff', color: '#3730a3', borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{stall.memberCount} members</span>
           <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: '999px', padding: '0.2rem 0.7rem', fontWeight: 700, fontSize: '0.85rem' }}>{stall.tokenBalance} tokens</span>
+          <button
+            style={{ ...btn('danger'), marginLeft: 'auto', fontSize: '0.82rem', padding: '0.3rem 0.75rem' }}
+            onClick={(e) => { e.stopPropagation(); setDeletingStall(isDeleting ? null : stall.stallId); setStallDelCode(''); }}
+          >
+            🗑️ Delete
+          </button>
         </div>
+        {isDeleting && (
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', background: '#fee2e2', borderRadius: '0.5rem', padding: '0.5rem 0.75rem' }}>
+            <span style={{ fontSize: '0.85rem', color: '#dc2626', fontWeight: 600 }}>Delete stall? Enter code:</span>
+            <input
+              type="password"
+              style={{ ...inp, maxWidth: '130px', fontFamily: 'monospace' }}
+              placeholder="••••••"
+              value={stallDelCode}
+              onChange={(e) => setStallDelCode(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter' && stallDelCode) {
+                  try {
+                    await adminApi.deleteStall(stall.stallId, stallDelCode);
+                    setStatus(`✅ Stall "${stall.stallName}" deleted.`);
+                    setDeletingStall(null);
+                    setStallDelCode('');
+                    setAllStalls((prev) => prev.filter((s) => s.stallId !== stall.stallId));
+                  } catch (err) {
+                    setStatus(err.response?.data?.error || 'Delete failed.');
+                  }
+                }
+              }}
+              autoFocus
+            />
+            <button
+              style={btn('danger')}
+              disabled={!stallDelCode}
+              onClick={async () => {
+                try {
+                  await adminApi.deleteStall(stall.stallId, stallDelCode);
+                  setStatus(`✅ Stall "${stall.stallName}" deleted.`);
+                  setDeletingStall(null);
+                  setStallDelCode('');
+                  setAllStalls((prev) => prev.filter((s) => s.stallId !== stall.stallId));
+                } catch (err) {
+                  setStatus(err.response?.data?.error || 'Delete failed.');
+                }
+              }}
+            >Delete</button>
+            <button style={btn('secondary')} onClick={() => { setDeletingStall(null); setStallDelCode(''); }}>Cancel</button>
+          </div>
+        )}
         {isExpanded && (
           <div style={{ marginTop: '0.5rem', borderTop: '1px solid #fde68a', paddingTop: '0.75rem', display: 'grid', gap: '0.4rem' }}>
             <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#92400e', marginBottom: '0.25rem' }}>Members</div>
@@ -677,7 +729,7 @@ function AdminDashboard() {
         )}
       </div>
     );
-  }), [allStalls, expandedStall]);
+  }), [allStalls, expandedStall, deletingStall, stallDelCode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [charities, setCharities] = useState([]);
   const [charitiesLoaded, setCharitiesLoaded] = useState(false);
   const [resetCode, setResetCode] = useState('');
@@ -719,6 +771,28 @@ function AdminDashboard() {
   const [offlineSaving, setOfflineSaving] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [offlineScannerActive, setOfflineScannerActive] = useState(false);
+  const [pollInterval, setPollInterval] = useState(3);
+  const [pollIntervalInput, setPollIntervalInput] = useState('3');
+  const [savingSettings, setSavingSettings] = useState(false);
+  const { pollIntervalSec } = useSettings();
+
+  // keep local input in sync with context on load
+  useEffect(() => {
+    setPollInterval(pollIntervalSec);
+    setPollIntervalInput(String(pollIntervalSec));
+  }, [pollIntervalSec]);
+
+  const savePollInterval = async () => {
+    const val = parseInt(pollIntervalInput, 10);
+    if (!val || val < 1) { setStatus('Interval must be at least 1 second.'); return; }
+    setSavingSettings(true);
+    try {
+      await adminApi.updateSettings({ pollIntervalSec: val });
+      setPollInterval(val);
+      setStatus(`Poll interval updated to ${val}s. Clients will use it on next refresh.`);
+    } catch { setStatus('Failed to save setting.'); }
+    setSavingSettings(false);
+  };
 
   const loadAdmin = async () => {
     const [statsRes, eventRes, usersRes] = await Promise.all([
@@ -1377,6 +1451,23 @@ function AdminDashboard() {
                     }}
                   />
                   <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Start typing to find a user — select to grant admin role</div>
+                </div>
+                <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '1rem', display: 'grid', gap: '0.5rem' }}>
+                  <div style={{ fontWeight: 600 }}>⚙️ App Settings</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <label style={{ fontSize: '0.9rem', color: '#374151' }}>Poll interval (seconds):</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={pollIntervalInput}
+                      onChange={(e) => setPollIntervalInput(e.target.value)}
+                      style={{ width: '5rem', padding: '0.35rem 0.5rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', fontSize: '0.9rem' }}
+                    />
+                    <button style={btn('primary')} onClick={savePollInterval} disabled={savingSettings}>
+                      {savingSettings ? 'Saving…' : 'Save'}
+                    </button>
+                    <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Currently: {pollInterval}s — clients pick up change on next page refresh</span>
+                  </div>
                 </div>
               </>
             )}

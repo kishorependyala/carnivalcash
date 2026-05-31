@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { usePolling } from '../../hooks/usePolling';
+import { useSettings } from '../../context/SettingsContext';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
@@ -37,6 +38,7 @@ function TabBar({ tabs, active, onChange }) {
 
 function VendorDashboard() {
   const { user } = useAuth();
+  const { pollIntervalSec } = useSettings();
   const isAdmin = user?.roles?.includes('admin');
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -66,7 +68,7 @@ function VendorDashboard() {
   useEffect(() => {
     load().catch(() => setStatus('Unable to load stall dashboard.'));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  usePolling(load, 15000);
+  usePolling(load, pollIntervalSec * 1000);
 
   const changeTab = (nextTab) => {
     setStatus('');

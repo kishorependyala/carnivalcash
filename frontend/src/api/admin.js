@@ -81,6 +81,14 @@ const adminApi = {
     const response = await api.get('/api/admin/stalls');
     return response.data;
   },
+  async deleteStall(stallId, code) {
+    const response = await api.delete(`/api/admin/stalls/${stallId}`, { data: { code } });
+    return response.data;
+  },
+  async updateSettings(payload) {
+    const response = await api.post('/api/admin/settings', payload);
+    return response.data;
+  },
 };
 
 export default adminApi;

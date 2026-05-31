@@ -13,4 +13,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Auto-logout on 401 so stale sessions don't silently fail
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth:logout'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

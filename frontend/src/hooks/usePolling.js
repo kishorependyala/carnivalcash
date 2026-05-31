@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
  * Calls `fn` every `intervalMs` milliseconds while the browser tab is visible.
  * Pauses automatically when the tab is hidden and resumes on focus.
  */
-export function usePolling(fn, intervalMs = 15000) {
+export function usePolling(fn, intervalMs = 3000) {
   const savedFn = useRef(fn);
   useEffect(() => { savedFn.current = fn; }, [fn]);
 

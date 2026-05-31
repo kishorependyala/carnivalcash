@@ -6,8 +6,8 @@ import json
 
 from flask import Blueprint, g, jsonify, request
 
-from app.storage.admin_store import get_admin_data, get_event, log_admin_action, save_event
-from app.storage.stall_store import list_stalls, save_stall
+from app.storage.admin_store import get_admin_data, get_event, get_settings, log_admin_action, save_event, save_settings
+from app.storage.stall_store import list_stalls, save_stall, delete_stall
 from app.storage.user_store import (
     delete_profile,
     ensure_user_storage,
@@ -56,6 +56,28 @@ def current_event():
         description: Current event object
     """
     return jsonify(get_event() or default_event())
+
+
+@admin_bp.get('/api/settings')
+def public_settings():
+    """Public app settings (no auth required). Used by clients on load."""
+    return jsonify(get_settings())
+
+
+@admin_bp.post('/api/admin/settings')
+@require_auth
+@require_role('admin')
+def update_settings():
+    """Update app settings (admin only)."""
+    payload = request.get_json(silent=True) or {}
+    settings = get_settings()
+    if 'pollIntervalSec' in payload:
+        val = int(payload['pollIntervalSec'])
+        if val < 1:
+            return jsonify({'error': 'pollIntervalSec must be at least 1'}), 400
+        settings['pollIntervalSec'] = val
+    save_settings(settings, admin_id=g.user['userId'])
+    return jsonify(settings)
 
 
 @admin_bp.post('/api/admin/tokens')
@@ -683,3 +705,46 @@ def admin_list_stalls():
             'createdAt': s.get('createdAt', ''),
         })
     return jsonify(result)
+
+
+@admin_bp.delete('/api/admin/stalls/<stall_id>')
+@require_auth
+@require_role('admin')
+def admin_delete_stall(stall_id):
+    """
+    Delete a stall. Requires confirmation code.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code: {type: string, example: "1234567"}
+    responses:
+      200:
+        description: Stall deleted
+      403:
+        description: Invalid code
+      404:
+        description: Stall not found
+    """
+    payload = request.get_json(silent=True) or {}
+    if str(payload.get('code', '')) != RESET_CODE:
+        return jsonify({'error': 'Invalid code'}), 403
+    all_stalls = list_stalls()
+    stall_data = next((s for s in all_stalls if s['stallId'] == stall_id), None)
+    if stall_data is None:
+        return jsonify({'error': 'Stall not found'}), 404
+    log_admin_action(g.user['userId'], 'delete_stall', {'stallId': stall_id, 'stallName': stall_data.get('stallName')})
+    delete_stall(stall_id)
+    return jsonify({'deleted': stall_id})

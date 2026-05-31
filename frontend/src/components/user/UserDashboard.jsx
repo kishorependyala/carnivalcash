@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { usePolling } from '../../hooks/usePolling';
+import { useSettings } from '../../context/SettingsContext';
 import stallsApi from '../../api/stalls';
 import authApi from '../../api/auth';
 import userApi from '../../api/user';
@@ -39,6 +40,7 @@ function TabBar({ tabs, active, onChange }) {
 
 function UserDashboard() {
   const { user: me } = useAuth();
+  const { pollIntervalSec } = useSettings();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'User');
@@ -103,7 +105,7 @@ function UserDashboard() {
   };
 
   useEffect(() => { loadProfile(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  usePolling(loadProfile, 15000);
+  usePolling(loadProfile, pollIntervalSec * 1000);
 
   const changeTab = (t) => { setStatus(''); setTab(t); setSearchParams({ tab: t }, { replace: true }); };
 

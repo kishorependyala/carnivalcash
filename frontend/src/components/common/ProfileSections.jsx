@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import { usePolling } from '../../hooks/usePolling';
+import { useSettings } from '../../context/SettingsContext';
 import adminApi from '../../api/admin';
 import stallsApi from '../../api/stalls';
 import userApi from '../../api/user';
@@ -667,6 +668,7 @@ export function StallTab({ setStatus }) {
   const [stall, setStall] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ stallName: '', stallType: 'food', tokensPerPlay: 2, description: '' });
+  const { pollIntervalSec } = useSettings();
 
   const load = async () => {
     try {
@@ -682,7 +684,7 @@ export function StallTab({ setStatus }) {
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  usePolling(load, 15000);
+  usePolling(load, pollIntervalSec * 1000);
 
   const save = async () => {
     try {

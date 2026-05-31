@@ -41,12 +41,21 @@ jobs:
           cd backend
           zip -r ../backend-deploy.zip . -x "venv/*" -x "__pycache__/*" -x "*.pyc" -x "tests/*" -x ".pytest_cache/*"
 
+      - name: Set startup command
+        run: |
+          az webapp config set \
+            --name carnivalcash-backend-westus-dev \
+            --resource-group LadderLeagueRG \
+            --startup-file 'gunicorn --bind=0.0.0.0:8000 --timeout 120 --workers 2 run:app'
+
       - name: Deploy to Azure Web App (B1 Dev)
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: carnivalcash-backend-westus-dev
-          package: backend-deploy.zip
-          startup-command: 'gunicorn --bind=0.0.0.0:8000 --timeout 120 --workers 2 run:app'
+        run: |
+          az webapp deploy \
+            --name carnivalcash-backend-westus-dev \
+            --resource-group LadderLeagueRG \
+            --src-path backend-deploy.zip \
+            --type zip \
+            --async true
 
       - name: Warm up backend
         run: |

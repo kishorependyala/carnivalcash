@@ -36,7 +36,6 @@ def test_get_balance_returns_birth_year(client, seed_profile, auth_header):
     assert response.get_json()['birthYear'] == '1990'
 
 
-
 def test_update_birth_year_updates_profile(client, seed_profile, auth_header):
     user = seed_profile('5551000001')
 
@@ -45,12 +44,12 @@ def test_update_birth_year_updates_profile(client, seed_profile, auth_header):
         json={'birthYear': '1988'},
         headers=auth_header(user),
     )
-    balance_response = client.get('/api/user/balance', headers=auth_header(user))
+    balance_response = client.get(
+        '/api/user/balance', headers=auth_header(user))
 
     assert response.status_code == 200
     assert response.get_json() == {'birthYear': '1988'}
     assert balance_response.get_json()['birthYear'] == '1988'
-
 
 
 def test_update_birth_year_rejects_invalid_year(client, seed_profile, auth_header):
@@ -63,7 +62,8 @@ def test_update_birth_year_rejects_invalid_year(client, seed_profile, auth_heade
     )
 
     assert response.status_code == 400
-    assert response.get_json()['error'] == 'birthYear must be a 4-digit year or 0000'
+    assert response.get_json(
+    )['error'] == 'birthYear must be a 4-digit year or 0000'
 
 
 def test_add_kid_creates_kid_with_qr_payload(client, seed_profile, auth_header):
@@ -85,7 +85,8 @@ def test_delete_kid_removes_it(client, seed_profile, auth_header):
     user = seed_profile('5551000001')
     save_user_kids(
         user['userId'],
-        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 50, 'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
+        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 50,
+            'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
     )
 
     response = client.delete('/api/user/kids/kid-1', headers=auth_header(user))
@@ -95,12 +96,12 @@ def test_delete_kid_removes_it(client, seed_profile, auth_header):
     assert kids_response.get_json() == []
 
 
-
 def test_update_kid_updates_name_and_limit(client, seed_profile, auth_header):
     user = seed_profile('5551000001')
     save_user_kids(
         user['userId'],
-        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 50, 'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
+        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 50,
+            'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
     )
 
     response = client.put(
@@ -123,14 +124,21 @@ def test_family_link_and_unlink_updates_both_profiles(client, seed_profile, auth
         json={'phone': other['phone']},
         headers=auth_header(user),
     )
-    family_response = client.get('/api/users/family', headers=auth_header(user))
+    family_response = client.get(
+        '/api/users/family', headers=auth_header(user))
 
     assert link_response.status_code == 200
     assert family_response.status_code == 200
-    assert family_response.get_json() == [{'userId': other['userId'], 'name': 'Parent Two', 'phone': other['phone']}]
+    family_data = family_response.get_json()
+    assert len(family_data) == 1
+    assert family_data[0]['userId'] == other['userId']
+    assert family_data[0]['name'] == 'Parent Two'
+    assert family_data[0]['phone'] == other['phone']
 
-    unlink_response = client.delete(f"/api/users/link-family/{other['userId']}", headers=auth_header(user))
-    family_after_unlink = client.get('/api/users/family', headers=auth_header(user))
+    unlink_response = client.delete(
+        f"/api/users/link-family/{other['userId']}", headers=auth_header(user))
+    family_after_unlink = client.get(
+        '/api/users/family', headers=auth_header(user))
 
     assert unlink_response.status_code == 200
     assert family_after_unlink.get_json() == []

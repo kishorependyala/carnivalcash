@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
 
 from config import get_data_dir
 
@@ -43,13 +44,12 @@ def save_stall(stall_id, data):
 
 def list_stalls():
     ensure_dir(_stalls_dir())
-    result = []
-    for path in sorted(_stalls_dir().glob('*.json')):
-        if path.parent == _stalls_dir():
-            data = read_json(path)
-            if data:
-                result.append(data)
-    return result
+    paths = [p for p in sorted(_stalls_dir().glob('*.json')) if p.parent == _stalls_dir()]
+    if not paths:
+        return []
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(read_json, paths))
+    return [r for r in results if r is not None]
 
 
 def list_user_stalls(user_id):

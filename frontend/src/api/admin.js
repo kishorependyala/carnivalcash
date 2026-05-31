@@ -77,6 +77,10 @@ const adminApi = {
     const response = await api.post('/api/admin/users', payload);
     return response.data;
   },
+  async listStallsFull() {
+    const response = await api.get('/api/admin/stalls');
+    return response.data;
+  },
 };
 
 export default adminApi;

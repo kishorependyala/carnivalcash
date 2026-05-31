@@ -21,12 +21,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies into package
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt \
-            --target backend/.python_packages/lib/site-packages \
-            --no-deps --upgrade
+          pip install -r backend/requirements.txt
 
       - name: Azure Login
         uses: azure/login@v2
@@ -38,7 +36,7 @@ jobs:
       - name: Zip backend for deployment
         run: |
           cd backend
-          zip -r ../backend-deploy.zip . -x "venv/*" -x "__pycache__/*" -x "*.pyc" -x "tests/*" -x ".pytest_cache/*"
+          zip -r ../backend-deploy.zip . -x "venv/*" -x "__pycache__/*" -x "*.pyc" -x "tests/*" -x ".pytest_cache/*" -x ".python_packages/*"
 
       - name: Set startup command
         run: |
@@ -53,8 +51,7 @@ jobs:
             --name carnivalcash-backend-westus-dev \
             --resource-group LadderLeagueRG \
             --src-path backend-deploy.zip \
-            --type zip \
-            --async true
+            --type zip
 
       - name: Warm up backend
         run: |

@@ -24,10 +24,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install dependencies into package
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
+          pip install -r backend/requirements.txt \
+            --target backend/.python_packages/lib/site-packages \
+            --no-deps --upgrade
 
       - name: Azure Login
         uses: azure/login@v2

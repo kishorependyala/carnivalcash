@@ -360,8 +360,7 @@ function LoginPage() {
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '2.5rem' }}>🎡</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 900, color: DEEP }}>CarnivalCash</div>
-          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.2rem' }}>Designed by Harshan &amp; Kishore</div>
-          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.1rem' }}>A product of TeachBreakTech</div>
+          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.2rem' }}>Designed by Harshan &amp; Kishore - a product of TeachBreakTech</div>
           {envLabel && <div style={{ color: '#92400e', fontSize: '0.65rem', marginTop: '0.2rem', opacity: 0.65 }}>{envLabel}</div>}
         </div>
         <div style={card}>
@@ -525,8 +524,7 @@ function LoginPage() {
           <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>🎡</div>
           <div style={{ fontSize: '2rem', fontWeight: 900, color: DEEP, marginTop: '0.4rem', letterSpacing: '-0.5px' }}>CarnivalCash</div>
           <div style={{ color: '#92400e', fontSize: '0.92rem', marginTop: '0.3rem', opacity: 0.8 }}>Your digital token wallet for the carnival</div>
-          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.4rem' }}>Designed by Harshan &amp; Kishore</div>
-          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.1rem' }}>A product of TeachBreakTech</div>
+          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.4rem' }}>Designed by Harshan &amp; Kishore - a product of TeachBreakTech</div>
           {envLabel && <div style={{ color: '#92400e', fontSize: '0.65rem', marginTop: '0.3rem', opacity: 0.65 }}>{envLabel}</div>}
         </div>
 

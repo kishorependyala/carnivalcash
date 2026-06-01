@@ -421,6 +421,41 @@ function CardsTab({ allUsers }) {
   const [extQrValue, setExtQrValue] = useState('');
   const [extQrBusy, setExtQrBusy] = useState(false);
   const [extQrResult, setExtQrResult] = useState(null); // {status, cardId, linkedName}
+  const [extScanActive, setExtScanActive] = useState(false);
+  const extScanner = useRef(null);
+
+  useEffect(() => {
+    if (!extScanActive) {
+      extScanner.current?.clear?.().catch(() => {});
+      extScanner.current = null;
+      return undefined;
+    }
+    let mounted = true;
+    async function startScan() {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted || extScanner.current) return;
+        const scanner = new Html5QrcodeScanner('ext-qr-reader', { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
+        extScanner.current = scanner;
+        scanner.render((decodedText) => {
+          setExtQrValue(decodedText);
+          setExtQrResult(null);
+          scanner.clear().catch(() => {});
+          extScanner.current = null;
+          setExtScanActive(false);
+        }, () => {});
+      } catch {
+        setExtScanActive(false);
+      }
+    }
+    startScan();
+    return () => {
+      mounted = false;
+      const s = extScanner.current;
+      extScanner.current = null;
+      s?.clear?.().catch(() => {});
+    };
+  }, [extScanActive]);
 
   const load = async () => {
     setLoading(true);
@@ -521,7 +556,7 @@ function CardsTab({ allUsers }) {
       {/* Register External QR */}
       <section style={card}>
         <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.6rem' }}>🔍 Register External QR Card</div>
-        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.75rem' }}>Paste any QR payload (e.g. <code style={{ background: '#f3f4f6', padding: '0.1rem 0.3rem', borderRadius: '0.3rem', fontSize: '0.78rem' }}>CARNIVAL_CARD:uuid</code>) to register it, then optionally link it to a user.</div>
+        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.75rem' }}>Scan or paste any QR payload to register it, then optionally link it to a user.</div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <input
             style={{ ...inp, flex: 1, minWidth: '180px' }}
@@ -529,6 +564,12 @@ function CardsTab({ allUsers }) {
             value={extQrValue}
             onChange={e => { setExtQrValue(e.target.value); setExtQrResult(null); }}
           />
+          <button
+            style={{ ...btn('secondary') }}
+            onClick={() => { setExtScanActive(a => !a); setExtQrResult(null); }}
+          >
+            {extScanActive ? '🛑 Stop Scan' : '📷 Scan'}
+          </button>
           <button
             disabled={extQrBusy || !extQrValue.trim()}
             style={{ ...btn(), opacity: extQrBusy || !extQrValue.trim() ? 0.5 : 1 }}
@@ -546,6 +587,7 @@ function CardsTab({ allUsers }) {
             {extQrBusy ? 'Registering…' : '📥 Register'}
           </button>
         </div>
+        {extScanActive && <div id="ext-qr-reader" style={{ width: '100%', marginTop: '0.75rem' }} />}
         {extQrResult && (
           <div style={{ marginTop: '0.65rem', padding: '0.65rem', borderRadius: '0.75rem', fontSize: '0.88rem', fontWeight: 600,
             background: extQrResult.status === 'registered' ? '#d1fae5' : extQrResult.status === 'already_linked' ? '#fef3c7' : extQrResult.status === 'already_registered' ? '#dbeafe' : '#fee2e2',

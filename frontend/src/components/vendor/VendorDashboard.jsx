@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import { BrowseStallsTab, StallsTab } from '../common/StallsTab';
 import { HistoryTab, ProfileTab } from '../common/ProfileSections';
+import { getStale, setCache } from '../../utils/swrCache';
 
 const TABS = ['Stalls', 'Browse', 'Profile', 'History'];
 
@@ -43,9 +44,9 @@ function VendorDashboard() {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'Stalls');
-  const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
-  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
-  const [transactions, setTransactions] = useState([]);
+  const [profile, setProfile] = useState(() => getStale('profile') || { name: '', emails: [], socials: {} });
+  const [balance, setBalance] = useState(() => getStale('balance') || { tokenBalance: 0, pin: '', birthYear: '0000' });
+  const [transactions, setTransactions] = useState(() => getStale('transactions') || []);
   const [status, setStatus] = useState('');
 
   const load = async () => {
@@ -54,9 +55,9 @@ function VendorDashboard() {
       userApi.getBalance(),
       userApi.getTransactions(),
     ]);
-    setProfile(p);
-    setBalance(b);
-    setTransactions(t);
+    setProfile(p);   setCache('profile', p);
+    setBalance(b);   setCache('balance', { tokenBalance: b.tokenBalance, birthYear: b.birthYear });
+    setTransactions(t); setCache('transactions', t);
     if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
       localStorage.setItem('cc_defaultTab', p.defaultTab);
       setTab(p.defaultTab);

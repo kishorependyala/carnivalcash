@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { clearUserCache } from '../utils/swrCache';
 
 const AuthContext = createContext(null);
 
@@ -30,6 +31,7 @@ function getStoredAuth() {
   if (decoded.exp && decoded.exp * 1000 < Date.now()) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    clearUserCache();
     return { token: null, user: null };
   }
 
@@ -55,6 +57,7 @@ export function AuthProvider({ children }) {
   // Listen for 401 responses from the API interceptor and clear auth state
   useEffect(() => {
     const handleForceLogout = () => {
+      clearUserCache();
       setAuthState({ token: null, user: null });
     };
     window.addEventListener('auth:logout', handleForceLogout);
@@ -73,6 +76,7 @@ export function AuthProvider({ children }) {
         setAuthState({ token, user: mergedUser });
       },
       logout: () => {
+        clearUserCache();
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setAuthState({ token: null, user: null });

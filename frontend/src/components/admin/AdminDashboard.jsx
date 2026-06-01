@@ -15,6 +15,7 @@ import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { TYPE_META, MergedStallsTab } from '../common/StallsTab';
 import { HistoryTab, card, inp } from '../common/ProfileSections'; // eslint-disable-line no-unused-vars
+import { getStale, setCache } from '../../utils/swrCache';
 
 const btn = (variant = 'primary') => ({
   padding: '0.5rem 1rem',
@@ -648,19 +649,19 @@ function AdminDashboard() {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'User');
-  const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
+  const [stats, setStats] = useState(() => getStale('admin_stats') || { totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
   const [event, setEvent] = useState(null); // eslint-disable-line no-unused-vars
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState(() => getStale('admin_users') || []);
   const [status, setStatus] = useState('');
   const [rate, setRate] = useState(2);
-  const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
-  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
-  const [kids, setKids] = useState([]);
-  const [linkedFamily, setLinkedFamily] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [qrPayload, setQrPayload] = useState('');
-  const [allStalls, setAllStalls] = useState([]);
-  const [stallsLoaded, setStallsLoaded] = useState(false);
+  const [profile, setProfile] = useState(() => getStale('profile') || { name: '', emails: [], socials: {} });
+  const [balance, setBalance] = useState(() => getStale('balance') || { tokenBalance: 0, pin: '', birthYear: '0000' });
+  const [kids, setKids] = useState(() => getStale('kids') || []);
+  const [linkedFamily, setLinkedFamily] = useState(() => getStale('family') || []);
+  const [transactions, setTransactions] = useState(() => getStale('transactions') || []);
+  const [qrPayload, setQrPayload] = useState(() => getStale('qr') || '');
+  const [allStalls, setAllStalls] = useState(() => getStale('admin_stalls') || []);
+  const [stallsLoaded, setStallsLoaded] = useState(() => !!getStale('admin_stalls'));
   const [expandedStall, setExpandedStall] = useState(null);
   const [deletingStall, setDeletingStall] = useState(null);
   const [stallDelCode, setStallDelCode] = useState('');
@@ -831,10 +832,10 @@ function AdminDashboard() {
       adminApi.getEvent(),
       adminApi.listUsers(),
     ]);
-    setStats(statsRes);
-    setEvent(eventRes);
+    setStats(statsRes);    setCache('admin_stats', statsRes);
+    setEvent(eventRes);    setCache('admin_event', eventRes);
     setRate(eventRes?.tokenRate ?? 2);
-    setUsers(usersRes);
+    setUsers(usersRes);    setCache('admin_users', usersRes);
   };
 
   const loadProfile = async () => {
@@ -846,12 +847,12 @@ function AdminDashboard() {
       userApi.getTransactions(),
       userApi.getQr(),
     ]);
-    setProfile(p);
-    setBalance(b);
-    setKids(k);
-    setLinkedFamily(Array.isArray(fam) ? fam : []);
-    setTransactions(t);
-    setQrPayload(qr.qrPayload);
+    setProfile(p);           setCache('profile', p);
+    setBalance(b);           setCache('balance', { tokenBalance: b.tokenBalance, birthYear: b.birthYear });
+    setKids(k);              setCache('kids', k);
+    setLinkedFamily(Array.isArray(fam) ? fam : []); setCache('family', Array.isArray(fam) ? fam : []);
+    setTransactions(t);      setCache('transactions', t);
+    setQrPayload(qr.qrPayload); setCache('qr', qr.qrPayload);
     if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
       localStorage.setItem('cc_defaultTab', p.defaultTab);
       setTab(p.defaultTab);
@@ -862,7 +863,7 @@ function AdminDashboard() {
 
   const loadStalls = async () => {
     const result = await adminApi.listStallsFull();
-    setAllStalls(result);
+    setAllStalls(result);  setCache('admin_stalls', result);
     setStallsLoaded(true);
   };
 

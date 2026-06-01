@@ -11,6 +11,7 @@ import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { card, inp } from '../common/ProfileSections';
 import { MergedStallsTab } from '../common/StallsTab';
+import { getStale, setCache } from '../../utils/swrCache';
 
 const TABS = ['User', 'Stalls'];
 const TAB_LABELS = { User: 'My profile', Stalls: 'Stalls' };
@@ -46,13 +47,13 @@ function UserDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'User');
 
-  // Profile state
-  const [profile, setProfile] = useState({ name: '', phone: '', emails: [], socials: {} });
-  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
-  const [kids, setKids] = useState([]);
-  const [linkedFamily, setLinkedFamily] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [qrPayload, setQrPayload] = useState('');
+  // Profile state — seeded from cache for instant first render
+  const [profile, setProfile] = useState(() => getStale('profile') || { name: '', phone: '', emails: [], socials: {} });
+  const [balance, setBalance] = useState(() => getStale('balance') || { tokenBalance: 0, pin: '', birthYear: '0000' });
+  const [kids, setKids] = useState(() => getStale('kids') || []);
+  const [linkedFamily, setLinkedFamily] = useState(() => getStale('family') || []);
+  const [transactions, setTransactions] = useState(() => getStale('transactions') || []);
+  const [qrPayload, setQrPayload] = useState(() => getStale('qr') || '');
   const [status, setStatus] = useState('');
 
   // Edit drawer
@@ -91,12 +92,12 @@ function UserDashboard() {
         userApi.getTransactions(),
         userApi.getQr(),
       ]);
-      setProfile(p);
-      setBalance(b);
-      setKids(k);
-      setLinkedFamily(Array.isArray(fam) ? fam : []);
-      setTransactions(t);
-      setQrPayload(qr.qrPayload);
+      setProfile(p);           setCache('profile', p);
+      setBalance(b);           setCache('balance', { tokenBalance: b.tokenBalance, birthYear: b.birthYear }); // PIN never cached
+      setKids(k);              setCache('kids', k);
+      setLinkedFamily(Array.isArray(fam) ? fam : []); setCache('family', Array.isArray(fam) ? fam : []);
+      setTransactions(t);      setCache('transactions', t);
+      setQrPayload(qr.qrPayload); setCache('qr', qr.qrPayload);
       if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
         localStorage.setItem('cc_defaultTab', p.defaultTab);
         setTab(p.defaultTab);

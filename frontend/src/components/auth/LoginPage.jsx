@@ -87,9 +87,10 @@ function ProgressDots({ current, total }) {
 }
 
 function getLandingRoute(user) {
-  if (user.roles?.includes('admin')) return '/admin';
-  if (user.roles?.includes('vendor') && !user.roles?.includes('admin')) return '/vendor';
-  return '/user';
+  const tab = user.defaultTab ? `?tab=${encodeURIComponent(user.defaultTab)}` : '';
+  if (user.roles?.includes('admin')) return `/admin${tab}`;
+  if (user.roles?.includes('vendor') && !user.roles?.includes('admin')) return `/vendor${tab}`;
+  return `/user${tab}`;
 }
 
 function LoginPage() {

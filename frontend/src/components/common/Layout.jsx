@@ -374,10 +374,11 @@ function ProfilePanel({ onClose }) {
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isAdmin = user?.roles?.includes('admin');
+  const isVendor = user?.roles?.includes('vendor');
   const tabs = isAdmin
-    ? ['User', 'Stalls']
-    : user?.roles?.includes('vendor')
-    ? ['Vendor']
+    ? ['User', 'Stalls', 'Admin']
+    : isVendor
+    ? ['Stalls', 'Browse', 'Profile', 'History']
     : ['User', 'Stalls'];
 
   return (

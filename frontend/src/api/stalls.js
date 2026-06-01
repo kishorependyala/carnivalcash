@@ -62,6 +62,12 @@ const stallsApi = {
   async handleJoinRequest(stallId, userId, action) {
     return (await api.put(`/api/stalls/${stallId}/join-requests/${userId}`, { action })).data;
   },
+  async linkCard(stallId, cardId) {
+    return (await api.post(`/api/stalls/${stallId}/link-card`, { cardId })).data;
+  },
+  async resolveCard(cardId) {
+    return (await api.get(`/api/cards/resolve/${cardId}`)).data;
+  },
 };
 
 export default stallsApi;

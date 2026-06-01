@@ -6,6 +6,7 @@ from uuid import uuid4
 from flask import Blueprint, g, jsonify, request
 
 from app.storage.user_store import get_profile, get_user_kids, save_profile
+from app.storage.stall_store import get_stall, save_stall
 from app.utils.auth_middleware import require_auth, require_role
 from config import DATA_DIR
 
@@ -132,15 +133,93 @@ def user_link_card(card_id):
     return jsonify(card)
 
 
-@cards_bp.get('/api/cards/resolve/<card_id>')
-def resolve_card(card_id):
-    """Resolve a pre-printed card to user/kid info. Used by vendor scan."""
+@cards_bp.post('/api/admin/cards/register-external')
+@require_auth
+@require_role('admin')
+def register_external_card():
+    """Register an external QR payload as a card entry. Returns existing card if already registered."""
+    body = request.get_json(silent=True) or {}
+    qr_payload = (body.get('qrPayload') or '').strip()
+    if not qr_payload:
+        return jsonify({'error': 'qrPayload is required'}), 400
+
+    cards = _load_cards()
+
+    # Check if already registered by qrPayload
+    existing = next((c for c in cards if c.get('qrPayload') == qr_payload), None)
+    if existing:
+        linked_name = existing.get('linkedName') or ''
+        linked_user_id = existing.get('linkedUserId')
+        msg = 'already_linked' if linked_user_id else 'already_registered'
+        return jsonify({**existing, 'status': msg, 'linkedName': linked_name}), 200
+
+    card = {
+        'cardId': str(uuid4()),
+        'qrPayload': qr_payload,
+        'linkedUserId': None,
+        'linkedKidId': None,
+        'linkedStallId': None,
+        'linkedName': None,
+        'createdAt': utc_now(),
+        'external': True,
+    }
+    cards.append(card)
+    _save_cards(cards)
+    return jsonify({**card, 'status': 'registered'}), 201
+
+
+@cards_bp.post('/api/stalls/<stall_id>/link-card')
+@require_auth
+def link_card_to_stall(stall_id):
+    """Stall admin links a pre-printed card to a stall."""
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+
+    my_id = g.user['userId']
+    is_stall_admin = my_id in (stall.get('stallAdmins') or []) or stall.get('createdBy') == my_id
+    is_system_admin = 'admin' in (g.user.get('roles') or [])
+    if not is_stall_admin and not is_system_admin:
+        return jsonify({'error': 'Not authorised'}), 403
+
+    body = request.get_json(silent=True) or {}
+    card_id = (body.get('cardId') or '').strip()
+    if not card_id:
+        return jsonify({'error': 'cardId is required'}), 400
+
     cards = _load_cards()
     card = next((c for c in cards if c['cardId'] == card_id), None)
     if not card:
         return jsonify({'error': 'Card not found'}), 404
+    if card.get('linkedStallId') and card['linkedStallId'] != stall_id:
+        return jsonify({'error': f"Card already linked to another stall"}), 400
+
+    card['linkedStallId'] = stall_id
+    card['linkedName'] = stall.get('stallName', '')
+    card['linkedUserId'] = None
+    card['linkedKidId'] = None
+    _save_cards(cards)
+
+    stall['linkedCardId'] = card_id
+    save_stall(stall_id, stall)
+    return jsonify({'cardId': card_id, 'stallId': stall_id})
+
+
+@cards_bp.get('/api/cards/resolve/<card_id>')
+def resolve_card(card_id):
+    """Resolve a pre-printed card to user/kid or stall info. Used by vendor/user scan."""
+    cards = _load_cards()
+    card = next((c for c in cards if c['cardId'] == card_id), None)
+    if not card:
+        return jsonify({'error': 'Card not found'}), 404
+    if card.get('linkedStallId'):
+        return jsonify({
+            'cardId': card_id,
+            'linkedStallId': card['linkedStallId'],
+            'linkedName': card.get('linkedName', ''),
+        })
     if not card.get('linkedUserId'):
-        return jsonify({'error': 'Card not yet linked to a user'}), 400
+        return jsonify({'error': 'Card not yet linked to a user or stall'}), 400
     return jsonify({
         'cardId': card_id,
         'linkedUserId': card['linkedUserId'],

@@ -277,10 +277,12 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
   const [joinRequests, setJoinRequests] = useState([]);
   const [joinRequestsLoaded, setJoinRequestsLoaded] = useState(false);
   const [showManage, setShowManage] = useState(false);
-  const [manageSection, setManageSection] = useState('details'); // 'details'|'members'|'items'
+  const [manageSection, setManageSection] = useState('details'); // 'details'|'members'|'items'|'card'
   const [form, setForm] = useState({});
   const [newItem, setNewItem] = useState({ name: '', tokenPrice: initialStall.tokensPerItem });
   const [manageStatus, setManageStatus] = useState('');
+  const [stallCardValue, setStallCardValue] = useState('');
+  const [stallCardBusy, setStallCardBusy] = useState(false);
   const typeMeta = TYPE_META[stall.stallType] || {};
   const isCreator = stall.createdBy === myUserId;
   const isAdmin = (stall.stallAdmins || []).includes(myUserId);
@@ -488,7 +490,7 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
             </div>
             {/* Section tabs */}
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-              {[['details','✏️ Details'],['members','👥 Members'],['items','🛍 Items']].map(([key, label]) => (
+              {[['details','✏️ Details'],['members','👥 Members'],['items','🛍 Items'],['card','🃏 Card']].map(([key, label]) => (
                 <button key={key} onClick={() => { setManageSection(key); setManageStatus(''); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', background: manageSection === key ? 'linear-gradient(135deg,#f59e0b,#d97706)' : '#f3f4f6', color: manageSection === key ? '#fff' : '#374151' }}>{label}</button>
               ))}
             </div>
@@ -552,6 +554,49 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
                   <input type="number" style={inp} placeholder="Token price" value={newItem.tokenPrice} onChange={(e) => setNewItem(n => ({ ...n, tokenPrice: e.target.value }))} />
                   <button onClick={addItem} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>Add Item</button>
                 </div>
+              </div>
+            )}
+
+            {/* Physical Card */}
+            {manageSection === 'card' && (
+              <div style={{ display: 'grid', gap: '0.85rem' }}>
+                <div style={{ fontSize: '0.88rem', color: '#374151' }}>
+                  Link a pre-printed physical card to this stall. Customers can scan that card to reach the stall catalog — same as scanning the stall QR code.
+                </div>
+                {stall.linkedCardId && (
+                  <div style={{ background: '#d1fae5', borderRadius: '0.75rem', padding: '0.75rem', fontSize: '0.88rem' }}>
+                   ✅ Card linked: <code style={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' }}>{stall.linkedCardId.slice(0, 8)}…</code>
+                  </div>
+                )}
+                <label style={{ display: 'grid', gap: '0.3rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>
+                  Card QR value or UUID
+                  <input
+                   style={inp}
+                   placeholder="CARNIVAL_CARD:… or UUID"
+                   value={stallCardValue}
+                   onChange={e => { setStallCardValue(e.target.value); setManageStatus(''); }}
+                  />
+                </label>
+                <button
+                  disabled={stallCardBusy || !stallCardValue.trim()}
+                  onClick={async () => {
+                   const raw = stallCardValue.trim();
+                   const cardId = raw.startsWith('CARNIVAL_CARD:') ? raw.split(':')[1] : raw;
+                   setStallCardBusy(true); setManageStatus('');
+                   try {
+                     await stallsApi.linkCard(stall.stallId, cardId);
+                     setStall(s => ({ ...s, linkedCardId: cardId }));
+                     setManageStatus('✅ Card linked! Scanning it will now open this stall.');
+                     setStallCardValue('');
+                   } catch (e) {
+                     const msg = e.response?.data?.error || 'Failed to link card.';
+                     setManageStatus(msg.includes('another stall') ? '❌ This card is already linked to another stall.' : `❌ ${msg}`);
+                   } finally { setStallCardBusy(false); }
+                  }}
+                  style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem', opacity: stallCardBusy || !stallCardValue.trim() ? 0.5 : 1 }}
+                >
+                  {stallCardBusy ? 'Linking…' : '🔗 Link Card to Stall'}
+                </button>
               </div>
             )}
           </div>

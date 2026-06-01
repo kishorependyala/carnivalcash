@@ -284,6 +284,75 @@ function CardsPrintOverlay({ cards, onClose }) {
   );
 }
 
+function StallsPrintOverlay({ stalls, onClose }) {
+  const STALL_PAGE_SIZE = 12;
+  const pages = [];
+  for (let i = 0; i < stalls.length; i += STALL_PAGE_SIZE) {
+    pages.push(stalls.slice(i, i + STALL_PAGE_SIZE));
+  }
+
+  return createPortal(
+    <div id="stalls-print-portal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="no-print" style={{ background: '#1f2937', color: '#fff', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexShrink: 0 }}>
+        <span style={{ fontWeight: 700, fontSize: '1rem' }}>🖨️ Print Stall QR Codes — {stalls.length} stall{stalls.length !== 1 ? 's' : ''} · {pages.length} page{pages.length !== 1 ? 's' : ''} (12/page)</span>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={() => window.print()} style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1.25rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>
+            🖨️ Print
+          </button>
+          <button onClick={onClose} style={{ background: '#374151', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1rem', fontWeight: 600, cursor: 'pointer' }}>
+            ✕ Close
+          </button>
+        </div>
+      </div>
+
+      <div id="stalls-print-content" style={{ flex: 1, overflowY: 'auto', background: '#f3f4f6', padding: '1rem' }}>
+        {pages.map((pageStalls, pageIdx) => (
+          <div key={pageIdx} className="stalls-print-page" style={{ background: '#fff', marginBottom: '1rem', padding: '1cm', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            {pageStalls.map((stall) => {
+              const meta = TYPE_META[stall.stallType] || {};
+              return (
+                <div key={stall.stallId} style={{ border: '1.5px solid #d1d5db', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ fontSize: '1.5rem', lineHeight: 1 }}>{meta.icon}</div>
+                  <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#111827', lineHeight: 1.2 }}>{stall.stallName}</div>
+                  <div style={{ fontSize: '0.72rem', background: meta.bg, color: meta.color, borderRadius: '999px', padding: '0.1rem 0.5rem', fontWeight: 700 }}>{meta.label}</div>
+                  <QRCodeSVG value={`CARNIVAL_STALL:${stall.stallId}`} size={140} includeMargin={false} />
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: '#9ca3af', wordBreak: 'break-all' }}>{stall.stallId.slice(0, 10)}</div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <style>{`
+        @media print {
+          body > *:not(#stalls-print-portal) { display: none !important; }
+          #stalls-print-portal {
+            position: static !important;
+            background: white !important;
+            display: block !important;
+            overflow: visible !important;
+          }
+          #stalls-print-content {
+            overflow: visible !important;
+            height: auto !important;
+            background: white !important;
+            padding: 0 !important;
+          }
+          .stalls-print-page {
+            page-break-after: always;
+            margin-bottom: 0 !important;
+          }
+          .stalls-print-page:last-child { page-break-after: avoid; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+    </div>,
+    document.body
+  );
+}
+
+
 function CardsTab({ allUsers }) {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -297,6 +366,9 @@ function CardsTab({ allUsers }) {
   const [linkKidId, setLinkKidId] = useState('');
   const [linkName, setLinkName] = useState('');
   const [linkUserKids, setLinkUserKids] = useState([]);
+  const [extQrValue, setExtQrValue] = useState('');
+  const [extQrBusy, setExtQrBusy] = useState(false);
+  const [extQrResult, setExtQrResult] = useState(null); // {status, cardId, linkedName}
 
   const load = async () => {
     setLoading(true);
@@ -393,6 +465,49 @@ function CardsTab({ allUsers }) {
       {showPrintView && printCards.length > 0 && (
         <CardsPrintOverlay cards={printCards} onClose={() => setShowPrintView(false)} />
       )}
+
+      {/* Register External QR */}
+      <section style={card}>
+        <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.6rem' }}>🔍 Register External QR Card</div>
+        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.75rem' }}>Paste any QR payload (e.g. <code style={{ background: '#f3f4f6', padding: '0.1rem 0.3rem', borderRadius: '0.3rem', fontSize: '0.78rem' }}>CARNIVAL_CARD:uuid</code>) to register it, then optionally link it to a user.</div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <input
+            style={{ ...inp, flex: 1, minWidth: '180px' }}
+            placeholder="CARNIVAL_CARD:… or UUID"
+            value={extQrValue}
+            onChange={e => { setExtQrValue(e.target.value); setExtQrResult(null); }}
+          />
+          <button
+            disabled={extQrBusy || !extQrValue.trim()}
+            style={{ ...btn(), opacity: extQrBusy || !extQrValue.trim() ? 0.5 : 1 }}
+            onClick={async () => {
+              setExtQrBusy(true); setExtQrResult(null);
+              try {
+                const res = await adminApi.registerExternalCard(extQrValue.trim());
+                setExtQrResult(res);
+                await load();
+              } catch (e) {
+                setExtQrResult({ status: 'error', error: e.response?.data?.error || 'Failed.' });
+              } finally { setExtQrBusy(false); }
+            }}
+          >
+            {extQrBusy ? 'Registering…' : '📥 Register'}
+          </button>
+        </div>
+        {extQrResult && (
+          <div style={{ marginTop: '0.65rem', padding: '0.65rem', borderRadius: '0.75rem', fontSize: '0.88rem', fontWeight: 600,
+            background: extQrResult.status === 'registered' ? '#d1fae5' : extQrResult.status === 'already_linked' ? '#fef3c7' : extQrResult.status === 'already_registered' ? '#dbeafe' : '#fee2e2',
+            color: extQrResult.status === 'registered' ? '#065f46' : extQrResult.status === 'already_linked' ? '#92400e' : extQrResult.status === 'already_registered' ? '#1e40af' : '#dc2626' }}>
+            {extQrResult.status === 'registered' && `✅ Registered! Card ID: ${extQrResult.cardId?.slice(0,8)}…`}
+            {extQrResult.status === 'already_linked' && `⚠️ Already linked to: ${extQrResult.linkedName || extQrResult.linkedUserId}`}
+            {extQrResult.status === 'already_registered' && `ℹ️ Already registered (unlinked). Card ID: ${extQrResult.cardId?.slice(0,8)}…`}
+            {extQrResult.status === 'error' && `❌ ${extQrResult.error}`}
+            {extQrResult.cardId && !['error'].includes(extQrResult.status) && extQrResult.status !== 'already_linked' && (
+              <button style={{ ...btn('secondary'), marginLeft: '0.75rem', fontSize: '0.8rem', padding: '0.25rem 0.65rem' }} onClick={() => openLink(extQrResult.cardId)}>🔗 Link to User</button>
+            )}
+          </div>
+        )}
+      </section>
 
       {loading ? <p>Loading…</p> : (
         <section style={card}>
@@ -662,6 +777,7 @@ function AdminDashboard() {
   const [qrPayload, setQrPayload] = useState(() => getStale('qr') || '');
   const [allStalls, setAllStalls] = useState(() => getStale('admin_stalls') || []);
   const [stallsLoaded, setStallsLoaded] = useState(() => !!getStale('admin_stalls'));
+  const [showStallPrint, setShowStallPrint] = useState(false);
   const [expandedStall, setExpandedStall] = useState(null);
   const [deletingStall, setDeletingStall] = useState(null);
   const [stallDelCode, setStallDelCode] = useState('');
@@ -1511,12 +1627,18 @@ function AdminDashboard() {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <h2 style={{ margin: 0 }}>🎪 Stalls ({allStalls.length})</h2>
-                  <button style={btn('secondary')} onClick={() => loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'))}>Refresh</button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {allStalls.length > 0 && (
+                      <button style={btn('secondary')} onClick={() => setShowStallPrint(true)}>🖨️ Print All QRs</button>
+                    )}
+                    <button style={btn('secondary')} onClick={() => loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'))}>Refresh</button>
+                  </div>
                 </div>
                 {allStalls.length === 0 && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                   {stallCards}
                 </div>
+                {showStallPrint && <StallsPrintOverlay stalls={allStalls} onClose={() => setShowStallPrint(false)} />}
               </>
             )}
 

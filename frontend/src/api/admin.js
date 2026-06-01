@@ -92,6 +92,10 @@ const adminApi = {
     const response = await api.post(`/api/admin/cards/${cardId}/link`, payload);
     return response.data;
   },
+  async registerExternalCard(qrPayload) {
+    const response = await api.post('/api/admin/cards/register-external', { qrPayload });
+    return response.data;
+  },
   async createOfflineUser(payload) {
     const response = await api.post('/api/admin/users', payload);
     return response.data;

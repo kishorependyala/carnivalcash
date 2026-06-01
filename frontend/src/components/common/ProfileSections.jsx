@@ -507,7 +507,7 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
           {profile.defaultTab && (
             <div>
               <div style={{ fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: 1 }}>Start on</div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#78350f' }}>{profile.defaultTab}</div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#78350f' }}>{tabLabels?.[profile.defaultTab] || profile.defaultTab}</div>
             </div>
           )}
         </div>

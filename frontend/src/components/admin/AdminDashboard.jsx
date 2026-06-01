@@ -27,6 +27,7 @@ const btn = (variant = 'primary') => ({
 });
 
 const TABS = ['User', 'Stalls', 'Admin'];
+const TAB_LABELS = { User: 'Admin & Users', Stalls: 'Admin & Stalls', Admin: 'Admin & Admin settings' };
 const OFFLINE_CARD_PREFIX = 'CARNIVAL_CARD:';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -1649,7 +1650,7 @@ function AdminDashboard() {
                     style={{ ...inp, fontSize: '1rem', appearance: 'auto' }}
                   >
                     <option value="">— Role default —</option>
-                    {TABS.map(t => <option key={t} value={t}>{t}</option>)}
+                    {TABS.map(t => <option key={t} value={t}>{TAB_LABELS[t] || t}</option>)}
                   </select>
                 </label>
 

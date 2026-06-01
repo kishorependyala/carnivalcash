@@ -13,6 +13,7 @@ import { card, inp } from '../common/ProfileSections';
 import { MergedStallsTab } from '../common/StallsTab';
 
 const TABS = ['User', 'Stalls'];
+const TAB_LABELS = { User: 'My profile', Stalls: 'Stalls' };
 
 const actionBtn = {
   background: 'linear-gradient(135deg,#f59e0b,#d97706)',
@@ -354,7 +355,7 @@ function UserDashboard() {
                     style={{ ...inp, fontSize: '1rem', appearance: 'auto' }}
                   >
                     <option value="">— Role default —</option>
-                    {TABS.map(t => <option key={t} value={t}>{t}</option>)}
+                    {TABS.map(t => <option key={t} value={t}>{TAB_LABELS[t] || t}</option>)}
                   </select>
                 </label>
 

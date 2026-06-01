@@ -800,8 +800,8 @@ function AdminDashboard() {
   const [offlineSaving, setOfflineSaving] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [offlineScannerActive, setOfflineScannerActive] = useState(false);
-  const [pollInterval, setPollInterval] = useState(3);
-  const [pollIntervalInput, setPollIntervalInput] = useState('3');
+  const [pollInterval, setPollInterval] = useState(15);
+  const [pollIntervalInput, setPollIntervalInput] = useState('15');
   const [savingSettings, setSavingSettings] = useState(false);
   const { pollIntervalSec } = useSettings();
 

@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import api from '../api/index';
 
-const SettingsContext = createContext({ pollIntervalSec: 3 });
+const SettingsContext = createContext({ pollIntervalSec: 15 });
 
 export function SettingsProvider({ children }) {
-  const [settings, setSettings] = useState({ pollIntervalSec: 3 });
+  const [settings, setSettings] = useState({ pollIntervalSec: 15 });
 
   useEffect(() => {
     api.get('/api/settings')

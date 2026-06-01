@@ -21,9 +21,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies into package dir
+      - name: Install dependencies into antenv
         run: |
-          pip install -r backend/requirements.txt --target backend/.python_packages/lib/site-packages
+          mkdir -p backend/antenv/lib/python3.11/site-packages
+          pip install -r backend/requirements.txt --target backend/antenv/lib/python3.11/site-packages
 
       - name: Azure Login
         uses: azure/login@v2

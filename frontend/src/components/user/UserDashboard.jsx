@@ -78,6 +78,7 @@ function UserDashboard() {
   const [emailResetNewPin, setEmailResetNewPin] = useState('');
   const [emailResetConfirm, setEmailResetConfirm] = useState('');
   const [emailResetLoading, setEmailResetLoading] = useState(false);
+  const [editDefaultTab, setEditDefaultTab] = useState('');
 
   const loadProfile = async () => {
     try {
@@ -189,7 +190,7 @@ function UserDashboard() {
             {/* Edit button */}
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
-                onClick={() => { setEditSection('profile'); setDrawerStatus(''); setShowEditDrawer(true); }}
+                onClick={() => { setEditSection('profile'); setDrawerStatus(''); setEditName(profile.name || ''); setEditDefaultTab(profile.defaultTab || ''); setShowEditDrawer(true); }}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#fef3c7', border: '1.5px solid #f59e0b', borderRadius: '0.75rem', padding: '0.45rem 1rem', cursor: 'pointer', fontWeight: 600, color: '#92400e', fontSize: '0.88rem' }}>
                 ✏️ Edit Profile &amp; Family
               </button>
@@ -345,10 +346,28 @@ function UserDashboard() {
 
                 <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>📱 Phone: <strong>{profile.phone}</strong> &nbsp;(cannot be changed)</div>
 
+                <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>
+                  Default tab on login
+                  <select
+                    value={editDefaultTab}
+                    onChange={e => setEditDefaultTab(e.target.value)}
+                    style={{ ...inp, fontSize: '1rem', appearance: 'auto' }}
+                  >
+                    <option value="">— Role default —</option>
+                    {TABS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </label>
+
                 <button onClick={async () => {
-                  try { await userApi.updateProfile({ name: editName || profile.name }); await loadProfile(); setDrawerStatus('✅ Name saved!'); }
+                  try {
+                    await userApi.updateProfile({ name: editName || profile.name, defaultTab: editDefaultTab });
+                    if (editDefaultTab) localStorage.setItem('cc_defaultTab', editDefaultTab);
+                    else localStorage.removeItem('cc_defaultTab');
+                    await loadProfile();
+                    setDrawerStatus('✅ Profile saved!');
+                  }
                   catch { setDrawerStatus('❌ Failed.'); }
-                }} style={{ ...actionBtn, padding: '0.75rem', fontSize: '1rem' }}>Save Name</button>
+                }} style={{ ...actionBtn, padding: '0.75rem', fontSize: '1rem' }}>Save Profile</button>
 
                 {/* PIN change */}
                 <div style={{ background: '#fffbeb', borderRadius: '0.85rem', padding: '1rem', display: 'grid', gap: '0.65rem', borderTop: '2px solid #fde68a' }}>

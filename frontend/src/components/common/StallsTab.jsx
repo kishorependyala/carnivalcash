@@ -267,6 +267,7 @@ function MemberAdder({ stallId, onUpdated }) {
 }
 
 export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
+  const navigate = useNavigate();
   const [stall, setStall] = useState(initialStall);
   const [txns, setTxns] = useState([]);
   const [showTxns, setShowTxns] = useState(false);
@@ -376,6 +377,7 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
           {canManage && (
             <button onClick={openManage} style={{ background: '#fef3c7', border: '1.5px solid #f59e0b', borderRadius: '0.65rem', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 700, color: '#92400e', fontSize: '0.82rem' }}>⚙️ Manage</button>
           )}
+          <button onClick={() => navigate(`/stall/${stall.stallId}`)} style={{ background: '#eff6ff', border: '1.5px solid #93c5fd', borderRadius: '0.65rem', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 700, color: '#1d4ed8', fontSize: '0.82rem' }}>📲 Open</button>
         </div>
       </div>
 

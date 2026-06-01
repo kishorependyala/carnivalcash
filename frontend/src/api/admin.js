@@ -45,9 +45,12 @@ const adminApi = {
     const response = await api.get('/api/admin/files', { params: path ? { path } : {} });
     return response.data;
   },
-  async downloadFiles(path = '') {
+  async downloadFiles(path = '', exclude = []) {
+    const params = {};
+    if (path) params.path = path;
+    if (exclude.length) params.exclude = exclude.join(',');
     const response = await api.get('/api/admin/files/download', {
-      params: path ? { path } : {},
+      params,
       responseType: 'blob',
     });
     const url = URL.createObjectURL(response.data);

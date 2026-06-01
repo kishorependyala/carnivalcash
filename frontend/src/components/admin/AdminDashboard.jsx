@@ -503,9 +503,9 @@ function DataFilesTab() {
 
   useEffect(() => { browse(''); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const download = (dlPath) => {
+  const download = (dlPath, exclude = []) => {
     setDownloading(true);
-    adminApi.downloadFiles(dlPath)
+    adminApi.downloadFiles(dlPath, exclude)
       .catch((err) => setError(err.message || 'Download failed.'))
       .finally(() => setDownloading(false));
   };
@@ -546,11 +546,11 @@ function DataFilesTab() {
         {node?.type === 'dir' && (
           <button
             type="button"
-            onClick={() => download(path)}
+            onClick={() => download(path, path ? [] : ['archive', 'logs'])}
             disabled={downloading}
             style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '0.6rem', padding: '0.4rem 0.8rem', cursor: downloading ? 'default' : 'pointer', fontSize: '0.82rem', color: '#92400e', fontWeight: 600, opacity: downloading ? 0.6 : 1 }}
           >
-            {downloading ? '⏳' : '⬇'} {path ? 'Download folder' : 'Download all'}
+            {downloading ? '⏳' : '⬇'} {path ? 'Download folder' : 'Download all (no archive/logs)'}
           </button>
         )}
       </div>

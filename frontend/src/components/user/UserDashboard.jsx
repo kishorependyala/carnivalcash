@@ -135,7 +135,7 @@ function UserDashboard() {
         userApi.getFamily(),
         userApi.getTransactions(),
         userApi.getQr(),
-        userApi.getOrders(),
+        userApi.getMyOrders(),
       ]);
       setProfile(p);           setCache('profile', p);
       setBalance(b);           setCache('balance', { tokenBalance: b.tokenBalance, birthYear: b.birthYear }); // PIN never cached

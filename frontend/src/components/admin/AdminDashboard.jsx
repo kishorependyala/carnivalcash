@@ -763,6 +763,9 @@ function AdminDashboard() {
   }), [allStalls, expandedStall, deletingStall, stallDelCode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [charities, setCharities] = useState([]);
   const [charitiesLoaded, setCharitiesLoaded] = useState(false);
+  const [newCharity, setNewCharity] = useState({ name: '', description: '', website: '' });
+  const [charityStatus, setCharityStatus] = useState('');
+  const [charityBusy, setCharityBusy] = useState(false);
   const [resetCode, setResetCode] = useState('');
   const [resetting, setResetting] = useState(false);
   const [userSearch, setUserSearch] = useState('');
@@ -1521,8 +1524,55 @@ function AdminDashboard() {
               <>
                 <h2 style={{ margin: 0 }}>💝 Charities</h2>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>Token balances accumulated from stall donations.</p>
+
+                {/* ── Add Charity Form ── */}
+                <div style={{ background: '#f0fdf4', border: '1.5px solid #6ee7b7', borderRadius: '1rem', padding: '1rem', display: 'grid', gap: '0.65rem' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#065f46' }}>➕ Add New Charity</div>
+                  <input
+                    placeholder="Charity name *"
+                    value={newCharity.name}
+                    onChange={e => setNewCharity(p => ({ ...p, name: e.target.value }))}
+                    style={{ ...inp, background: '#fff' }}
+                  />
+                  <input
+                    placeholder="Description (optional)"
+                    value={newCharity.description}
+                    onChange={e => setNewCharity(p => ({ ...p, description: e.target.value }))}
+                    style={{ ...inp, background: '#fff' }}
+                  />
+                  <input
+                    placeholder="Website URL (optional)"
+                    value={newCharity.website}
+                    onChange={e => setNewCharity(p => ({ ...p, website: e.target.value }))}
+                    style={{ ...inp, background: '#fff' }}
+                  />
+                  {charityStatus && (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: charityStatus.startsWith('✅') ? '#059669' : '#dc2626' }}>{charityStatus}</p>
+                  )}
+                  <button
+                    disabled={charityBusy || !newCharity.name.trim()}
+                    onClick={async () => {
+                      setCharityBusy(true);
+                      setCharityStatus('');
+                      try {
+                        const c = await charitiesApi.add(newCharity);
+                        setCharities(prev => prev.find(x => x.charityId === c.charityId) ? prev : [c, ...prev]);
+                        setNewCharity({ name: '', description: '', website: '' });
+                        setCharityStatus('✅ Charity added!');
+                      } catch (e) {
+                        setCharityStatus(e.response?.data?.error || 'Failed to add charity.');
+                      } finally {
+                        setCharityBusy(false);
+                      }
+                    }}
+                    style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.65rem', fontWeight: 800, cursor: 'pointer', fontSize: '0.92rem', opacity: charityBusy || !newCharity.name.trim() ? 0.5 : 1 }}
+                  >
+                    {charityBusy ? 'Adding…' : '💚 Add Charity'}
+                  </button>
+                </div>
+
                 {!charitiesLoaded && <p style={{ color: '#6b7280' }}>Loading…</p>}
-                {charitiesLoaded && charities.length === 0 && <p style={{ color: '#6b7280' }}>No charities yet. Stall owners can add them when configuring their stall.</p>}
+                {charitiesLoaded && charities.length === 0 && <p style={{ color: '#6b7280' }}>No charities yet.</p>}
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                   {charities.map((charity) => (
                     <div key={charity.charityId} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '1rem', padding: '1rem', display: 'grid', gap: '0.4rem' }}>

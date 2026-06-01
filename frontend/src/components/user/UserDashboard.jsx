@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { usePolling } from '../../hooks/usePolling';
@@ -89,6 +89,42 @@ function UserDashboard() {
   const [linkCardValue, setLinkCardValue] = useState('');
   const [linkCardStatus, setLinkCardStatus] = useState('');
   const [linkCardBusy, setLinkCardBusy] = useState(false);
+  const [linkCardScanActive, setLinkCardScanActive] = useState(false);
+  const linkCardScanner = useRef(null);
+
+  useEffect(() => {
+    if (!linkCardScanActive) {
+      linkCardScanner.current?.clear?.().catch(() => {});
+      linkCardScanner.current = null;
+      return undefined;
+    }
+    let mounted = true;
+    async function startScan() {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted || linkCardScanner.current) return;
+        const scanner = new Html5QrcodeScanner('user-link-card-reader', { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
+        linkCardScanner.current = scanner;
+        scanner.render((decoded) => {
+          setLinkCardValue(decoded);
+          setLinkCardStatus('');
+          scanner.clear().catch(() => {});
+          linkCardScanner.current = null;
+          setLinkCardScanActive(false);
+        }, () => {});
+      } catch {
+        setLinkCardStatus('Camera unavailable. Enter the code manually.');
+        setLinkCardScanActive(false);
+      }
+    }
+    startScan();
+    return () => {
+      mounted = false;
+      const s = linkCardScanner.current;
+      linkCardScanner.current = null;
+      s?.clear?.().catch(() => {});
+    };
+  }, [linkCardScanActive]);
 
   const loadProfile = async () => {
     try {
@@ -375,18 +411,25 @@ function UserDashboard() {
 
       {/* ── Link Pre-printed Card Modal ── */}
       {linkCardPopup && (
-        <div onClick={() => setLinkCardPopup(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <div onClick={() => { setLinkCardPopup(null); setLinkCardScanActive(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '1.5rem', padding: '1.75rem 1.5rem', maxWidth: '360px', width: '100%', display: 'grid', gap: '0.9rem', boxShadow: '0 8px 40px rgba(0,0,0,0.25)' }}>
             <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#92400e' }}>🃏 Link Pre-printed Card</div>
             <div style={{ fontSize: '0.88rem', color: '#6b7280' }}>Linking card for: <strong>{linkCardPopup.name}</strong></div>
-            <div style={{ fontSize: '0.85rem', color: '#374151' }}>Paste the card's QR value (e.g. <code style={{ fontSize: '0.78rem', background: '#f3f4f6', padding: '0.1rem 0.3rem', borderRadius: '0.3rem' }}>CARNIVAL_CARD:uuid</code>) or just the UUID.</div>
-            <input
-              placeholder="CARNIVAL_CARD:… or UUID"
-              value={linkCardValue}
-              onChange={e => { setLinkCardValue(e.target.value); setLinkCardStatus(''); }}
-              style={{ ...inp, background: '#fffbeb' }}
-              autoFocus
-            />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                placeholder="CARNIVAL_CARD:… or UUID"
+                value={linkCardValue}
+                onChange={e => { setLinkCardValue(e.target.value); setLinkCardStatus(''); }}
+                style={{ ...inp, flex: 1, background: '#fffbeb' }}
+              />
+              <button
+                onClick={() => { setLinkCardScanActive(a => !a); setLinkCardStatus(''); }}
+                style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', cursor: 'pointer', fontWeight: 700, fontSize: '1rem', whiteSpace: 'nowrap' }}
+              >
+                {linkCardScanActive ? '🛑' : '📷'}
+              </button>
+            </div>
+            {linkCardScanActive && <div id="user-link-card-reader" style={{ width: '100%' }} />}
             {linkCardStatus && (
               <p style={{ margin: 0, fontSize: '0.85rem', color: linkCardStatus.startsWith('✅') ? '#059669' : '#dc2626', fontWeight: 600 }}>{linkCardStatus}</p>
             )}
@@ -409,7 +452,7 @@ function UserDashboard() {
               >
                 {linkCardBusy ? 'Linking…' : '🔗 Link Card'}
               </button>
-              <button onClick={() => setLinkCardPopup(null)} style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1rem', cursor: 'pointer', fontWeight: 600, color: '#374151' }}>Cancel</button>
+              <button onClick={() => { setLinkCardPopup(null); setLinkCardScanActive(false); }} style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1rem', cursor: 'pointer', fontWeight: 600, color: '#374151' }}>Cancel</button>
             </div>
           </div>
         </div>

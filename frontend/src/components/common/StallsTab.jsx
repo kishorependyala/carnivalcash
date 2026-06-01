@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import charitiesApi from '../../api/charities';
@@ -283,6 +283,43 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
   const [manageStatus, setManageStatus] = useState('');
   const [stallCardValue, setStallCardValue] = useState('');
   const [stallCardBusy, setStallCardBusy] = useState(false);
+  const [stallCardScanActive, setStallCardScanActive] = useState(false);
+  const stallCardScanner = useRef(null);
+  const scanDivId = `stall-card-reader-${initialStall.stallId}`;
+
+  useEffect(() => {
+    if (!stallCardScanActive) {
+      stallCardScanner.current?.clear?.().catch(() => {});
+      stallCardScanner.current = null;
+      return undefined;
+    }
+    let mounted = true;
+    async function startScan() {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted || stallCardScanner.current) return;
+        const scanner = new Html5QrcodeScanner(scanDivId, { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
+        stallCardScanner.current = scanner;
+        scanner.render((decoded) => {
+          setStallCardValue(decoded);
+          setManageStatus('');
+          scanner.clear().catch(() => {});
+          stallCardScanner.current = null;
+          setStallCardScanActive(false);
+        }, () => {});
+      } catch {
+        setManageStatus('Camera unavailable. Enter the code manually.');
+        setStallCardScanActive(false);
+      }
+    }
+    startScan();
+    return () => {
+      mounted = false;
+      const s = stallCardScanner.current;
+      stallCardScanner.current = null;
+      s?.clear?.().catch(() => {});
+    };
+  }, [stallCardScanActive, scanDivId]);
   const typeMeta = TYPE_META[stall.stallType] || {};
   const isCreator = stall.createdBy === myUserId;
   const isAdmin = (stall.stallAdmins || []).includes(myUserId);
@@ -568,15 +605,21 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
                    ✅ Card linked: <code style={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' }}>{stall.linkedCardId.slice(0, 8)}…</code>
                   </div>
                 )}
-                <label style={{ display: 'grid', gap: '0.3rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>
-                  Card QR value or UUID
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
-                   style={inp}
-                   placeholder="CARNIVAL_CARD:… or UUID"
-                   value={stallCardValue}
-                   onChange={e => { setStallCardValue(e.target.value); setManageStatus(''); }}
+                    style={{ ...inp, flex: 1 }}
+                    placeholder="CARNIVAL_CARD:… or UUID"
+                    value={stallCardValue}
+                    onChange={e => { setStallCardValue(e.target.value); setManageStatus(''); }}
                   />
-                </label>
+                  <button
+                    onClick={() => { setStallCardScanActive(a => !a); setManageStatus(''); }}
+                    style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', cursor: 'pointer', fontWeight: 700, fontSize: '1rem' }}
+                  >
+                    {stallCardScanActive ? '🛑' : '📷'}
+                  </button>
+                </div>
+                {stallCardScanActive && <div id={scanDivId} style={{ width: '100%' }} />}
                 <button
                   disabled={stallCardBusy || !stallCardValue.trim()}
                   onClick={async () => {

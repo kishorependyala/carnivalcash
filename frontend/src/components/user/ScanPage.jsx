@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import stallsApi from '../../api/stalls';
@@ -17,6 +17,7 @@ function parseQRCode(rawValue) {
   const parts = String(rawValue || '').split(':');
   if (parts[0] === 'CARNIVAL_VENDOR' && parts[1]) return { type: 'vendor', id: parts[1] };
   if (parts[0] === 'CARNIVAL_STALL' && parts[1]) return { type: 'stall', id: parts[1] };
+  if (parts[0] === 'CARNIVAL_CARD' && parts[1]) return { type: 'card', id: parts[1] };
   return null;
 }
 
@@ -32,6 +33,21 @@ function ScanPage() {
   useEffect(() => {
     stallsApi.listAll().then(setAllStalls).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleParsed = useCallback(async (parsed) => {
+    if (!parsed) return;
+    if (parsed.type === 'stall') { navigate(`/scan/stall/${parsed.id}`); return; }
+    if (parsed.type === 'vendor') { navigate(`/scan/items/${parsed.id}`); return; }
+    if (parsed.type === 'card') {
+      try {
+        const resolved = await stallsApi.resolveCard(parsed.id);
+        if (resolved.linkedStallId) { navigate(`/scan/stall/${resolved.linkedStallId}`); return; }
+        setStatus('That card is linked to a user, not a stall.');
+      } catch (e) {
+        setStatus(e.response?.data?.error || 'Could not resolve card.');
+      }
+    }
+  }, [navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -50,8 +66,7 @@ function ScanPage() {
         html5Scanner.current.render((decodedText) => {
           const parsed = parseQRCode(decodedText);
           if (!parsed) { setStatus('That QR code is not a CarnivalCash stall QR.'); return; }
-          if (parsed.type === 'stall') navigate(`/scan/stall/${parsed.id}`);
-          else navigate(`/scan/items/${parsed.id}`);
+          handleParsed(parsed);
         }, () => {});
       } catch (error) {
         setStatus('Camera scanning is unavailable here. Paste the QR payload manually.');
@@ -66,16 +81,15 @@ function ScanPage() {
         html5Scanner.current.clear().catch(() => {});
       }
     };
-  }, [navigate]);
+  }, [navigate, handleParsed]);
 
   const handleManualSubmit = () => {
     const parsed = parseQRCode(manualValue.trim());
     if (!parsed) {
-      setStatus('Enter a value like CARNIVAL_STALL:<id> or CARNIVAL_VENDOR:<id>.');
+      setStatus('Enter a value like CARNIVAL_STALL:<id>, CARNIVAL_VENDOR:<id>, or CARNIVAL_CARD:<id>.');
       return;
     }
-    if (parsed.type === 'stall') navigate(`/scan/stall/${parsed.id}`);
-    else navigate(`/scan/items/${parsed.id}`);
+    handleParsed(parsed);
   };
 
   return (

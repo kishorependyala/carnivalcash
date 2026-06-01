@@ -45,9 +45,12 @@ const adminApi = {
     const response = await api.get('/api/admin/files', { params: path ? { path } : {} });
     return response.data;
   },
-  async downloadFiles(path = '') {
+  async downloadFiles(path = '', exclude = []) {
+    const params = {};
+    if (path) params.path = path;
+    if (exclude.length) params.exclude = exclude.join(',');
     const response = await api.get('/api/admin/files/download', {
-      params: path ? { path } : {},
+      params,
       responseType: 'blob',
     });
     const url = URL.createObjectURL(response.data);
@@ -87,6 +90,10 @@ const adminApi = {
   },
   async adminLinkCard(cardId, payload) {
     const response = await api.post(`/api/admin/cards/${cardId}/link`, payload);
+    return response.data;
+  },
+  async registerExternalCard(qrPayload) {
+    const response = await api.post('/api/admin/cards/register-external', { qrPayload });
     return response.data;
   },
   async createOfflineUser(payload) {

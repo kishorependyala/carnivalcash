@@ -632,10 +632,14 @@ def download_files():
         return send_file(target, as_attachment=True, download_name=target.name)
 
     folder_name = target.name if rel else 'carnivalcash-data'
+    exclude_names = {e.strip() for e in request.args.get('exclude', '').split(',') if e.strip()}
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         for file in target.rglob('*'):
             if file.is_file():
+                rel_parts = file.relative_to(target).parts
+                if exclude_names and rel_parts and rel_parts[0] in exclude_names:
+                    continue
                 zf.write(file, file.relative_to(target.parent))
     buf.seek(0)
     return Response(

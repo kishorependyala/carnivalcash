@@ -6,6 +6,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import ItemSelectPage from './components/user/ItemSelectPage';
 import ScanPage from './components/user/ScanPage';
 import UserDashboard from './components/user/UserDashboard';
+import StallPage from './components/stall/StallPage';
 import VendorChargePage from './components/vendor/VendorChargePage';
 import VendorDashboard from './components/vendor/VendorDashboard';
 import VendorScanPage from './components/vendor/VendorScanPage';
@@ -32,6 +33,7 @@ function App() {
       <Route path="/vendor" element={<ProtectedRoute roles={['vendor']}><VendorDashboard /></ProtectedRoute>} />
       <Route path="/vendor/scan" element={<ProtectedRoute roles={['vendor', 'user', 'admin']}><VendorScanPage /></ProtectedRoute>} />
       <Route path="/vendor/charge/:userId" element={<ProtectedRoute roles={['vendor', 'user', 'admin']}><VendorChargePage /></ProtectedRoute>} />
+      <Route path="/stall/:stallId" element={<ProtectedRoute roles={['vendor', 'user', 'admin']}><StallPage /></ProtectedRoute>} />
     </Routes>
   );
 }

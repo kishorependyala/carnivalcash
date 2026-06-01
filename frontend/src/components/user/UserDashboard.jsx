@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { usePolling } from '../../hooks/usePolling';
@@ -11,6 +11,7 @@ import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { card, inp } from '../common/ProfileSections';
 import { MergedStallsTab } from '../common/StallsTab';
+import { getStale, setCache } from '../../utils/swrCache';
 
 const TABS = ['User', 'Stalls'];
 const TAB_LABELS = { User: 'My profile', Stalls: 'Stalls' };
@@ -46,13 +47,15 @@ function UserDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'User');
 
-  // Profile state
-  const [profile, setProfile] = useState({ name: '', phone: '', emails: [], socials: {} });
-  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
-  const [kids, setKids] = useState([]);
-  const [linkedFamily, setLinkedFamily] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [qrPayload, setQrPayload] = useState('');
+  // Profile state — seeded from cache for instant first render
+  const [profile, setProfile] = useState(() => getStale('profile') || { name: '', phone: '', emails: [], socials: {} });
+  const [balance, setBalance] = useState(() => getStale('balance') || { tokenBalance: 0, pin: '', birthYear: '0000' });
+  const [kids, setKids] = useState(() => getStale('kids') || []);
+  const [linkedFamily, setLinkedFamily] = useState(() => getStale('family') || []);
+  const [transactions, setTransactions] = useState(() => getStale('transactions') || []);
+  const [orders, setOrders] = useState(() => getStale('user_orders') || []);
+  const [showTxns, setShowTxns] = useState(false);
+  const [qrPayload, setQrPayload] = useState(() => getStale('qr') || '');
   const [status, setStatus] = useState('');
 
   // Edit drawer
@@ -81,22 +84,66 @@ function UserDashboard() {
   const [emailResetLoading, setEmailResetLoading] = useState(false);
   const [editDefaultTab, setEditDefaultTab] = useState('');
 
+  // Card linking
+  const [linkCardPopup, setLinkCardPopup] = useState(null); // { kidId: null | kidId, name: string }
+  const [linkCardValue, setLinkCardValue] = useState('');
+  const [linkCardStatus, setLinkCardStatus] = useState('');
+  const [linkCardBusy, setLinkCardBusy] = useState(false);
+  const [linkCardScanActive, setLinkCardScanActive] = useState(false);
+  const linkCardScanner = useRef(null);
+
+  useEffect(() => {
+    if (!linkCardScanActive) {
+      linkCardScanner.current?.clear?.().catch(() => {});
+      linkCardScanner.current = null;
+      return undefined;
+    }
+    let mounted = true;
+    async function startScan() {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted || linkCardScanner.current) return;
+        const scanner = new Html5QrcodeScanner('user-link-card-reader', { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
+        linkCardScanner.current = scanner;
+        scanner.render((decoded) => {
+          setLinkCardValue(decoded);
+          setLinkCardStatus('');
+          scanner.clear().catch(() => {});
+          linkCardScanner.current = null;
+          setLinkCardScanActive(false);
+        }, () => {});
+      } catch {
+        setLinkCardStatus('Camera unavailable. Enter the code manually.');
+        setLinkCardScanActive(false);
+      }
+    }
+    startScan();
+    return () => {
+      mounted = false;
+      const s = linkCardScanner.current;
+      linkCardScanner.current = null;
+      s?.clear?.().catch(() => {});
+    };
+  }, [linkCardScanActive]);
+
   const loadProfile = async () => {
     try {
-      const [p, b, k, fam, t, qr] = await Promise.all([
+      const [p, b, k, fam, t, qr, ord] = await Promise.all([
         userApi.getProfile(),
         userApi.getBalance(),
         userApi.getKids(),
         userApi.getFamily(),
         userApi.getTransactions(),
         userApi.getQr(),
+        userApi.getOrders(),
       ]);
-      setProfile(p);
-      setBalance(b);
-      setKids(k);
-      setLinkedFamily(Array.isArray(fam) ? fam : []);
-      setTransactions(t);
-      setQrPayload(qr.qrPayload);
+      setProfile(p);           setCache('profile', p);
+      setBalance(b);           setCache('balance', { tokenBalance: b.tokenBalance, birthYear: b.birthYear }); // PIN never cached
+      setKids(k);              setCache('kids', k);
+      setLinkedFamily(Array.isArray(fam) ? fam : []); setCache('family', Array.isArray(fam) ? fam : []);
+      setTransactions(t);      setCache('transactions', t);
+      setQrPayload(qr.qrPayload); setCache('qr', qr.qrPayload);
+      setOrders(Array.isArray(ord) ? ord : []); setCache('user_orders', Array.isArray(ord) ? ord : []);
       if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
         localStorage.setItem('cc_defaultTab', p.defaultTab);
         setTab(p.defaultTab);
@@ -217,14 +264,84 @@ function UserDashboard() {
               </button>
             </div>
 
+            {/* Pending Orders */}
+            {(() => {
+              const pending = orders.filter(o => o.status === 'pending' || o.status === 'ready');
+              const completed = orders.filter(o => o.status === 'complete' || o.status === 'cancelled');
+              if (pending.length === 0 && completed.length === 0) return null;
+              return (
+                <section style={card}>
+                  <h3 style={{ margin: '0 0 0.75rem', color: '#92400e' }}>🛒 My Orders</h3>
+                  {pending.length > 0 ? (
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      {pending.map(order => (
+                        <div key={order.orderId} style={{ background: order.status === 'ready' ? '#d1fae5' : '#fffbeb', border: `1.5px solid ${order.status === 'ready' ? '#6ee7b7' : '#fed7aa'}`, borderRadius: '0.75rem', padding: '0.75rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
+                            <div>
+                              <strong style={{ fontSize: '0.95rem' }}>{order.stallName}</strong>
+                              {order.position && order.status === 'pending' && (
+                                <span style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: '#6b7280' }}>Position #{order.position}</span>
+                              )}
+                            </div>
+                            <span style={{ background: order.status === 'ready' ? '#059669' : '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.15rem 0.65rem', fontSize: '0.75rem', fontWeight: 700 }}>
+                              {order.status === 'ready' ? '✅ Ready!' : '⏳ Pending'}
+                            </span>
+                          </div>
+                          <div style={{ marginTop: '0.35rem', fontSize: '0.83rem', color: '#374151' }}>
+                            {(order.items || []).map((item, i) => (
+                              <span key={i}>{item.quantity}× {item.itemName}{i < order.items.length - 1 ? ', ' : ''}</span>
+                            ))}
+                          </div>
+                          <div style={{ marginTop: '0.25rem', fontSize: '0.82rem', color: '#b45309', fontWeight: 700 }}>🪙 {order.totalTokens} tokens</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: '0 0 0.5rem', color: '#6b7280', fontSize: '0.88rem' }}>No active orders.</p>
+                  )}
+
+                  {completed.length > 0 && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <button
+                        onClick={() => setShowTxns(v => !v)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', fontWeight: 700, fontSize: '0.88rem', padding: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                      >
+                        {showTxns ? '▾' : '▸'} {showTxns ? 'Hide' : 'Show'} completed orders ({completed.length})
+                      </button>
+                      {showTxns && (
+                        <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.5rem' }}>
+                          {completed.map(order => (
+                            <div key={order.orderId} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.65rem', padding: '0.6rem 0.75rem', opacity: 0.8 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                <strong style={{ fontSize: '0.88rem' }}>{order.stallName}</strong>
+                                <span style={{ fontSize: '0.75rem', color: order.status === 'cancelled' ? '#dc2626' : '#6b7280', fontWeight: 600 }}>
+                                  {order.status === 'cancelled' ? '❌ Cancelled' : '✅ Complete'}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: '#374151' }}>
+                                {(order.items || []).map((item, i) => (
+                                  <span key={i}>{item.quantity}× {item.itemName}{i < order.items.length - 1 ? ', ' : ''}</span>
+                                ))}
+                                <span style={{ marginLeft: '0.4rem', color: '#b45309', fontWeight: 700 }}>· 🪙 {order.totalTokens}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
+
             {/* Family token table */}
             <section style={card}>
               <h3 style={{ margin: '0 0 0.75rem', color: '#92400e' }}>👨‍👩‍👧 Family</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #fed7aa' }}>
-                    {['Type','Name','Limit','Spent','Available','QR'].map((h, i) => (
-                      <th key={h} style={{ padding: '0.4rem 0.3rem', textAlign: i >= 2 && i < 5 ? 'right' : i === 5 ? 'center' : 'left', color: '#92400e', fontWeight: 700, whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{h}</th>
+                    {['Type','Name','Limit','Spent','Available','QR','Card'].map((h, i) => (
+                      <th key={h} style={{ padding: '0.4rem 0.3rem', textAlign: i >= 2 && i < 5 ? 'right' : i >= 5 ? 'center' : 'left', color: '#92400e', fontWeight: 700, whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -238,6 +355,9 @@ function UserDashboard() {
                     <td style={{ padding: '0.4rem 0.3rem', textAlign: 'right', color: '#b45309', fontWeight: 700 }}>🪙 {balance.tokenBalance}</td>
                     <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
                       <button onClick={() => setKidQrPopup({ name: profile.name || profile.phone || 'You', qrValue: qrPayload, limit: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '0.1rem' }}>📲</button>
+                    </td>
+                    <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
+                      <button onClick={() => { setLinkCardPopup({ kidId: null, name: profile.name || profile.phone || 'You' }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '0.1rem' }} title="Link pre-printed card">🃏</button>
                     </td>
                   </tr>
                   {/* Linked family */}
@@ -264,6 +384,9 @@ function UserDashboard() {
                       <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
                         <button onClick={() => setKidQrPopup({ name: kid.name, qrValue: `CARNIVAL_KID:${me?.userId}:${kid.kidId}`, limit: kid.spendingLimit })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '0.1rem' }} title={`QR for ${kid.name}`}>📲</button>
                       </td>
+                      <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
+                        <button onClick={() => { setLinkCardPopup({ kidId: kid.kidId, name: kid.name }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '0.1rem' }} title={`Link card for ${kid.name}`}>🃏</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -282,6 +405,55 @@ function UserDashboard() {
             <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#92400e', marginBottom: '1rem' }}>👤 {kidQrPopup.name}</div>
             <PrintableQR title={kidQrPopup.name} qrValue={kidQrPopup.qrValue} subtitle={kidQrPopup.limit != null ? `Token limit: ${kidQrPopup.limit}` : kidQrPopup.name} />
             <button onClick={() => setKidQrPopup(null)} style={{ marginTop: '1rem', background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.5rem', cursor: 'pointer', fontWeight: 600, color: '#374151' }}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Link Pre-printed Card Modal ── */}
+      {linkCardPopup && (
+        <div onClick={() => { setLinkCardPopup(null); setLinkCardScanActive(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '1.5rem', padding: '1.75rem 1.5rem', maxWidth: '360px', width: '100%', display: 'grid', gap: '0.9rem', boxShadow: '0 8px 40px rgba(0,0,0,0.25)' }}>
+            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#92400e' }}>🃏 Link Pre-printed Card</div>
+            <div style={{ fontSize: '0.88rem', color: '#6b7280' }}>Linking card for: <strong>{linkCardPopup.name}</strong></div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                placeholder="CARNIVAL_CARD:… or UUID"
+                value={linkCardValue}
+                onChange={e => { setLinkCardValue(e.target.value); setLinkCardStatus(''); }}
+                style={{ ...inp, flex: 1, background: '#fffbeb' }}
+              />
+              <button
+                onClick={() => { setLinkCardScanActive(a => !a); setLinkCardStatus(''); }}
+                style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', cursor: 'pointer', fontWeight: 700, fontSize: '1rem', whiteSpace: 'nowrap' }}
+              >
+                {linkCardScanActive ? '🛑' : '📷'}
+              </button>
+            </div>
+            {linkCardScanActive && <div id="user-link-card-reader" style={{ width: '100%' }} />}
+            {linkCardStatus && (
+              <p style={{ margin: 0, fontSize: '0.85rem', color: linkCardStatus.startsWith('✅') ? '#059669' : '#dc2626', fontWeight: 600 }}>{linkCardStatus}</p>
+            )}
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button
+                disabled={linkCardBusy || !linkCardValue.trim()}
+                onClick={async () => {
+                  const raw = linkCardValue.trim();
+                  const cardId = raw.startsWith('CARNIVAL_CARD:') ? raw.split(':')[1] : raw;
+                  setLinkCardBusy(true); setLinkCardStatus('');
+                  try {
+                    await userApi.linkCard(cardId, linkCardPopup.kidId || null);
+                    setLinkCardStatus('✅ Card linked! Vendor can now scan it.');
+                  } catch (e) {
+                    const msg = e.response?.data?.error || 'Failed to link card.';
+                    setLinkCardStatus(msg.includes('another user') ? '❌ This card is already linked to a different user.' : `❌ ${msg}`);
+                  } finally { setLinkCardBusy(false); }
+                }}
+                style={{ flex: 1, background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.65rem', fontWeight: 800, cursor: 'pointer', opacity: linkCardBusy || !linkCardValue.trim() ? 0.5 : 1 }}
+              >
+                {linkCardBusy ? 'Linking…' : '🔗 Link Card'}
+              </button>
+              <button onClick={() => { setLinkCardPopup(null); setLinkCardScanActive(false); }} style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1rem', cursor: 'pointer', fontWeight: 600, color: '#374151' }}>Cancel</button>
+            </div>
           </div>
         </div>
       )}

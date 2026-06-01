@@ -15,6 +15,7 @@ import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { TYPE_META, MergedStallsTab } from '../common/StallsTab';
 import { HistoryTab, card, inp } from '../common/ProfileSections'; // eslint-disable-line no-unused-vars
+import { getStale, setCache } from '../../utils/swrCache';
 
 const btn = (variant = 'primary') => ({
   padding: '0.5rem 1rem',
@@ -80,7 +81,72 @@ const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, re
   const [dollars, setDollars] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [delCode, setDelCode] = useState('');
+  const [linkQrOpen, setLinkQrOpen] = useState(false);
+  const [linkQrTarget, setLinkQrTarget] = useState(''); // '' = user, kidId = kid
+  const [linkQrValue, setLinkQrValue] = useState('');
+  const [linkQrScanActive, setLinkQrScanActive] = useState(false);
+  const [linkQrBusy, setLinkQrBusy] = useState(false);
+  const [linkQrMsg, setLinkQrMsg] = useState('');
+  const linkQrScanner = useRef(null);
+  const scanDivId = `link-qr-reader-${user.userId}`;
   const tokens = dollars > 0 ? Math.floor(parseFloat(dollars) * tokenRate) : null;
+  const kids = user.kids || [];
+
+  useEffect(() => {
+    if (!linkQrScanActive) {
+      linkQrScanner.current?.clear?.().catch(() => {});
+      linkQrScanner.current = null;
+      return undefined;
+    }
+    let mounted = true;
+    async function startScan() {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted || linkQrScanner.current) return;
+        const scanner = new Html5QrcodeScanner(scanDivId, { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
+        linkQrScanner.current = scanner;
+        scanner.render((decoded) => {
+          setLinkQrValue(decoded);
+          setLinkQrMsg('');
+          scanner.clear().catch(() => {});
+          linkQrScanner.current = null;
+          setLinkQrScanActive(false);
+        }, () => {});
+      } catch {
+        setLinkQrMsg('Camera unavailable. Paste the QR value instead.');
+        setLinkQrScanActive(false);
+      }
+    }
+    startScan();
+    return () => {
+      mounted = false;
+      const s = linkQrScanner.current;
+      linkQrScanner.current = null;
+      s?.clear?.().catch(() => {});
+    };
+  }, [linkQrScanActive, scanDivId]);
+
+  const doLinkQr = async () => {
+    const raw = linkQrValue.trim();
+    if (!raw) return;
+    const cardId = raw.startsWith('CARNIVAL_CARD:') ? raw.split(':')[1] : raw;
+    setLinkQrBusy(true); setLinkQrMsg('');
+    try {
+      // register first if unknown, then link
+      await adminApi.registerExternalCard(raw);
+      await adminApi.adminLinkCard(cardId, {
+        userId: user.userId,
+        ...(linkQrTarget ? { kidId: linkQrTarget } : {}),
+      });
+      const targetName = linkQrTarget ? kids.find(k => k.kidId === linkQrTarget)?.name : (user.name || user.phone);
+      setLinkQrMsg(`✅ Card linked to ${targetName}!`);
+      setLinkQrValue('');
+      onDone();
+    } catch (e) {
+      const msg = e.response?.data?.error || 'Failed.';
+      setLinkQrMsg(`❌ ${msg}`);
+    } finally { setLinkQrBusy(false); }
+  };
 
   const doAdd = async () => {
     if (!tokens) return;
@@ -138,18 +204,60 @@ const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, re
           <span style={{ background: '#fde68a', borderRadius: '1rem', padding: '0.15rem 0.6rem', fontSize: '0.8rem', marginLeft: '0.5rem', fontWeight: 700 }}>
             {user.tokenBalance} tokens
           </span>
+          {kids.length > 0 && (
+            <div style={{ marginTop: '0.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+              {kids.map(kid => (
+                <span key={kid.kidId} style={{ background: '#dbeafe', color: '#1d4ed8', borderRadius: '999px', padding: '0.1rem 0.55rem', fontSize: '0.75rem', fontWeight: 600 }}>
+                  👦 {kid.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-          <button style={btn('secondary')} onClick={() => { setOpen((v) => !v); setDollars(''); setDeleting(false); }}>
+          <button style={btn('secondary')} onClick={() => { setOpen((v) => !v); setDollars(''); setDeleting(false); setLinkQrOpen(false); }}>
             {open ? 'Cancel' : '🪙 Add'}
+          </button>
+          <button style={btn('secondary')} onClick={() => { setLinkQrOpen(v => !v); setOpen(false); setDeleting(false); setLinkQrMsg(''); setLinkQrValue(''); }}>
+            {linkQrOpen ? 'Cancel' : '🃏 Card'}
           </button>
           <button style={btn('secondary')} onClick={doResetPin}>🔐 Reset PIN</button>
           <button style={btn('danger')} onClick={doZero}>⬛ Zero</button>
-          <button style={btn('danger')} onClick={() => { setDeleting((v) => !v); setDelCode(''); setOpen(false); }}>
+          <button style={btn('danger')} onClick={() => { setDeleting((v) => !v); setDelCode(''); setOpen(false); setLinkQrOpen(false); }}>
             🗑️
           </button>
         </div>
       </div>
+
+      {linkQrOpen && (
+        <div style={{ background: '#f0f9ff', borderRadius: '0.65rem', padding: '0.75rem', display: 'grid', gap: '0.5rem' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0369a1' }}>🃏 Link pre-printed card</div>
+          {kids.length > 0 && (
+            <select style={{ ...inp, appearance: 'auto' }} value={linkQrTarget} onChange={e => setLinkQrTarget(e.target.value)}>
+              <option value="">Link to {user.name || user.phone} (main)</option>
+              {kids.map(kid => <option key={kid.kidId} value={kid.kidId}>👦 {kid.name}</option>)}
+            </select>
+          )}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <input
+              style={{ ...inp, flex: 1, minWidth: '160px' }}
+              placeholder="CARNIVAL_CARD:… or UUID"
+              value={linkQrValue}
+              onChange={e => { setLinkQrValue(e.target.value); setLinkQrMsg(''); }}
+            />
+            <button style={btn('secondary')} onClick={() => setLinkQrScanActive(a => !a)}>
+              {linkQrScanActive ? '🛑 Stop' : '📷 Scan'}
+            </button>
+            <button style={{ ...btn(), opacity: linkQrBusy || !linkQrValue.trim() ? 0.5 : 1 }} disabled={linkQrBusy || !linkQrValue.trim()} onClick={doLinkQr}>
+              {linkQrBusy ? 'Linking…' : '🔗 Link'}
+            </button>
+          </div>
+          {linkQrScanActive && <div id={scanDivId} style={{ width: '100%' }} />}
+          {linkQrMsg && (
+            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: linkQrMsg.startsWith('✅') ? '#059669' : '#dc2626' }}>{linkQrMsg}</p>
+          )}
+        </div>
+      )}
 
       {open && (
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -283,6 +391,127 @@ function CardsPrintOverlay({ cards, onClose }) {
   );
 }
 
+// Users + kids QR print overlay (9 per page)
+function UsersPrintOverlay({ users, onClose }) {
+  const USERS_PAGE_SIZE = 9;
+  // flatten: each user entry + their kids
+  const items = [];
+  users.forEach(u => {
+    items.push({ qrValue: `CARNIVAL_USER:${u.userId}`, name: u.name || u.phone || u.userId, label: 'User', color: '#92400e', bg: '#fef3c7' });
+    (u.kids || []).forEach(kid => {
+      items.push({ qrValue: `CARNIVAL_KID:${u.userId}:${kid.kidId}`, name: kid.name, label: `Kid · ${u.name || u.phone || ''}`, color: '#1d4ed8', bg: '#dbeafe' });
+    });
+  });
+  const pages = [];
+  for (let i = 0; i < items.length; i += USERS_PAGE_SIZE) pages.push(items.slice(i, i + USERS_PAGE_SIZE));
+
+  return createPortal(
+    <div id="users-print-portal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="no-print" style={{ background: '#1f2937', color: '#fff', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexShrink: 0 }}>
+        <span style={{ fontWeight: 700, fontSize: '1rem' }}>🖨️ Print User QR Codes — {items.length} entries ({users.length} users + kids) · {pages.length} page{pages.length !== 1 ? 's' : ''}</span>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={() => window.print()} style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1.25rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>🖨️ Print</button>
+          <button onClick={onClose} style={{ background: '#374151', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1rem', fontWeight: 600, cursor: 'pointer' }}>✕ Close</button>
+        </div>
+      </div>
+      <div id="users-print-content" style={{ flex: 1, overflowY: 'auto', background: '#f3f4f6', padding: '1rem' }}>
+        {pages.map((pageItems, pageIdx) => (
+          <div key={pageIdx} className="users-print-page" style={{ background: '#fff', marginBottom: '1rem', padding: '1cm', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            {pageItems.map((item, i) => (
+              <div key={item.qrValue + i} style={{ border: '1.5px solid #d1d5db', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#111827', lineHeight: 1.3, wordBreak: 'break-word' }}>{item.name}</div>
+                <div style={{ fontSize: '0.68rem', background: item.bg, color: item.color, borderRadius: '999px', padding: '0.1rem 0.5rem', fontWeight: 700 }}>{item.label}</div>
+                <QRCodeSVG value={item.qrValue} size={130} includeMargin={false} />
+                <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#9ca3af', wordBreak: 'break-all' }}>{item.qrValue.slice(-12)}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @media print {
+          body > *:not(#users-print-portal) { display: none !important; }
+          #users-print-portal { position: static !important; background: white !important; display: block !important; overflow: visible !important; }
+          #users-print-content { overflow: visible !important; height: auto !important; background: white !important; padding: 0 !important; }
+          .users-print-page { page-break-after: always; margin-bottom: 0 !important; }
+          .users-print-page:last-child { page-break-after: avoid; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+    </div>,
+    document.body
+  );
+}
+
+function StallsPrintOverlay({ stalls, onClose }) {
+  const STALL_PAGE_SIZE = 12;
+  const pages = [];
+  for (let i = 0; i < stalls.length; i += STALL_PAGE_SIZE) {
+    pages.push(stalls.slice(i, i + STALL_PAGE_SIZE));
+  }
+
+  return createPortal(
+    <div id="stalls-print-portal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="no-print" style={{ background: '#1f2937', color: '#fff', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexShrink: 0 }}>
+        <span style={{ fontWeight: 700, fontSize: '1rem' }}>🖨️ Print Stall QR Codes — {stalls.length} stall{stalls.length !== 1 ? 's' : ''} · {pages.length} page{pages.length !== 1 ? 's' : ''} (12/page)</span>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={() => window.print()} style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1.25rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>
+            🖨️ Print
+          </button>
+          <button onClick={onClose} style={{ background: '#374151', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1rem', fontWeight: 600, cursor: 'pointer' }}>
+            ✕ Close
+          </button>
+        </div>
+      </div>
+
+      <div id="stalls-print-content" style={{ flex: 1, overflowY: 'auto', background: '#f3f4f6', padding: '1rem' }}>
+        {pages.map((pageStalls, pageIdx) => (
+          <div key={pageIdx} className="stalls-print-page" style={{ background: '#fff', marginBottom: '1rem', padding: '1cm', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            {pageStalls.map((stall) => {
+              const meta = TYPE_META[stall.stallType] || {};
+              return (
+                <div key={stall.stallId} style={{ border: '1.5px solid #d1d5db', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ fontSize: '1.5rem', lineHeight: 1 }}>{meta.icon}</div>
+                  <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#111827', lineHeight: 1.2 }}>{stall.stallName}</div>
+                  <div style={{ fontSize: '0.72rem', background: meta.bg, color: meta.color, borderRadius: '999px', padding: '0.1rem 0.5rem', fontWeight: 700 }}>{meta.label}</div>
+                  <QRCodeSVG value={`CARNIVAL_STALL:${stall.stallId}`} size={140} includeMargin={false} />
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: '#9ca3af', wordBreak: 'break-all' }}>{stall.stallId.slice(0, 10)}</div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <style>{`
+        @media print {
+          body > *:not(#stalls-print-portal) { display: none !important; }
+          #stalls-print-portal {
+            position: static !important;
+            background: white !important;
+            display: block !important;
+            overflow: visible !important;
+          }
+          #stalls-print-content {
+            overflow: visible !important;
+            height: auto !important;
+            background: white !important;
+            padding: 0 !important;
+          }
+          .stalls-print-page {
+            page-break-after: always;
+            margin-bottom: 0 !important;
+          }
+          .stalls-print-page:last-child { page-break-after: avoid; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+    </div>,
+    document.body
+  );
+}
+
+
 function CardsTab({ allUsers }) {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -296,6 +525,44 @@ function CardsTab({ allUsers }) {
   const [linkKidId, setLinkKidId] = useState('');
   const [linkName, setLinkName] = useState('');
   const [linkUserKids, setLinkUserKids] = useState([]);
+  const [extQrValue, setExtQrValue] = useState('');
+  const [extQrBusy, setExtQrBusy] = useState(false);
+  const [extQrResult, setExtQrResult] = useState(null); // {status, cardId, linkedName}
+  const [extScanActive, setExtScanActive] = useState(false);
+  const extScanner = useRef(null);
+
+  useEffect(() => {
+    if (!extScanActive) {
+      extScanner.current?.clear?.().catch(() => {});
+      extScanner.current = null;
+      return undefined;
+    }
+    let mounted = true;
+    async function startScan() {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted || extScanner.current) return;
+        const scanner = new Html5QrcodeScanner('ext-qr-reader', { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
+        extScanner.current = scanner;
+        scanner.render((decodedText) => {
+          setExtQrValue(decodedText);
+          setExtQrResult(null);
+          scanner.clear().catch(() => {});
+          extScanner.current = null;
+          setExtScanActive(false);
+        }, () => {});
+      } catch {
+        setExtScanActive(false);
+      }
+    }
+    startScan();
+    return () => {
+      mounted = false;
+      const s = extScanner.current;
+      extScanner.current = null;
+      s?.clear?.().catch(() => {});
+    };
+  }, [extScanActive]);
 
   const load = async () => {
     setLoading(true);
@@ -392,6 +659,56 @@ function CardsTab({ allUsers }) {
       {showPrintView && printCards.length > 0 && (
         <CardsPrintOverlay cards={printCards} onClose={() => setShowPrintView(false)} />
       )}
+
+      {/* Register External QR */}
+      <section style={card}>
+        <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.6rem' }}>🔍 Register External QR Card</div>
+        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.75rem' }}>Scan or paste any QR payload to register it, then optionally link it to a user.</div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <input
+            style={{ ...inp, flex: 1, minWidth: '180px' }}
+            placeholder="CARNIVAL_CARD:… or UUID"
+            value={extQrValue}
+            onChange={e => { setExtQrValue(e.target.value); setExtQrResult(null); }}
+          />
+          <button
+            style={{ ...btn('secondary') }}
+            onClick={() => { setExtScanActive(a => !a); setExtQrResult(null); }}
+          >
+            {extScanActive ? '🛑 Stop Scan' : '📷 Scan'}
+          </button>
+          <button
+            disabled={extQrBusy || !extQrValue.trim()}
+            style={{ ...btn(), opacity: extQrBusy || !extQrValue.trim() ? 0.5 : 1 }}
+            onClick={async () => {
+              setExtQrBusy(true); setExtQrResult(null);
+              try {
+                const res = await adminApi.registerExternalCard(extQrValue.trim());
+                setExtQrResult(res);
+                await load();
+              } catch (e) {
+                setExtQrResult({ status: 'error', error: e.response?.data?.error || 'Failed.' });
+              } finally { setExtQrBusy(false); }
+            }}
+          >
+            {extQrBusy ? 'Registering…' : '📥 Register'}
+          </button>
+        </div>
+        {extScanActive && <div id="ext-qr-reader" style={{ width: '100%', marginTop: '0.75rem' }} />}
+        {extQrResult && (
+          <div style={{ marginTop: '0.65rem', padding: '0.65rem', borderRadius: '0.75rem', fontSize: '0.88rem', fontWeight: 600,
+            background: extQrResult.status === 'registered' ? '#d1fae5' : extQrResult.status === 'already_linked' ? '#fef3c7' : extQrResult.status === 'already_registered' ? '#dbeafe' : '#fee2e2',
+            color: extQrResult.status === 'registered' ? '#065f46' : extQrResult.status === 'already_linked' ? '#92400e' : extQrResult.status === 'already_registered' ? '#1e40af' : '#dc2626' }}>
+            {extQrResult.status === 'registered' && `✅ Registered! Card ID: ${extQrResult.cardId?.slice(0,8)}…`}
+            {extQrResult.status === 'already_linked' && `⚠️ Already linked to: ${extQrResult.linkedName || extQrResult.linkedUserId}`}
+            {extQrResult.status === 'already_registered' && `ℹ️ Already registered (unlinked). Card ID: ${extQrResult.cardId?.slice(0,8)}…`}
+            {extQrResult.status === 'error' && `❌ ${extQrResult.error}`}
+            {extQrResult.cardId && !['error'].includes(extQrResult.status) && extQrResult.status !== 'already_linked' && (
+              <button style={{ ...btn('secondary'), marginLeft: '0.75rem', fontSize: '0.8rem', padding: '0.25rem 0.65rem' }} onClick={() => openLink(extQrResult.cardId)}>🔗 Link to User</button>
+            )}
+          </div>
+        )}
+      </section>
 
       {loading ? <p>Loading…</p> : (
         <section style={card}>
@@ -502,9 +819,9 @@ function DataFilesTab() {
 
   useEffect(() => { browse(''); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const download = (dlPath) => {
+  const download = (dlPath, exclude = []) => {
     setDownloading(true);
-    adminApi.downloadFiles(dlPath)
+    adminApi.downloadFiles(dlPath, exclude)
       .catch((err) => setError(err.message || 'Download failed.'))
       .finally(() => setDownloading(false));
   };
@@ -545,11 +862,11 @@ function DataFilesTab() {
         {node?.type === 'dir' && (
           <button
             type="button"
-            onClick={() => download(path)}
+            onClick={() => download(path, path ? [] : ['archive', 'logs'])}
             disabled={downloading}
             style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '0.6rem', padding: '0.4rem 0.8rem', cursor: downloading ? 'default' : 'pointer', fontSize: '0.82rem', color: '#92400e', fontWeight: 600, opacity: downloading ? 0.6 : 1 }}
           >
-            {downloading ? '⏳' : '⬇'} {path ? 'Download folder' : 'Download all'}
+            {downloading ? '⏳' : '⬇'} {path ? 'Download folder' : 'Download all (no archive/logs)'}
           </button>
         )}
       </div>
@@ -648,19 +965,21 @@ function AdminDashboard() {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get('tab') || localStorage.getItem('cc_defaultTab') || 'User');
-  const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
+  const [stats, setStats] = useState(() => getStale('admin_stats') || { totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
   const [event, setEvent] = useState(null); // eslint-disable-line no-unused-vars
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState(() => getStale('admin_users') || []);
   const [status, setStatus] = useState('');
   const [rate, setRate] = useState(2);
-  const [profile, setProfile] = useState({ name: '', emails: [], socials: {} });
-  const [balance, setBalance] = useState({ tokenBalance: 0, pin: '', birthYear: '0000' });
-  const [kids, setKids] = useState([]);
-  const [linkedFamily, setLinkedFamily] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [qrPayload, setQrPayload] = useState('');
-  const [allStalls, setAllStalls] = useState([]);
-  const [stallsLoaded, setStallsLoaded] = useState(false);
+  const [profile, setProfile] = useState(() => getStale('profile') || { name: '', emails: [], socials: {} });
+  const [balance, setBalance] = useState(() => getStale('balance') || { tokenBalance: 0, pin: '', birthYear: '0000' });
+  const [kids, setKids] = useState(() => getStale('kids') || []);
+  const [linkedFamily, setLinkedFamily] = useState(() => getStale('family') || []);
+  const [transactions, setTransactions] = useState(() => getStale('transactions') || []);
+  const [qrPayload, setQrPayload] = useState(() => getStale('qr') || '');
+  const [allStalls, setAllStalls] = useState(() => getStale('admin_stalls') || []);
+  const [stallsLoaded, setStallsLoaded] = useState(() => !!getStale('admin_stalls'));
+  const [showStallPrint, setShowStallPrint] = useState(false);
+  const [showUserPrint, setShowUserPrint] = useState(false);
   const [expandedStall, setExpandedStall] = useState(null);
   const [deletingStall, setDeletingStall] = useState(null);
   const [stallDelCode, setStallDelCode] = useState('');
@@ -762,6 +1081,9 @@ function AdminDashboard() {
   }), [allStalls, expandedStall, deletingStall, stallDelCode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [charities, setCharities] = useState([]);
   const [charitiesLoaded, setCharitiesLoaded] = useState(false);
+  const [newCharity, setNewCharity] = useState({ name: '', description: '', website: '' });
+  const [charityStatus, setCharityStatus] = useState('');
+  const [charityBusy, setCharityBusy] = useState(false);
   const [resetCode, setResetCode] = useState('');
   const [resetting, setResetting] = useState(false);
   const [userSearch, setUserSearch] = useState('');
@@ -831,10 +1153,10 @@ function AdminDashboard() {
       adminApi.getEvent(),
       adminApi.listUsers(),
     ]);
-    setStats(statsRes);
-    setEvent(eventRes);
+    setStats(statsRes);    setCache('admin_stats', statsRes);
+    setEvent(eventRes);    setCache('admin_event', eventRes);
     setRate(eventRes?.tokenRate ?? 2);
-    setUsers(usersRes);
+    setUsers(usersRes);    setCache('admin_users', usersRes);
   };
 
   const loadProfile = async () => {
@@ -846,12 +1168,12 @@ function AdminDashboard() {
       userApi.getTransactions(),
       userApi.getQr(),
     ]);
-    setProfile(p);
-    setBalance(b);
-    setKids(k);
-    setLinkedFamily(Array.isArray(fam) ? fam : []);
-    setTransactions(t);
-    setQrPayload(qr.qrPayload);
+    setProfile(p);           setCache('profile', p);
+    setBalance(b);           setCache('balance', { tokenBalance: b.tokenBalance, birthYear: b.birthYear });
+    setKids(k);              setCache('kids', k);
+    setLinkedFamily(Array.isArray(fam) ? fam : []); setCache('family', Array.isArray(fam) ? fam : []);
+    setTransactions(t);      setCache('transactions', t);
+    setQrPayload(qr.qrPayload); setCache('qr', qr.qrPayload);
     if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
       localStorage.setItem('cc_defaultTab', p.defaultTab);
       setTab(p.defaultTab);
@@ -862,7 +1184,7 @@ function AdminDashboard() {
 
   const loadStalls = async () => {
     const result = await adminApi.listStallsFull();
-    setAllStalls(result);
+    setAllStalls(result);  setCache('admin_stalls', result);
     setStallsLoaded(true);
   };
 
@@ -1291,6 +1613,7 @@ function AdminDashboard() {
                 </div>
 
                 <section style={card}>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
                     type="button"
                     style={{ ...btn(showAddOffline ? 'secondary' : 'primary'), justifySelf: 'start' }}
@@ -1305,6 +1628,13 @@ function AdminDashboard() {
                   >
                     {showAddOffline ? '➖ Hide Add Offline User' : '➕ Add Offline User'}
                   </button>
+                  {nonAdminUsers.length > 0 && (
+                    <button type="button" style={btn('secondary')} onClick={() => setShowUserPrint(true)}>
+                      🖨️ Print All User QRs
+                    </button>
+                  )}
+                  </div>
+                  {showUserPrint && <UsersPrintOverlay users={nonAdminUsers} onClose={() => setShowUserPrint(false)} />}
 
                   {showAddOffline && (
                     <div style={{ ...card, background: '#fffbeb', gap: '0.85rem' }}>
@@ -1507,12 +1837,18 @@ function AdminDashboard() {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <h2 style={{ margin: 0 }}>🎪 Stalls ({allStalls.length})</h2>
-                  <button style={btn('secondary')} onClick={() => loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'))}>Refresh</button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {allStalls.length > 0 && (
+                      <button style={btn('secondary')} onClick={() => setShowStallPrint(true)}>🖨️ Print All QRs</button>
+                    )}
+                    <button style={btn('secondary')} onClick={() => loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'))}>Refresh</button>
+                  </div>
                 </div>
                 {allStalls.length === 0 && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                   {stallCards}
                 </div>
+                {showStallPrint && <StallsPrintOverlay stalls={allStalls} onClose={() => setShowStallPrint(false)} />}
               </>
             )}
 
@@ -1520,8 +1856,55 @@ function AdminDashboard() {
               <>
                 <h2 style={{ margin: 0 }}>💝 Charities</h2>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>Token balances accumulated from stall donations.</p>
+
+                {/* ── Add Charity Form ── */}
+                <div style={{ background: '#f0fdf4', border: '1.5px solid #6ee7b7', borderRadius: '1rem', padding: '1rem', display: 'grid', gap: '0.65rem' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#065f46' }}>➕ Add New Charity</div>
+                  <input
+                    placeholder="Charity name *"
+                    value={newCharity.name}
+                    onChange={e => setNewCharity(p => ({ ...p, name: e.target.value }))}
+                    style={{ ...inp, background: '#fff' }}
+                  />
+                  <input
+                    placeholder="Description (optional)"
+                    value={newCharity.description}
+                    onChange={e => setNewCharity(p => ({ ...p, description: e.target.value }))}
+                    style={{ ...inp, background: '#fff' }}
+                  />
+                  <input
+                    placeholder="Website URL (optional)"
+                    value={newCharity.website}
+                    onChange={e => setNewCharity(p => ({ ...p, website: e.target.value }))}
+                    style={{ ...inp, background: '#fff' }}
+                  />
+                  {charityStatus && (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: charityStatus.startsWith('✅') ? '#059669' : '#dc2626' }}>{charityStatus}</p>
+                  )}
+                  <button
+                    disabled={charityBusy || !newCharity.name.trim()}
+                    onClick={async () => {
+                      setCharityBusy(true);
+                      setCharityStatus('');
+                      try {
+                        const c = await charitiesApi.add(newCharity);
+                        setCharities(prev => prev.find(x => x.charityId === c.charityId) ? prev : [c, ...prev]);
+                        setNewCharity({ name: '', description: '', website: '' });
+                        setCharityStatus('✅ Charity added!');
+                      } catch (e) {
+                        setCharityStatus(e.response?.data?.error || 'Failed to add charity.');
+                      } finally {
+                        setCharityBusy(false);
+                      }
+                    }}
+                    style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.65rem', fontWeight: 800, cursor: 'pointer', fontSize: '0.92rem', opacity: charityBusy || !newCharity.name.trim() ? 0.5 : 1 }}
+                  >
+                    {charityBusy ? 'Adding…' : '💚 Add Charity'}
+                  </button>
+                </div>
+
                 {!charitiesLoaded && <p style={{ color: '#6b7280' }}>Loading…</p>}
-                {charitiesLoaded && charities.length === 0 && <p style={{ color: '#6b7280' }}>No charities yet. Stall owners can add them when configuring their stall.</p>}
+                {charitiesLoaded && charities.length === 0 && <p style={{ color: '#6b7280' }}>No charities yet.</p>}
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                   {charities.map((charity) => (
                     <div key={charity.charityId} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '1rem', padding: '1rem', display: 'grid', gap: '0.4rem' }}>

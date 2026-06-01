@@ -340,8 +340,8 @@ function UserDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #fed7aa' }}>
-                    {['Type','Name','Limit','Spent','Available','QR','Replace QR'].map((h, i) => (
-                      <th key={h} style={{ padding: '0.4rem 0.3rem', textAlign: i >= 2 && i < 5 ? 'right' : i >= 5 ? 'center' : 'left', color: '#92400e', fontWeight: 700, whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{h}</th>
+                    {['Type','Name','Limit','Spent','Available','QR'].map((h, i) => (
+                      <th key={h} style={{ padding: '0.4rem 0.3rem', textAlign: i >= 2 && i < 5 ? 'right' : i === 5 ? 'center' : 'left', color: '#92400e', fontWeight: 700, whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -355,9 +355,7 @@ function UserDashboard() {
                     <td style={{ padding: '0.4rem 0.3rem', textAlign: 'right', color: '#b45309', fontWeight: 700 }}>🪙 {balance.tokenBalance}</td>
                     <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
                       <button onClick={() => setKidQrPopup({ name: profile.name || profile.phone || 'You', qrValue: qrPayload, limit: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '0.1rem' }}>📲</button>
-                    </td>
-                    <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
-                      <button onClick={() => { setLinkCardPopup({ kidId: null, name: profile.name || profile.phone || 'You' }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '0.1rem' }} title="Replace QR code">🔄</button>
+                      <button onClick={() => { setLinkCardPopup({ kidId: null, name: profile.name || profile.phone || 'You' }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.1rem' }} title="Replace QR code">🔄</button>
                     </td>
                   </tr>
                   {/* Linked family */}
@@ -383,9 +381,7 @@ function UserDashboard() {
                       <td style={{ padding: '0.4rem 0.3rem', textAlign: 'right', color: '#b45309', fontWeight: 700 }}>🪙 {kid.spendingLimit - kid.spent}</td>
                       <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
                         <button onClick={() => setKidQrPopup({ name: kid.name, qrValue: `CARNIVAL_KID:${me?.userId}:${kid.kidId}`, limit: kid.spendingLimit })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '0.1rem' }} title={`QR for ${kid.name}`}>📲</button>
-                      </td>
-                      <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
-                        <button onClick={() => { setLinkCardPopup({ kidId: kid.kidId, name: kid.name }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '0.1rem' }} title={`Replace QR for ${kid.name}`}>🔄</button>
+                        <button onClick={() => { setLinkCardPopup({ kidId: kid.kidId, name: kid.name }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.1rem' }} title={`Replace QR for ${kid.name}`}>🔄</button>
                       </td>
                     </tr>
                   ))}

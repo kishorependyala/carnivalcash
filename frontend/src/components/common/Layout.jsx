@@ -7,6 +7,7 @@ import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { usePolling } from '../../hooks/usePolling';
+import { ProfileTab } from './ProfileSections';
 
 const shellStyle = {
   minHeight: '100vh',
@@ -348,7 +349,61 @@ function EventsPanel() {
   );
 }
 
-function BottomNav() {
+function ProfilePanel({ onClose }) {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [balance, setBalance] = useState(null);
+  const [kids, setKids] = useState([]);
+  const [status, setStatus] = useState('');
+
+  const load = async () => {
+    try {
+      const [p, b, k] = await Promise.all([
+        userApi.getProfile(),
+        userApi.getBalance(),
+        userApi.getKids().catch(() => []),
+      ]);
+      setProfile(p);
+      setBalance(b);
+      setKids(k);
+    } catch {
+      setStatus('Unable to load profile.');
+    }
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isAdmin = user?.roles?.includes('admin');
+  const tabs = isAdmin
+    ? ['User', 'Stalls']
+    : user?.roles?.includes('vendor')
+    ? ['Vendor']
+    : ['User', 'Stalls'];
+
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      <h2 style={{ margin: 0 }}>👤 Profile</h2>
+      {status ? <p style={{ color: '#dc2626', margin: 0 }}>{status}</p> : null}
+      {!profile ? (
+        <p style={{ color: '#6b7280' }}>Loading…</p>
+      ) : (
+        <ProfileTab
+          profile={profile}
+          balance={balance}
+          event={null}
+          isAdmin={isAdmin}
+          setStatus={setStatus}
+          onReload={load}
+          kids={kids}
+          setProfile={setProfile}
+          tabs={tabs}
+        />
+      )}
+    </div>
+  );
+}
+
+
   const { user } = useAuth();
   const [panel, setPanel] = useState(null);
 
@@ -454,12 +509,12 @@ function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isSubPage = !ROOT_PATHS.includes(location.pathname);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const goBack = () => {
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      // Fall back to role home
       if (user?.roles?.includes('admin')) navigate('/admin');
       else if (user?.roles?.includes('vendor')) navigate('/vendor');
       else navigate('/user');
@@ -491,6 +546,13 @@ function Layout({ children }) {
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <RefreshTimer intervalSec={pollIntervalSec} />
+              <button
+                type="button"
+                onClick={() => setProfileOpen(true)}
+                style={{ border: 0, borderRadius: '999px', padding: '0.65rem 1rem', fontWeight: 700, background: 'rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer' }}
+              >
+                Profile
+              </button>
               <button type="button" onClick={logout} style={{ border: 0, borderRadius: '999px', padding: '0.65rem 1rem', fontWeight: 700 }}>
                 Logout
               </button>
@@ -498,6 +560,20 @@ function Layout({ children }) {
           ) : null}
         </div>
       </header>
+      {profileOpen ? (
+        <div role="presentation" style={backdropStyle} onClick={() => setProfileOpen(false)}>
+          <div role="dialog" aria-modal="true" style={panelStyle} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setProfileOpen(false)}
+              style={{ position: 'absolute', top: '0.75rem', right: '1rem', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#9ca3af' }}
+            >
+              ✕
+            </button>
+            <ProfilePanel onClose={() => setProfileOpen(false)} />
+          </div>
+        </div>
+      ) : null}
       <main style={contentStyle}>{children}</main>
       <BottomNav />
     </div>

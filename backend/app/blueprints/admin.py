@@ -4,6 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 import io
 import json
+import os
 import zipfile
 
 from flask import Blueprint, Response, g, jsonify, request, send_file
@@ -63,7 +64,10 @@ def current_event():
 @admin_bp.get('/api/settings')
 def public_settings():
     """Public app settings (no auth required). Used by clients on load."""
-    return jsonify(get_settings())
+    data = get_settings()
+    data['appEnv'] = os.environ.get('APP_ENV', 'dev')
+    data['appRegion'] = os.environ.get('APP_REGION', 'local')
+    return jsonify(data)
 
 
 @admin_bp.post('/api/admin/settings')

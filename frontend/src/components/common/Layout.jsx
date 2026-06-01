@@ -380,6 +380,11 @@ function ProfilePanel({ onClose }) {
     : isVendor
     ? ['Stalls', 'Browse', 'Profile', 'History']
     : ['User', 'Stalls'];
+  const tabLabels = isAdmin
+    ? { User: 'Admin & Users', Stalls: 'Admin & Stalls', Admin: 'Admin & Admin settings' }
+    : isVendor
+    ? { Stalls: 'Vendor & Stalls', Browse: 'Vendor & Browse', Profile: 'Vendor & Profile', History: 'Vendor & History' }
+    : { User: 'My profile', Stalls: 'Stalls' };
 
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
@@ -398,6 +403,7 @@ function ProfilePanel({ onClose }) {
           kids={kids}
           setProfile={setProfile}
           tabs={tabs}
+          tabLabels={tabLabels}
         />
       )}
     </div>
@@ -506,7 +512,8 @@ const ROOT_PATHS = ['/user', '/vendor', '/admin', '/'];
 
 function Layout({ children }) {
   const { user, logout } = useAuth();
-  const { pollIntervalSec } = useSettings();
+  const { pollIntervalSec, appEnv, appRegion } = useSettings();
+  const envLabel = appEnv && appRegion ? `${appRegion} · ${appEnv}` : null;
   const navigate = useNavigate();
   const location = useLocation();
   const isSubPage = !ROOT_PATHS.includes(location.pathname);
@@ -542,6 +549,11 @@ function Layout({ children }) {
               <div style={{ opacity: 0.9, fontSize: '0.9rem' }}>
                 {user ? '' : 'Carnival donations made easy'}
               </div>
+              {envLabel && (
+                <div style={{ fontSize: '0.65rem', opacity: 0.75, letterSpacing: '0.03em', marginTop: '1px' }}>
+                  {envLabel}
+                </div>
+              )}
             </div>
           </div>
           {user ? (

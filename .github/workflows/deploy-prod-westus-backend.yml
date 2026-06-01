@@ -38,7 +38,7 @@ jobs:
           az webapp config appsettings set \
             --name carnivalcash-backend-westus \
             --resource-group LadderLeagueRG \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false APP_ENV=prod APP_REGION="West US"
 
       - name: Zip backend for deployment
         run: |

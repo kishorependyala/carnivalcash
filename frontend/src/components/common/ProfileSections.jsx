@@ -350,7 +350,7 @@ export function FamilyTab({ setStatus }) {
 }
 
 /* ── Combined Profile tab (profile view/edit + kids + family) ── */
-export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onReload, kids, setProfile, tabs }) {
+export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onReload, kids, setProfile, tabs, tabLabels }) {
   const [editing, setEditing] = useState(false);
   const [birthYear, setBirthYear] = useState(balance?.birthYear || '0000');
   const [editBY, setEditBY] = useState('');
@@ -545,7 +545,7 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
                   value={editForm.defaultTab || ''}
                   onChange={e => setEditForm(f => ({ ...f, defaultTab: e.target.value }))}>
                   <option value="">— Role default —</option>
-                  {tabs.map(t => <option key={t} value={t}>{t}</option>)}
+                  {tabs.map(t => <option key={t} value={t}>{tabLabels?.[t] || t}</option>)}
                 </select>
               </>
             )}

@@ -284,6 +284,58 @@ function CardsPrintOverlay({ cards, onClose }) {
   );
 }
 
+// Users + kids QR print overlay (9 per page)
+function UsersPrintOverlay({ users, onClose }) {
+  const USERS_PAGE_SIZE = 9;
+  // flatten: each user entry + their kids
+  const items = [];
+  users.forEach(u => {
+    items.push({ qrValue: `CARNIVAL_USER:${u.userId}`, name: u.name || u.phone || u.userId, label: 'User', color: '#92400e', bg: '#fef3c7' });
+    (u.kids || []).forEach(kid => {
+      items.push({ qrValue: `CARNIVAL_KID:${u.userId}:${kid.kidId}`, name: kid.name, label: `Kid · ${u.name || u.phone || ''}`, color: '#1d4ed8', bg: '#dbeafe' });
+    });
+  });
+  const pages = [];
+  for (let i = 0; i < items.length; i += USERS_PAGE_SIZE) pages.push(items.slice(i, i + USERS_PAGE_SIZE));
+
+  return createPortal(
+    <div id="users-print-portal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="no-print" style={{ background: '#1f2937', color: '#fff', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexShrink: 0 }}>
+        <span style={{ fontWeight: 700, fontSize: '1rem' }}>🖨️ Print User QR Codes — {items.length} entries ({users.length} users + kids) · {pages.length} page{pages.length !== 1 ? 's' : ''}</span>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={() => window.print()} style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1.25rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>🖨️ Print</button>
+          <button onClick={onClose} style={{ background: '#374151', color: '#fff', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1rem', fontWeight: 600, cursor: 'pointer' }}>✕ Close</button>
+        </div>
+      </div>
+      <div id="users-print-content" style={{ flex: 1, overflowY: 'auto', background: '#f3f4f6', padding: '1rem' }}>
+        {pages.map((pageItems, pageIdx) => (
+          <div key={pageIdx} className="users-print-page" style={{ background: '#fff', marginBottom: '1rem', padding: '1cm', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            {pageItems.map((item, i) => (
+              <div key={item.qrValue + i} style={{ border: '1.5px solid #d1d5db', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#111827', lineHeight: 1.3, wordBreak: 'break-word' }}>{item.name}</div>
+                <div style={{ fontSize: '0.68rem', background: item.bg, color: item.color, borderRadius: '999px', padding: '0.1rem 0.5rem', fontWeight: 700 }}>{item.label}</div>
+                <QRCodeSVG value={item.qrValue} size={130} includeMargin={false} />
+                <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#9ca3af', wordBreak: 'break-all' }}>{item.qrValue.slice(-12)}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @media print {
+          body > *:not(#users-print-portal) { display: none !important; }
+          #users-print-portal { position: static !important; background: white !important; display: block !important; overflow: visible !important; }
+          #users-print-content { overflow: visible !important; height: auto !important; background: white !important; padding: 0 !important; }
+          .users-print-page { page-break-after: always; margin-bottom: 0 !important; }
+          .users-print-page:last-child { page-break-after: avoid; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+    </div>,
+    document.body
+  );
+}
+
 function StallsPrintOverlay({ stalls, onClose }) {
   const STALL_PAGE_SIZE = 12;
   const pages = [];
@@ -778,6 +830,7 @@ function AdminDashboard() {
   const [allStalls, setAllStalls] = useState(() => getStale('admin_stalls') || []);
   const [stallsLoaded, setStallsLoaded] = useState(() => !!getStale('admin_stalls'));
   const [showStallPrint, setShowStallPrint] = useState(false);
+  const [showUserPrint, setShowUserPrint] = useState(false);
   const [expandedStall, setExpandedStall] = useState(null);
   const [deletingStall, setDeletingStall] = useState(null);
   const [stallDelCode, setStallDelCode] = useState('');
@@ -1411,6 +1464,7 @@ function AdminDashboard() {
                 </div>
 
                 <section style={card}>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
                     type="button"
                     style={{ ...btn(showAddOffline ? 'secondary' : 'primary'), justifySelf: 'start' }}
@@ -1425,6 +1479,13 @@ function AdminDashboard() {
                   >
                     {showAddOffline ? '➖ Hide Add Offline User' : '➕ Add Offline User'}
                   </button>
+                  {nonAdminUsers.length > 0 && (
+                    <button type="button" style={btn('secondary')} onClick={() => setShowUserPrint(true)}>
+                      🖨️ Print All User QRs
+                    </button>
+                  )}
+                  </div>
+                  {showUserPrint && <UsersPrintOverlay users={nonAdminUsers} onClose={() => setShowUserPrint(false)} />}
 
                   {showAddOffline && (
                     <div style={{ ...card, background: '#fffbeb', gap: '0.85rem' }}>

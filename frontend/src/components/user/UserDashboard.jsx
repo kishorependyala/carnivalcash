@@ -340,8 +340,8 @@ function UserDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #fed7aa' }}>
-                    {['Type','Name','Limit','Spent','Available','QR','Card'].map((h, i) => (
-                      <th key={h} style={{ padding: '0.4rem 0.3rem', textAlign: i >= 2 && i < 5 ? 'right' : i >= 5 ? 'center' : 'left', color: '#92400e', fontWeight: 700, whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{h}</th>
+                    {['Type','Name','Limit','Spent','Available','QR'].map((h, i) => (
+                      <th key={h} style={{ padding: '0.4rem 0.3rem', textAlign: i >= 2 && i < 5 ? 'right' : i === 5 ? 'center' : 'left', color: '#92400e', fontWeight: 700, whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -355,9 +355,7 @@ function UserDashboard() {
                     <td style={{ padding: '0.4rem 0.3rem', textAlign: 'right', color: '#b45309', fontWeight: 700 }}>🪙 {balance.tokenBalance}</td>
                     <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
                       <button onClick={() => setKidQrPopup({ name: profile.name || profile.phone || 'You', qrValue: qrPayload, limit: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '0.1rem' }}>📲</button>
-                    </td>
-                    <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
-                      <button onClick={() => { setLinkCardPopup({ kidId: null, name: profile.name || profile.phone || 'You' }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '0.1rem' }} title="Link pre-printed card">🃏</button>
+                      <button onClick={() => { setLinkCardPopup({ kidId: null, name: profile.name || profile.phone || 'You' }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.1rem' }} title="Replace QR code">🔄</button>
                     </td>
                   </tr>
                   {/* Linked family */}
@@ -383,9 +381,7 @@ function UserDashboard() {
                       <td style={{ padding: '0.4rem 0.3rem', textAlign: 'right', color: '#b45309', fontWeight: 700 }}>🪙 {kid.spendingLimit - kid.spent}</td>
                       <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
                         <button onClick={() => setKidQrPopup({ name: kid.name, qrValue: `CARNIVAL_KID:${me?.userId}:${kid.kidId}`, limit: kid.spendingLimit })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '0.1rem' }} title={`QR for ${kid.name}`}>📲</button>
-                      </td>
-                      <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center' }}>
-                        <button onClick={() => { setLinkCardPopup({ kidId: kid.kidId, name: kid.name }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '0.1rem' }} title={`Link card for ${kid.name}`}>🃏</button>
+                        <button onClick={() => { setLinkCardPopup({ kidId: kid.kidId, name: kid.name }); setLinkCardValue(''); setLinkCardStatus(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.1rem' }} title={`Replace QR for ${kid.name}`}>🔄</button>
                       </td>
                     </tr>
                   ))}
@@ -413,8 +409,8 @@ function UserDashboard() {
       {linkCardPopup && (
         <div onClick={() => { setLinkCardPopup(null); setLinkCardScanActive(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '1.5rem', padding: '1.75rem 1.5rem', maxWidth: '360px', width: '100%', display: 'grid', gap: '0.9rem', boxShadow: '0 8px 40px rgba(0,0,0,0.25)' }}>
-            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#92400e' }}>🃏 Link Pre-printed Card</div>
-            <div style={{ fontSize: '0.88rem', color: '#6b7280' }}>Linking card for: <strong>{linkCardPopup.name}</strong></div>
+            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#92400e' }}>🔄 Replace QR Code</div>
+            <div style={{ fontSize: '0.88rem', color: '#6b7280' }}>Replacing QR for: <strong>{linkCardPopup.name}</strong></div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <input
                 placeholder="CARNIVAL_CARD:… or UUID"
@@ -442,7 +438,7 @@ function UserDashboard() {
                   setLinkCardBusy(true); setLinkCardStatus('');
                   try {
                     await userApi.linkCard(cardId, linkCardPopup.kidId || null);
-                    setLinkCardStatus('✅ Card linked! Vendor can now scan it.');
+                    setLinkCardStatus('✅ QR replaced! Vendors can now scan the new code.');
                   } catch (e) {
                     const msg = e.response?.data?.error || 'Failed to link card.';
                     setLinkCardStatus(msg.includes('another user') ? '❌ This card is already linked to a different user.' : `❌ ${msg}`);
@@ -450,7 +446,7 @@ function UserDashboard() {
                 }}
                 style={{ flex: 1, background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.65rem', fontWeight: 800, cursor: 'pointer', opacity: linkCardBusy || !linkCardValue.trim() ? 0.5 : 1 }}
               >
-                {linkCardBusy ? 'Linking…' : '🔗 Link Card'}
+                {linkCardBusy ? 'Saving…' : '🔄 Replace QR'}
               </button>
               <button onClick={() => { setLinkCardPopup(null); setLinkCardScanActive(false); }} style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1rem', cursor: 'pointer', fontWeight: 600, color: '#374151' }}>Cancel</button>
             </div>

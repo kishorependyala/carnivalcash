@@ -121,12 +121,9 @@ function LoginPage() {
   const [kids, setKids] = useState([]);
   const [newKid, setNewKid] = useState({ name: '', limit: '', kidPin: '0000' });
   const [pin, setPin] = useState('0000');
-  const [confirmPin, setConfirmPin] = useState('0000');
   const [saving, setSaving] = useState(false);
   const [onboardStatus, setOnboardStatus] = useState('');
-  const [confirmSkipKids, setConfirmSkipKids] = useState(false);
-
-  const pinMismatch = confirmPin.length > 0 && pin !== confirmPin;
+  const [showKidForm, setShowKidForm] = useState(false);
 
   const handlePhoneChange = async (val) => {
     setPhone(val);
@@ -272,12 +269,8 @@ function LoginPage() {
   };
 
   const savePin = async () => {
-    if (!/^\d{4}$/.test(pin) || !/^\d{4}$/.test(confirmPin)) {
+    if (!/^\d{4}$/.test(pin)) {
       setOnboardStatus('PIN must be 4 digits.');
-      return;
-    }
-    if (pin !== confirmPin) {
-      setOnboardStatus('PINs do not match.');
       return;
     }
     setSaving(true);
@@ -320,19 +313,13 @@ function LoginPage() {
       setKids(prev => [...prev, created]);
       setNewKid({ name: '', limit: '', kidPin: '0000' });
       setOnboardStatus('');
-      setConfirmSkipKids(false);
+      setShowKidForm(false);
     } catch (e) {
       setOnboardStatus(e.response?.data?.error || 'Failed to add kid.');
     } finally { setSaving(false); }
   };
 
-  const handleKidsContinue = () => {
-    if (kids.length > 0) {
-      nextOnboard();
-      return;
-    }
-    setConfirmSkipKids(true);
-  };
+  const handleKidsContinue = () => nextOnboard();
 
   const saveEmail = async () => {
     const email = onboardEmail.trim();
@@ -369,7 +356,7 @@ function LoginPage() {
           {onboardStep === 0 && (
             <>
               <div>
-                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>🔐 Set your PIN / Password</div>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: DEEP }}>🔐 Set your PIN</div>
                 <div style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>4 digits · Used for all payments · Default is 0000 · If forgotten, request a reset from admin</div>
               </div>
               <input
@@ -377,20 +364,12 @@ function LoginPage() {
                 style={inp}
                 inputMode="numeric"
                 maxLength={4}
-                placeholder="e.g. 0000"
+                placeholder="4-digit PIN (default: 0000)"
                 value={pin}
-                onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              />
-              <input
-                style={inp}
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="Confirm PIN"
-                value={confirmPin}
-                onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                onChange={e => { setPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setOnboardStatus(''); }}
                 onKeyDown={e => e.key === 'Enter' && savePin()}
               />
-              {pinMismatch && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>PINs do not match.</p>}
+              {onboardStatus && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>{onboardStatus}</p>}
               <button style={primaryBtn} onClick={savePin} disabled={saving}>
                 {saving ? 'Saving…' : 'Continue →'}
               </button>
@@ -458,26 +437,26 @@ function LoginPage() {
                   ))}
                 </div>
               )}
-              <div style={{ display: 'grid', gap: '0.5rem', background: '#f9fafb', borderRadius: '0.85rem', padding: '0.85rem' }}>
-                <input style={inp} placeholder="Kid's name" value={newKid.name} onChange={e => setNewKid(n => ({ ...n, name: e.target.value }))} />
-                <input style={inp} placeholder="Token limit (optional)" type="number" value={newKid.limit} onChange={e => setNewKid(n => ({ ...n, limit: e.target.value }))} />
-                <div style={{ color: '#6b7280', fontSize: '0.82rem' }}>Tip: use their birth year as PIN, e.g. 2015</div>
-                <input style={inp} placeholder="Kid PIN" inputMode="numeric" maxLength={4} value={newKid.kidPin} onChange={e => setNewKid(n => ({ ...n, kidPin: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
-                <button style={{ ...primaryBtn, background: '#f3f4f6', color: '#374151', boxShadow: 'none' }} onClick={addKid} disabled={saving || !newKid.name.trim()}>
-                  {saving ? 'Adding…' : '+ Add Kid'}
-                </button>
-              </div>
-              {confirmSkipKids && kids.length === 0 && (
-                <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '0.85rem', padding: '0.85rem', display: 'grid', gap: '0.65rem' }}>
-                  <div style={{ color: '#92400e', fontSize: '0.88rem', fontWeight: 600 }}>⚠️ Are you sure you want to skip adding kids? You can add them later from your profile.</div>
+              {showKidForm ? (
+                <div style={{ display: 'grid', gap: '0.5rem', background: '#f9fafb', borderRadius: '0.85rem', padding: '0.85rem' }}>
+                  <input style={inp} placeholder="Kid's name" value={newKid.name} onChange={e => setNewKid(n => ({ ...n, name: e.target.value }))} autoFocus />
+                  <input style={inp} placeholder="Token limit (optional)" type="number" value={newKid.limit} onChange={e => setNewKid(n => ({ ...n, limit: e.target.value }))} />
+                  <div style={{ color: '#6b7280', fontSize: '0.82rem' }}>Tip: use their birth year as PIN, e.g. 2015</div>
+                  <input style={inp} placeholder="Kid PIN (default: 0000)" inputMode="numeric" maxLength={4} value={newKid.kidPin} onChange={e => setNewKid(n => ({ ...n, kidPin: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button style={{ ...primaryBtn, margin: 0 }} onClick={() => { setConfirmSkipKids(false); nextOnboard(); }}>Yes, skip</button>
-                    <button style={{ ...primaryBtn, margin: 0, background: '#f3f4f6', color: '#374151', boxShadow: 'none' }} onClick={() => setConfirmSkipKids(false)}>Add a kid</button>
+                    <button style={{ ...primaryBtn, flex: 1 }} onClick={addKid} disabled={saving || !newKid.name.trim()}>
+                      {saving ? 'Adding…' : '+ Add Kid'}
+                    </button>
+                    <button style={{ ...primaryBtn, flex: 0, background: '#f3f4f6', color: '#374151', boxShadow: 'none', padding: '0.9rem 1rem' }} onClick={() => { setShowKidForm(false); setOnboardStatus(''); }}>✕</button>
                   </div>
                 </div>
+              ) : (
+                <button style={{ ...primaryBtn, background: '#f3f4f6', color: '#374151', boxShadow: 'none' }} onClick={() => setShowKidForm(true)}>
+                  ➕ Add a kid
+                </button>
               )}
-              <button style={primaryBtn} onClick={handleKidsContinue}>{kids.length > 0 ? 'Done, Continue →' : 'Continue →'}</button>
-              <button style={skipBtn} onClick={() => setConfirmSkipKids(true)}>Skip for now</button>
+              {onboardStatus && <p style={{ margin: 0, color: '#dc2626', fontSize: '0.85rem' }}>{onboardStatus}</p>}
+              <button style={primaryBtn} onClick={handleKidsContinue}>{kids.length > 0 ? 'Done, Continue →' : 'Skip →'}</button>
             </>
           )}
 

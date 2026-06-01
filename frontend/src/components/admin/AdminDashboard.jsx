@@ -81,7 +81,72 @@ const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, re
   const [dollars, setDollars] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [delCode, setDelCode] = useState('');
+  const [linkQrOpen, setLinkQrOpen] = useState(false);
+  const [linkQrTarget, setLinkQrTarget] = useState(''); // '' = user, kidId = kid
+  const [linkQrValue, setLinkQrValue] = useState('');
+  const [linkQrScanActive, setLinkQrScanActive] = useState(false);
+  const [linkQrBusy, setLinkQrBusy] = useState(false);
+  const [linkQrMsg, setLinkQrMsg] = useState('');
+  const linkQrScanner = useRef(null);
+  const scanDivId = `link-qr-reader-${user.userId}`;
   const tokens = dollars > 0 ? Math.floor(parseFloat(dollars) * tokenRate) : null;
+  const kids = user.kids || [];
+
+  useEffect(() => {
+    if (!linkQrScanActive) {
+      linkQrScanner.current?.clear?.().catch(() => {});
+      linkQrScanner.current = null;
+      return undefined;
+    }
+    let mounted = true;
+    async function startScan() {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted || linkQrScanner.current) return;
+        const scanner = new Html5QrcodeScanner(scanDivId, { fps: 5, qrbox: 220, videoConstraints: { facingMode: { ideal: 'environment' } }, rememberLastUsedCamera: false }, false);
+        linkQrScanner.current = scanner;
+        scanner.render((decoded) => {
+          setLinkQrValue(decoded);
+          setLinkQrMsg('');
+          scanner.clear().catch(() => {});
+          linkQrScanner.current = null;
+          setLinkQrScanActive(false);
+        }, () => {});
+      } catch {
+        setLinkQrMsg('Camera unavailable. Paste the QR value instead.');
+        setLinkQrScanActive(false);
+      }
+    }
+    startScan();
+    return () => {
+      mounted = false;
+      const s = linkQrScanner.current;
+      linkQrScanner.current = null;
+      s?.clear?.().catch(() => {});
+    };
+  }, [linkQrScanActive, scanDivId]);
+
+  const doLinkQr = async () => {
+    const raw = linkQrValue.trim();
+    if (!raw) return;
+    const cardId = raw.startsWith('CARNIVAL_CARD:') ? raw.split(':')[1] : raw;
+    setLinkQrBusy(true); setLinkQrMsg('');
+    try {
+      // register first if unknown, then link
+      await adminApi.registerExternalCard(raw);
+      await adminApi.adminLinkCard(cardId, {
+        userId: user.userId,
+        ...(linkQrTarget ? { kidId: linkQrTarget } : {}),
+      });
+      const targetName = linkQrTarget ? kids.find(k => k.kidId === linkQrTarget)?.name : (user.name || user.phone);
+      setLinkQrMsg(`✅ Card linked to ${targetName}!`);
+      setLinkQrValue('');
+      onDone();
+    } catch (e) {
+      const msg = e.response?.data?.error || 'Failed.';
+      setLinkQrMsg(`❌ ${msg}`);
+    } finally { setLinkQrBusy(false); }
+  };
 
   const doAdd = async () => {
     if (!tokens) return;
@@ -139,18 +204,60 @@ const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, re
           <span style={{ background: '#fde68a', borderRadius: '1rem', padding: '0.15rem 0.6rem', fontSize: '0.8rem', marginLeft: '0.5rem', fontWeight: 700 }}>
             {user.tokenBalance} tokens
           </span>
+          {kids.length > 0 && (
+            <div style={{ marginTop: '0.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+              {kids.map(kid => (
+                <span key={kid.kidId} style={{ background: '#dbeafe', color: '#1d4ed8', borderRadius: '999px', padding: '0.1rem 0.55rem', fontSize: '0.75rem', fontWeight: 600 }}>
+                  👦 {kid.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-          <button style={btn('secondary')} onClick={() => { setOpen((v) => !v); setDollars(''); setDeleting(false); }}>
+          <button style={btn('secondary')} onClick={() => { setOpen((v) => !v); setDollars(''); setDeleting(false); setLinkQrOpen(false); }}>
             {open ? 'Cancel' : '🪙 Add'}
+          </button>
+          <button style={btn('secondary')} onClick={() => { setLinkQrOpen(v => !v); setOpen(false); setDeleting(false); setLinkQrMsg(''); setLinkQrValue(''); }}>
+            {linkQrOpen ? 'Cancel' : '🃏 Card'}
           </button>
           <button style={btn('secondary')} onClick={doResetPin}>🔐 Reset PIN</button>
           <button style={btn('danger')} onClick={doZero}>⬛ Zero</button>
-          <button style={btn('danger')} onClick={() => { setDeleting((v) => !v); setDelCode(''); setOpen(false); }}>
+          <button style={btn('danger')} onClick={() => { setDeleting((v) => !v); setDelCode(''); setOpen(false); setLinkQrOpen(false); }}>
             🗑️
           </button>
         </div>
       </div>
+
+      {linkQrOpen && (
+        <div style={{ background: '#f0f9ff', borderRadius: '0.65rem', padding: '0.75rem', display: 'grid', gap: '0.5rem' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0369a1' }}>🃏 Link pre-printed card</div>
+          {kids.length > 0 && (
+            <select style={{ ...inp, appearance: 'auto' }} value={linkQrTarget} onChange={e => setLinkQrTarget(e.target.value)}>
+              <option value="">Link to {user.name || user.phone} (main)</option>
+              {kids.map(kid => <option key={kid.kidId} value={kid.kidId}>👦 {kid.name}</option>)}
+            </select>
+          )}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <input
+              style={{ ...inp, flex: 1, minWidth: '160px' }}
+              placeholder="CARNIVAL_CARD:… or UUID"
+              value={linkQrValue}
+              onChange={e => { setLinkQrValue(e.target.value); setLinkQrMsg(''); }}
+            />
+            <button style={btn('secondary')} onClick={() => setLinkQrScanActive(a => !a)}>
+              {linkQrScanActive ? '🛑 Stop' : '📷 Scan'}
+            </button>
+            <button style={{ ...btn(), opacity: linkQrBusy || !linkQrValue.trim() ? 0.5 : 1 }} disabled={linkQrBusy || !linkQrValue.trim()} onClick={doLinkQr}>
+              {linkQrBusy ? 'Linking…' : '🔗 Link'}
+            </button>
+          </div>
+          {linkQrScanActive && <div id={scanDivId} style={{ width: '100%' }} />}
+          {linkQrMsg && (
+            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: linkQrMsg.startsWith('✅') ? '#059669' : '#dc2626' }}>{linkQrMsg}</p>
+          )}
+        </div>
+      )}
 
       {open && (
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>

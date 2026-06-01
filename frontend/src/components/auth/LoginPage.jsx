@@ -5,6 +5,7 @@ import authApi from '../../api/auth';
 import api from '../../api/index';
 import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 
 const AMBER = '#f59e0b';
 const DARK_AMBER = '#d97706';
@@ -87,14 +88,17 @@ function ProgressDots({ current, total }) {
 }
 
 function getLandingRoute(user) {
-  if (user.roles?.includes('admin')) return '/admin';
-  if (user.roles?.includes('vendor') && !user.roles?.includes('admin')) return '/vendor';
-  return '/user';
+  const tab = user.defaultTab ? `?tab=${encodeURIComponent(user.defaultTab)}` : '';
+  if (user.roles?.includes('admin')) return `/admin${tab}`;
+  if (user.roles?.includes('vendor') && !user.roles?.includes('admin')) return `/vendor${tab}`;
+  return `/user${tab}`;
 }
 
 function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { appEnv, appRegion } = useSettings();
+  const envLabel = appEnv && appRegion ? `${appRegion} · ${appEnv}` : null;
 
   const [phone, setPhone] = useState('');
   const [loginPin, setLoginPin] = useState('');
@@ -356,7 +360,8 @@ function LoginPage() {
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '2.5rem' }}>🎡</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 900, color: DEEP }}>CarnivalCash</div>
-          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.2rem' }}>Designed by Harshan &amp; Kishore</div>
+          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.2rem' }}>Designed by Harshan &amp; Kishore - a product of TeachBreakTech</div>
+          {envLabel && <div style={{ color: '#92400e', fontSize: '0.65rem', marginTop: '0.2rem', opacity: 0.65 }}>{envLabel}</div>}
         </div>
         <div style={card}>
           <ProgressDots current={onboardStep} total={5} />
@@ -515,12 +520,13 @@ function LoginPage() {
 
   return (
     <div style={pageStyle}>
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>🎡</div>
-        <div style={{ fontSize: '2rem', fontWeight: 900, color: DEEP, marginTop: '0.4rem', letterSpacing: '-0.5px' }}>CarnivalCash</div>
-        <div style={{ color: '#92400e', fontSize: '0.92rem', marginTop: '0.3rem', opacity: 0.8 }}>Your digital token wallet for the carnival</div>
-        <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.4rem' }}>Designed by Harshan &amp; Kishore</div>
-      </div>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>🎡</div>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: DEEP, marginTop: '0.4rem', letterSpacing: '-0.5px' }}>CarnivalCash</div>
+          <div style={{ color: '#92400e', fontSize: '0.92rem', marginTop: '0.3rem', opacity: 0.8 }}>Your digital token wallet for the carnival</div>
+          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.4rem' }}>Designed by Harshan &amp; Kishore - a product of TeachBreakTech</div>
+          {envLabel && <div style={{ color: '#92400e', fontSize: '0.65rem', marginTop: '0.3rem', opacity: 0.65 }}>{envLabel}</div>}
+        </div>
 
       <div style={card}>
         {authStep === 1 ? (

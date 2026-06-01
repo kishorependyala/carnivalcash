@@ -43,7 +43,7 @@ jobs:
           az webapp config appsettings set \
             --name carnivalcash-backend-westus-dev \
             --resource-group LadderLeagueRG \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false APP_ENV=dev APP_REGION="West US"
 
       - name: Set startup command
         run: |

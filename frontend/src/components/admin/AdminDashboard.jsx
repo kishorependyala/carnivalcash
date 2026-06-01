@@ -27,6 +27,7 @@ const btn = (variant = 'primary') => ({
 });
 
 const TABS = ['User', 'Stalls', 'Admin'];
+const TAB_LABELS = { User: 'Admin & Users', Stalls: 'Admin & Stalls', Admin: 'Admin & Admin settings' };
 const OFFLINE_CARD_PREFIX = 'CARNIVAL_CARD:';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -781,6 +782,7 @@ function AdminDashboard() {
   const [emailResetNewPin, setEmailResetNewPin] = useState('');
   const [emailResetConfirm, setEmailResetConfirm] = useState('');
   const [emailResetLoading, setEmailResetLoading] = useState(false);
+  const [editDefaultTab, setEditDefaultTab] = useState('');
   const [newKidName, setNewKidName] = useState('');
   const [newKidLimit, setNewKidLimit] = useState('');
   const [newKidPin, setNewKidPin] = useState('0000');
@@ -800,8 +802,8 @@ function AdminDashboard() {
   const [offlineSaving, setOfflineSaving] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [offlineScannerActive, setOfflineScannerActive] = useState(false);
-  const [pollInterval, setPollInterval] = useState(3);
-  const [pollIntervalInput, setPollIntervalInput] = useState('3');
+  const [pollInterval, setPollInterval] = useState(15);
+  const [pollIntervalInput, setPollIntervalInput] = useState('15');
   const [savingSettings, setSavingSettings] = useState(false);
   const { pollIntervalSec } = useSettings();
 
@@ -1092,7 +1094,7 @@ function AdminDashboard() {
               {/* Edit button row */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => { setEditSection('profile'); setDrawerStatus(''); setShowEditDrawer(true); }}
+                  onClick={() => { setEditSection('profile'); setDrawerStatus(''); setEditName(profile.name || ''); setEditDefaultTab(profile.defaultTab || ''); setShowEditDrawer(true); }}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#fef3c7', border: '1.5px solid #f59e0b', borderRadius: '0.75rem', padding: '0.45rem 1rem', cursor: 'pointer', fontWeight: 600, color: '#92400e', fontSize: '0.88rem' }}>
                   ✏️ Edit Profile &amp; Family
                 </button>
@@ -1640,11 +1642,29 @@ function AdminDashboard() {
 
                 <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>📱 Phone: <strong>{profile.phone}</strong> &nbsp;(cannot be changed)</div>
 
+                <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>
+                  Default tab on login
+                  <select
+                    value={editDefaultTab}
+                    onChange={e => setEditDefaultTab(e.target.value)}
+                    style={{ ...inp, fontSize: '1rem', appearance: 'auto' }}
+                  >
+                    <option value="">— Role default —</option>
+                    {TABS.map(t => <option key={t} value={t}>{TAB_LABELS[t] || t}</option>)}
+                  </select>
+                </label>
+
                 <button onClick={async () => {
-                  try { await userApi.updateProfile({ name: editName || profile.name }); await loadProfile(); setDrawerStatus('✅ Name saved!'); }
+                  try {
+                    await userApi.updateProfile({ name: editName || profile.name, defaultTab: editDefaultTab });
+                    if (editDefaultTab) localStorage.setItem('cc_defaultTab', editDefaultTab);
+                    else localStorage.removeItem('cc_defaultTab');
+                    await loadProfile();
+                    setDrawerStatus('✅ Profile saved!');
+                  }
                   catch { setDrawerStatus('❌ Failed to update.'); }
                 }} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>
-                  Save Name
+                  Save Profile
                 </button>
 
                 {/* PIN change */}

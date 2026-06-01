@@ -94,6 +94,7 @@ def login_with_pin():
             'name': profile.get('name', ''),
             'pin': profile.get('pin', ''),
             'isNew': is_new,
+            'defaultTab': profile.get('defaultTab', ''),
         },
     })
 

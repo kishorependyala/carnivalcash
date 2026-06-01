@@ -85,7 +85,7 @@ function VendorDashboard() {
 
         {tab === 'Stalls' && <StallsTab />}
         {tab === 'Browse' && <BrowseStallsTab />}
-        {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={null} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={[]} setProfile={setProfile} tabs={TABS} />}
+        {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={null} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={[]} setProfile={setProfile} tabs={TABS} tabLabels={{ Stalls: 'Vendor & Stalls', Browse: 'Vendor & Browse', Profile: 'Vendor & Profile', History: 'Vendor & History' }} />}
         {tab === 'History' && <HistoryTab transactions={transactions} />}
       </div>
     </Layout>

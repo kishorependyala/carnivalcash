@@ -33,7 +33,7 @@ def _default():
             'closedAt': None,
         },
         'settings': {
-            'pollIntervalSec': 3,
+            'pollIntervalSec': 15,
         },
         'auditLog': [],
     }

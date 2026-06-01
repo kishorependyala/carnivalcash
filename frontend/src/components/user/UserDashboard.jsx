@@ -53,6 +53,8 @@ function UserDashboard() {
   const [kids, setKids] = useState(() => getStale('kids') || []);
   const [linkedFamily, setLinkedFamily] = useState(() => getStale('family') || []);
   const [transactions, setTransactions] = useState(() => getStale('transactions') || []);
+  const [orders, setOrders] = useState(() => getStale('user_orders') || []);
+  const [showTxns, setShowTxns] = useState(false);
   const [qrPayload, setQrPayload] = useState(() => getStale('qr') || '');
   const [status, setStatus] = useState('');
 
@@ -90,13 +92,14 @@ function UserDashboard() {
 
   const loadProfile = async () => {
     try {
-      const [p, b, k, fam, t, qr] = await Promise.all([
+      const [p, b, k, fam, t, qr, ord] = await Promise.all([
         userApi.getProfile(),
         userApi.getBalance(),
         userApi.getKids(),
         userApi.getFamily(),
         userApi.getTransactions(),
         userApi.getQr(),
+        userApi.getOrders(),
       ]);
       setProfile(p);           setCache('profile', p);
       setBalance(b);           setCache('balance', { tokenBalance: b.tokenBalance, birthYear: b.birthYear }); // PIN never cached
@@ -104,6 +107,7 @@ function UserDashboard() {
       setLinkedFamily(Array.isArray(fam) ? fam : []); setCache('family', Array.isArray(fam) ? fam : []);
       setTransactions(t);      setCache('transactions', t);
       setQrPayload(qr.qrPayload); setCache('qr', qr.qrPayload);
+      setOrders(Array.isArray(ord) ? ord : []); setCache('user_orders', Array.isArray(ord) ? ord : []);
       if (!searchParams.get('tab') && p.defaultTab && TABS.includes(p.defaultTab)) {
         localStorage.setItem('cc_defaultTab', p.defaultTab);
         setTab(p.defaultTab);
@@ -223,6 +227,76 @@ function UserDashboard() {
                 <span style={{ fontSize: '0.82rem', fontWeight: 400, opacity: 0.9 }}>Scan a stall's QR to browse &amp; order</span>
               </button>
             </div>
+
+            {/* Pending Orders */}
+            {(() => {
+              const pending = orders.filter(o => o.status === 'pending' || o.status === 'ready');
+              const completed = orders.filter(o => o.status === 'complete' || o.status === 'cancelled');
+              if (pending.length === 0 && completed.length === 0) return null;
+              return (
+                <section style={card}>
+                  <h3 style={{ margin: '0 0 0.75rem', color: '#92400e' }}>🛒 My Orders</h3>
+                  {pending.length > 0 ? (
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      {pending.map(order => (
+                        <div key={order.orderId} style={{ background: order.status === 'ready' ? '#d1fae5' : '#fffbeb', border: `1.5px solid ${order.status === 'ready' ? '#6ee7b7' : '#fed7aa'}`, borderRadius: '0.75rem', padding: '0.75rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
+                            <div>
+                              <strong style={{ fontSize: '0.95rem' }}>{order.stallName}</strong>
+                              {order.position && order.status === 'pending' && (
+                                <span style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: '#6b7280' }}>Position #{order.position}</span>
+                              )}
+                            </div>
+                            <span style={{ background: order.status === 'ready' ? '#059669' : '#f59e0b', color: '#fff', borderRadius: '999px', padding: '0.15rem 0.65rem', fontSize: '0.75rem', fontWeight: 700 }}>
+                              {order.status === 'ready' ? '✅ Ready!' : '⏳ Pending'}
+                            </span>
+                          </div>
+                          <div style={{ marginTop: '0.35rem', fontSize: '0.83rem', color: '#374151' }}>
+                            {(order.items || []).map((item, i) => (
+                              <span key={i}>{item.quantity}× {item.itemName}{i < order.items.length - 1 ? ', ' : ''}</span>
+                            ))}
+                          </div>
+                          <div style={{ marginTop: '0.25rem', fontSize: '0.82rem', color: '#b45309', fontWeight: 700 }}>🪙 {order.totalTokens} tokens</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: '0 0 0.5rem', color: '#6b7280', fontSize: '0.88rem' }}>No active orders.</p>
+                  )}
+
+                  {completed.length > 0 && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <button
+                        onClick={() => setShowTxns(v => !v)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', fontWeight: 700, fontSize: '0.88rem', padding: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                      >
+                        {showTxns ? '▾' : '▸'} {showTxns ? 'Hide' : 'Show'} completed orders ({completed.length})
+                      </button>
+                      {showTxns && (
+                        <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.5rem' }}>
+                          {completed.map(order => (
+                            <div key={order.orderId} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.65rem', padding: '0.6rem 0.75rem', opacity: 0.8 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                <strong style={{ fontSize: '0.88rem' }}>{order.stallName}</strong>
+                                <span style={{ fontSize: '0.75rem', color: order.status === 'cancelled' ? '#dc2626' : '#6b7280', fontWeight: 600 }}>
+                                  {order.status === 'cancelled' ? '❌ Cancelled' : '✅ Complete'}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: '#374151' }}>
+                                {(order.items || []).map((item, i) => (
+                                  <span key={i}>{item.quantity}× {item.itemName}{i < order.items.length - 1 ? ', ' : ''}</span>
+                                ))}
+                                <span style={{ marginLeft: '0.4rem', color: '#b45309', fontWeight: 700 }}>· 🪙 {order.totalTokens}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
 
             {/* Family token table */}
             <section style={card}>

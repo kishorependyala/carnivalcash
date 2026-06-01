@@ -403,7 +403,7 @@ function ProfilePanel({ onClose }) {
   );
 }
 
-
+function BottomNav() {
   const { user } = useAuth();
   const [panel, setPanel] = useState(null);
 

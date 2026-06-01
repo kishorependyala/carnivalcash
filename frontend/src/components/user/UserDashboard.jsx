@@ -11,7 +11,7 @@ import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { card, inp } from '../common/ProfileSections';
 import { MergedStallsTab } from '../common/StallsTab';
-import { getStale, setCache } from '../../utils/swrCache';
+import { clearUserCache, getStale, setCache } from '../../utils/swrCache';
 
 const TABS = ['User', 'Stalls'];
 const TAB_LABELS = { User: 'My profile', Stalls: 'Stalls' };
@@ -475,6 +475,13 @@ function UserDashboard() {
             {/* Profile */}
             {editSection === 'profile' && (
               <div style={{ display: 'grid', gap: '1rem' }}>
+                {/* Clear cache */}
+                <button
+                  onClick={() => { clearUserCache(); window.location.reload(); }}
+                  style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '0.6rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', color: '#374151', textAlign: 'left' }}
+                >
+                  🔄 Clear Cache &amp; Reload
+                </button>
                 {/* Name */}
                 <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>
                   Display Name

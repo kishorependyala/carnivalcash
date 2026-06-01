@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import stallsApi from '../../api/stalls';
@@ -34,7 +34,7 @@ function ScanPage() {
     stallsApi.listAll().then(setAllStalls).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleParsed = async (parsed) => {
+  const handleParsed = useCallback(async (parsed) => {
     if (!parsed) return;
     if (parsed.type === 'stall') { navigate(`/scan/stall/${parsed.id}`); return; }
     if (parsed.type === 'vendor') { navigate(`/scan/items/${parsed.id}`); return; }
@@ -47,11 +47,7 @@ function ScanPage() {
         setStatus(e.response?.data?.error || 'Could not resolve card.');
       }
     }
-  };
-
-  useEffect(() => {
-    stallsApi.listAll().then(setAllStalls).catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -85,7 +81,7 @@ function ScanPage() {
         html5Scanner.current.clear().catch(() => {});
       }
     };
-  }, [navigate]);
+  }, [navigate, handleParsed]);
 
   const handleManualSubmit = () => {
     const parsed = parseQRCode(manualValue.trim());

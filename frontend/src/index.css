@@ -41,18 +41,10 @@ button:disabled {
 }
 
 @media print {
-  body * { visibility: hidden; }
-  .print-qr-card.print-qr-active,
-  .print-qr-card.print-qr-active * { visibility: visible; }
-  .print-qr-card.print-qr-active {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    text-align: center;
-    padding: 2rem;
-    background: #fff;
-  }
+  /* Reset overflow so position:fixed/static works correctly during print */
+  html, body { overflow: visible !important; }
+  /* Prevent the global max-width:100% rule from clipping QR SVGs */
+  svg { max-width: none !important; }
 }
 
 /* ── App Shell ──────────────────────────────────── */

@@ -9,76 +9,11 @@ import { useSettings } from '../../context/SettingsContext';
 import { usePolling } from '../../hooks/usePolling';
 import { ProfileTab } from './ProfileSections';
 
-const shellStyle = {
-  minHeight: '100vh',
-  background: '#fff7ed',
-  color: '#1f2937',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle = {
-  background: '#f59e0b',
-  color: '#fff',
-  padding: '1rem',
-  boxShadow: '0 8px 20px rgba(245, 158, 11, 0.25)',
-};
-
-const headerInnerStyle = {
-  maxWidth: '960px',
-  margin: '0 auto',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: '1rem',
-};
-
-const contentStyle = {
-  flex: 1,
-  width: '100%',
-  maxWidth: '960px',
-  margin: '0 auto',
-  padding: '1rem 1rem 5rem',
-  boxSizing: 'border-box',
-};
-
-const bottomBarStyle = {
-  position: 'fixed',
-  bottom: 0,
-  left: 0,
-  right: 0,
-  background: '#ffffff',
-  borderTop: '2px solid #fed7aa',
-  zIndex: 100,
-};
-
-const barInnerStyle = {
-  maxWidth: '960px',
-  margin: '0 auto',
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
-};
-
 const backdropStyle = {
   position: 'fixed',
   inset: 0,
   background: 'rgba(0,0,0,0.35)',
   zIndex: 200,
-};
-
-const panelStyle = {
-  position: 'fixed',
-  bottom: 0,
-  left: 0,
-  right: 0,
-  maxHeight: '75vh',
-  overflowY: 'auto',
-  background: '#fff',
-  borderRadius: '1.25rem 1.25rem 0 0',
-  boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
-  zIndex: 300,
-  padding: '1.25rem 1.25rem 6rem',
-  boxSizing: 'border-box',
 };
 
 const card = {
@@ -449,7 +384,7 @@ function BottomNav() {
     <>
       {panel ? (
         <div role="presentation" style={backdropStyle} onClick={() => setPanel(null)}>
-          <div role="dialog" aria-modal="true" style={panelStyle} onClick={(event) => event.stopPropagation()}>
+          <div role="dialog" aria-modal="true" className="cc-panel" onClick={(event) => event.stopPropagation()}>
             <button
               type="button"
               onClick={() => setPanel(null)}
@@ -463,8 +398,8 @@ function BottomNav() {
           </div>
         </div>
       ) : null}
-      <nav style={bottomBarStyle}>
-        <div style={barInnerStyle}>
+      <nav className="cc-bottom-bar">
+        <div className="cc-bar-inner">
           {navBtn('stats', '📊', 'Stats')}
           {navBtn('tokens', '🪙', 'Tokens')}
           {navBtn('events', '📅', 'Events')}
@@ -530,9 +465,9 @@ function Layout({ children }) {
   };
 
   return (
-    <div style={shellStyle}>
-      <header style={headerStyle}>
-        <div style={headerInnerStyle}>
+    <div className="cc-shell">
+      <header className="cc-header">
+        <div className="cc-header-inner">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {isSubPage && (
               <button
@@ -575,7 +510,7 @@ function Layout({ children }) {
       </header>
       {profileOpen ? (
         <div role="presentation" style={backdropStyle} onClick={() => setProfileOpen(false)}>
-          <div role="dialog" aria-modal="true" style={panelStyle} onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" className="cc-panel" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={() => setProfileOpen(false)}
@@ -587,7 +522,7 @@ function Layout({ children }) {
           </div>
         </div>
       ) : null}
-      <main style={contentStyle}>{children}</main>
+      <main className="cc-content">{children}</main>
       <BottomNav />
     </div>
   );

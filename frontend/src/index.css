@@ -1,3 +1,7 @@
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -5,10 +9,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #fff7ed;
   color: #1f2937;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 * {
   box-sizing: border-box;
+  max-width: 100%;
 }
 
 button,
@@ -34,16 +41,146 @@ button:disabled {
 }
 
 @media print {
-  body * { visibility: hidden; }
-  .print-qr-card.print-qr-active,
-  .print-qr-card.print-qr-active * { visibility: visible; }
-  .print-qr-card.print-qr-active {
-    position: fixed;
-    top: 0;
-    left: 0;
+  /* Reset overflow so position:fixed/static works correctly during print */
+  html, body { overflow: visible !important; }
+  /* Prevent the global max-width:100% rule from clipping QR SVGs */
+  svg { max-width: none !important; }
+}
+
+/* ── App Shell ──────────────────────────────────── */
+.cc-shell {
+  min-height: 100vh;
+  background: #fff7ed;
+  color: #1f2937;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────── */
+.cc-header {
+  background: #f59e0b;
+  color: #fff;
+  padding: 0.65rem 0.75rem;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.25);
+  flex-shrink: 0;
+}
+
+.cc-header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+/* ── Main Content ────────────────────────────────── */
+.cc-content {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.6rem 0.6rem 5rem;
+  box-sizing: border-box;
+}
+
+/* ── Bottom Nav Bar ──────────────────────────────── */
+.cc-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-top: 2px solid #fed7aa;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.cc-bar-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* ── Slide-up Panel ──────────────────────────────── */
+.cc-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 75vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.18);
+  z-index: 300;
+  padding: 1.25rem 0.85rem calc(6rem + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+/* ── Login Page ──────────────────────────────────── */
+.cc-login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: linear-gradient(160deg, #fffbeb 0%, #fef3c7 45%, #fde68a 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 0.85rem;
+  box-sizing: border-box;
+}
+
+/* ═══ Breakpoints ═══════════════════════════════════ */
+
+/* Small phones (≥ 390px) */
+@media (min-width: 390px) {
+  .cc-header {
+    padding: 0.75rem 1rem;
+  }
+  .cc-header-inner {
+    gap: 0.6rem;
+  }
+  .cc-content {
+    padding: 0.75rem 0.75rem 5rem;
+  }
+  .cc-panel {
+    padding: 1.25rem 1rem calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+  .cc-login-page {
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* Tablet (≥ 640px) */
+@media (min-width: 640px) {
+  .cc-header {
+    padding: 1rem 1.5rem;
+  }
+  .cc-header-inner {
+    gap: 1rem;
+  }
+  .cc-content {
+    padding: 1.25rem 1.5rem 5rem;
+  }
+  .cc-panel {
+    padding: 1.5rem 1.5rem calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Desktop (≥ 1024px) */
+@media (min-width: 1024px) {
+  .cc-header {
+    padding: 1rem 2rem;
+  }
+  .cc-content {
+    padding: 2rem 2rem 5rem;
+  }
+  .cc-panel {
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
-    text-align: center;
-    padding: 2rem;
-    background: #fff;
+    max-width: 960px;
   }
 }

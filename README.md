@@ -1,7 +1,8 @@
 # 🎡 CarnivalCash
 
-**Digital token bank for carnival & donation events** — scan QR  codes to pay stalls, manage kids' wallets, track everything in real time.
-Harshan
+**Digital token bank for carnival & donation events** — scan QR codes to pay stalls, manage kids' wallets, track everything in real time.
+
+> **PWA** — installable on iOS & Android. Works offline for viewing; requires connectivity for transactions.
 
 ---
 
@@ -137,3 +138,19 @@ python -m pytest tests/ -q
 
 - Harshan Kamesh
 - Kishore Pendyala
+
+---
+
+## 📋 Changelog
+
+### 2026-06-01
+
+- **fix:** Re-validate JWT on app foreground (`visibilitychange`) — prevents stale logged-in UI on iOS after reopening the app from background
+- **fix:** Pre-flight token expiry check in axios interceptor — expired tokens are caught before any network call fires
+- **fix:** QR code printing now uses a body-level DOM portal (same pattern as admin print overlays) — fixes blank/clipped prints caused by `overflow-x: hidden` on the root element
+- **fix:** `@media print` reset for `overflow` and SVG `max-width` — prevents the iOS overflow fix from clipping QR codes in print dialogs
+
+### 2026-05-31
+
+- **feat:** Responsive CSS class system — 4-tier breakpoints (320 px / 390 px / 640 px / 1024 px) via `.cc-*` utility classes
+- **fix:** iOS horizontal overflow — `overflow-x: hidden` on `html`/`body`, `viewport-fit=cover` meta tag, `box-sizing: border-box` globally

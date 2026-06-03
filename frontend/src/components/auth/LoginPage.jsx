@@ -11,17 +11,6 @@ const AMBER = '#f59e0b';
 const DARK_AMBER = '#d97706';
 const DEEP = '#78350f';
 
-const pageStyle = {
-  minHeight: '100vh',
-  background: 'linear-gradient(160deg, #fffbeb 0%, #fef3c7 45%, #fde68a 100%)',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '1.5rem',
-  boxSizing: 'border-box',
-};
-
 const card = {
   background: '#fff',
   borderRadius: '1.5rem',
@@ -343,7 +332,7 @@ function LoginPage() {
 
   if (onboarding) {
     return (
-      <div style={pageStyle}>
+      <div className="cc-login-page">
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '2.5rem' }}>🎡</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 900, color: DEEP }}>CarnivalCash</div>
@@ -498,14 +487,14 @@ function LoginPage() {
   }
 
   return (
-    <div style={pageStyle}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>🎡</div>
-          <div style={{ fontSize: '2rem', fontWeight: 900, color: DEEP, marginTop: '0.4rem', letterSpacing: '-0.5px' }}>CarnivalCash</div>
-          <div style={{ color: '#92400e', fontSize: '0.92rem', marginTop: '0.3rem', opacity: 0.8 }}>Your digital token wallet for the carnival</div>
-          <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.4rem' }}>Designed by Harshan &amp; Kishore - a product of TeachBreakTech</div>
-          {envLabel && <div style={{ color: '#92400e', fontSize: '0.65rem', marginTop: '0.3rem', opacity: 0.65 }}>{envLabel}</div>}
-        </div>
+    <div className="cc-login-page">
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>🎡</div>
+        <div style={{ fontSize: '2rem', fontWeight: 900, color: DEEP, marginTop: '0.4rem', letterSpacing: '-0.5px' }}>CarnivalCash</div>
+        <div style={{ color: '#92400e', fontSize: '0.92rem', marginTop: '0.3rem', opacity: 0.8 }}>Your digital token wallet for the carnival</div>
+        <div style={{ color: '#111827', fontSize: '0.7rem', marginTop: '0.4rem' }}>Designed by Harshan &amp; Kishore - a product of TeachBreakTech</div>
+        {envLabel && <div style={{ color: '#92400e', fontSize: '0.65rem', marginTop: '0.3rem', opacity: 0.65 }}>{envLabel}</div>}
+      </div>
 
       <div style={card}>
         {authStep === 1 ? (

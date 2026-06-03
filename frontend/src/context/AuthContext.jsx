@@ -54,6 +54,21 @@ export function AuthProvider({ children }) {
     }
   }, [authState.token, authState.user]);
 
+  // Re-validate token whenever the app comes back to the foreground (iOS PWA resume)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const nextState = getStoredAuth();
+        if (!nextState.token) {
+          clearUserCache();
+          setAuthState({ token: null, user: null });
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   // Listen for 401 responses from the API interceptor and clear auth state
   useEffect(() => {
     const handleForceLogout = () => {

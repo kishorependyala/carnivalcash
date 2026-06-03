@@ -8,6 +8,18 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
+    // Pre-flight expiry check — catches expired tokens before wasting a network round-trip
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.dispatchEvent(new Event('auth:logout'));
+        return Promise.reject(new Error('Token expired'));
+      }
+    } catch (_) {
+      // Malformed token — let the 401 handler deal with it
+    }
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

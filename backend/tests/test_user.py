@@ -81,6 +81,34 @@ def test_add_kid_creates_kid_with_qr_payload(client, seed_profile, auth_header):
     assert payload['qrPayload'] == f"CARNIVAL_KID:{user['userId']}:{payload['kidId']}"
 
 
+def test_add_kid_allows_missing_spending_limit(client, seed_profile, auth_header):
+    user = seed_profile('5551000001')
+
+    response = client.post(
+        '/api/user/kids',
+        json={'name': 'Bob', 'spendingLimit': None},
+        headers=auth_header(user),
+    )
+
+    assert response.status_code == 201
+    payload = response.get_json()
+    assert payload['name'] == 'Bob'
+    assert payload['spendingLimit'] == 0
+
+
+def test_add_kid_rejects_invalid_spending_limit(client, seed_profile, auth_header):
+    user = seed_profile('5551000001')
+
+    response = client.post(
+        '/api/user/kids',
+        json={'name': 'Charlie', 'spendingLimit': 'abc'},
+        headers=auth_header(user),
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()['error'] == 'spendingLimit must be a whole number'
+
+
 def test_delete_kid_removes_it(client, seed_profile, auth_header):
     user = seed_profile('5551000001')
     save_user_kids(

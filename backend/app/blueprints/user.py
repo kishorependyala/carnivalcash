@@ -242,12 +242,25 @@ def create_kid_profile():
     kids = get_user_kids(g.user['userId'])
     pin = str(payload.get('pin', '')).strip()
     birth_year = str(payload.get('birthYear', '0000')).strip() or '0000'
+    limit_raw = payload.get('spendingLimit', 0)
+
+    if limit_raw in (None, ''):
+        spending_limit = 0
+    else:
+        try:
+            spending_limit = int(limit_raw)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'spendingLimit must be a whole number'}), 400
+
+    if spending_limit < 0:
+        return jsonify({'error': 'spendingLimit cannot be negative'}), 400
+
     if pin and (len(pin) != 4 or not pin.isdigit()):
         return jsonify({'error': 'PIN must be 4 digits'}), 400
     kid = {
         'kidId': str(uuid4()),
         'name': payload.get('name', ''),
-        'spendingLimit': int(payload.get('spendingLimit', 0)),
+        'spendingLimit': spending_limit,
         'spent': 0,
         'birthYear': birth_year,
         'pin': pin or ('0000' if birth_year == '0000' else birth_year),

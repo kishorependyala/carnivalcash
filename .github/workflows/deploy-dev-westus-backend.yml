@@ -26,6 +26,9 @@ jobs:
           mkdir -p backend/antenv/lib/python3.11/site-packages
           pip install -r backend/requirements.txt --target backend/antenv/lib/python3.11/site-packages
 
+      - name: Ensure startup script is executable
+        run: chmod +x backend/startup.sh
+
       - name: Zip backend for deployment
         run: |
           cd backend
@@ -50,7 +53,7 @@ jobs:
           az webapp config set \
             --name carnivalcash-backend-westus-dev \
             --resource-group LadderLeagueRG \
-            --startup-file '/home/site/wwwroot/startup.sh'
+            --startup-file 'bash /home/site/wwwroot/startup.sh'
 
       - name: Deploy to Azure Web App (B1 Dev)
         run: |

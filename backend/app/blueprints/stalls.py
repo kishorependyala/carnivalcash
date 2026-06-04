@@ -4,6 +4,7 @@ from uuid import uuid4
 from flask import Blueprint, g, jsonify, request
 
 from app.storage.charity_store import credit_charity
+from app.storage.order_store import get_stall_orders, save_order
 from app.storage.stall_store import (
     create_stall,
     get_stall,
@@ -125,8 +126,10 @@ def create_stall_route():
 
     creator_id = g.user['userId']
     creator_profile = get_profile(creator_id) or {}
-    creator_name = creator_profile.get('name') or creator_profile.get('phone', '')
-    stall = create_stall(stall_name, stall_type, tokens_per_item, description, creator_id, creator_name, charities)
+    creator_name = creator_profile.get(
+        'name') or creator_profile.get('phone', '')
+    stall = create_stall(stall_name, stall_type, tokens_per_item,
+                         description, creator_id, creator_name, charities)
     return jsonify(stall), 201
 
 
@@ -148,7 +151,6 @@ def my_stalls():
     return jsonify(stalls)
 
 
-
 @stalls_bp.put('/api/stalls/<stall_id>/members/<member_id>/admin')
 @require_auth
 def toggle_stall_admin(stall_id, member_id):
@@ -158,7 +160,8 @@ def toggle_stall_admin(stall_id, member_id):
         return jsonify({'error': 'Stall not found'}), 404
 
     caller = g.user['userId']
-    caller_is_admin = caller in stall.get('stallAdmins', [stall.get('createdBy')]) or 'admin' in (g.user.get('roles') or [])
+    caller_is_admin = caller in stall.get('stallAdmins', [stall.get(
+        'createdBy')]) or 'admin' in (g.user.get('roles') or [])
     if not caller_is_admin:
         return jsonify({'error': 'Must be a stall admin'}), 403
     if member_id not in stall.get('members', []):
@@ -181,11 +184,13 @@ def toggle_stall_admin(stall_id, member_id):
                     stall['members'].append(parent_id)
                     parent_prof = get_profile(parent_id)
                     if parent_prof:
-                        stall.setdefault('memberNames', {})[parent_id] = parent_prof.get('name') or parent_prof.get('phone', '')
+                        stall.setdefault('memberNames', {})[parent_id] = parent_prof.get(
+                            'name') or parent_prof.get('phone', '')
     else:
         if member_id == stall.get('createdBy'):
             return jsonify({'error': 'Cannot remove stall creator admin status'}), 400
-        stall['stallAdmins'] = [admin_id for admin_id in stall['stallAdmins'] if admin_id != member_id]
+        stall['stallAdmins'] = [
+            admin_id for admin_id in stall['stallAdmins'] if admin_id != member_id]
 
     save_stall(stall_id, stall)
     return jsonify(stall)
@@ -217,7 +222,8 @@ def stall_catalog(stall_id):
         return jsonify({'error': 'Stall not found'}), 404
 
     # Resolve member names for display
-    items = [item for item in stall.get('items', []) if item.get('active', True)]
+    items = [item for item in stall.get(
+        'items', []) if item.get('active', True)]
     # If no explicit items, expose default item from tokensPerItem
     if not items:
         items = [{
@@ -389,7 +395,8 @@ def add_member(stall_id):
                     stall['members'].append(parent_id)
                     parent_prof = get_profile(parent_id)
                     if parent_prof:
-                        stall['memberNames'][parent_id] = parent_prof.get('name') or parent_prof.get('phone', '')
+                        stall['memberNames'][parent_id] = parent_prof.get(
+                            'name') or parent_prof.get('phone', '')
 
     save_stall(stall_id, stall)
     return jsonify(stall)
@@ -430,7 +437,8 @@ def remove_member(stall_id, user_id):
 
     stall['members'] = [m for m in stall['members'] if m != user_id]
     if 'stallAdmins' in stall:
-        stall['stallAdmins'] = [admin_id for admin_id in stall['stallAdmins'] if admin_id != user_id]
+        stall['stallAdmins'] = [
+            admin_id for admin_id in stall['stallAdmins'] if admin_id != user_id]
     save_stall(stall_id, stall)
     return jsonify(stall)
 
@@ -513,7 +521,8 @@ def update_item(stall_id, item_id):
         return jsonify({'error': 'Not a stall member'}), 403
 
     body = request.get_json(silent=True) or {}
-    item = next((i for i in stall.get('items', []) if i['itemId'] == item_id), None)
+    item = next((i for i in stall.get('items', [])
+                if i['itemId'] == item_id), None)
     if not item:
         return jsonify({'error': 'Item not found'}), 404
 
@@ -581,12 +590,14 @@ def charge_user(stall_id):
 
     if target_user_id.startswith('CARNIVAL_CARD:'):
         card_id = target_user_id.split(':', 1)[1]
-        card = next((entry for entry in _load_cards() if entry.get('cardId') == card_id), None)
+        card = next((entry for entry in _load_cards()
+                    if entry.get('cardId') == card_id), None)
         if not card:
             return jsonify({'error': 'Card not found'}), 404
         if not card.get('linkedUserId'):
             return jsonify({'error': 'Card not yet linked to a user'}), 400
-        target_user_id = f"KID:{card['linkedUserId']}:{card['linkedKidId']}" if card.get('linkedKidId') else card['linkedUserId']
+        target_user_id = f"KID:{card['linkedUserId']}:{card['linkedKidId']}" if card.get(
+            'linkedKidId') else card['linkedUserId']
 
     # Support KID:<parentId>:<kidId> composite IDs
     kid_record = None
@@ -608,14 +619,17 @@ def charge_user(stall_id):
 
     pin = (body.get('pin') or '').strip()
     if kid_record is not None:
-        expected_pin = str(kid_record.get('pin') or '').strip() or str(kid_record.get('birthYear') or '').strip() or str(user_profile.get('pin') or '').strip() or str(user_profile.get('birthYear', '0000'))
+        expected_pin = str(kid_record.get('pin') or '').strip() or str(kid_record.get('birthYear') or '').strip(
+        ) or str(user_profile.get('pin') or '').strip() or str(user_profile.get('birthYear', '0000'))
     else:
-        expected_pin = str(user_profile.get('pin') or '').strip() or str(user_profile.get('birthYear', '0000'))
+        expected_pin = str(user_profile.get('pin') or '').strip() or str(
+            user_profile.get('birthYear', '0000'))
     if pin != expected_pin:
         return jsonify({'error': 'Invalid PIN'}), 403
 
     # Build item map from stall catalog (including default item)
-    stall_items = {item['itemId']: item for item in stall.get('items', []) if item.get('active', True)}
+    stall_items = {item['itemId']: item for item in stall.get(
+        'items', []) if item.get('active', True)}
     # Always allow the default item
     default_item = {
         'itemId': 'default',
@@ -651,7 +665,8 @@ def charge_user(stall_id):
             return jsonify({'error': f"Exceeds kid's spending limit ({limit - spent} tokens remaining)"}), 400
 
     # Deduct from parent/user balance
-    user_profile['tokenBalance'] = int(user_profile.get('tokenBalance', 0)) - total_tokens
+    user_profile['tokenBalance'] = int(
+        user_profile.get('tokenBalance', 0)) - total_tokens
     from app.storage.user_store import save_profile
     save_profile(billing_user_id, user_profile)
 
@@ -660,7 +675,8 @@ def charge_user(stall_id):
         kid_record['spent'] = int(kid_record.get('spent', 0)) + total_tokens
         from app.storage.user_store import save_user_kids
         kids = get_user_kids(billing_user_id)
-        updated_kids = [k if k.get('kidId') != kid_record['kidId'] else kid_record for k in kids]
+        updated_kids = [k if k.get(
+            'kidId') != kid_record['kidId'] else kid_record for k in kids]
         save_user_kids(billing_user_id, updated_kids)
 
     # Split tokens to configured charities
@@ -668,10 +684,12 @@ def charge_user(stall_id):
     for charity in stall.get('charities', []):
         pct = int(charity.get('percentage', 0))
         if pct > 0:
-            charity_tokens = max(1, int(total_tokens * pct / 100)) if total_tokens > 0 else 0
+            charity_tokens = max(
+                1, int(total_tokens * pct / 100)) if total_tokens > 0 else 0
             if charity_tokens > 0 and credit_charity(charity['charityId'], charity_tokens):
                 charity_total += charity_tokens
-    stall['tokenBalance'] = int(stall.get('tokenBalance', 0)) + (total_tokens - charity_total)
+    stall['tokenBalance'] = int(
+        stall.get('tokenBalance', 0)) + (total_tokens - charity_total)
     save_stall(stall_id, stall)
 
     # Record transactions
@@ -706,6 +724,36 @@ def charge_user(stall_id):
 
     save_user_transactions(billing_user_id, user_txns)
     save_stall_transactions(stall_id, stall_txns)
+
+    # Create a pending order so it appears in the stall queue and user order list
+    order_line_items = [
+        {
+            'itemId': li['item']['itemId'],
+            'itemName': li['item'].get('name', ''),
+            'qty': li['qty'],
+            'tokenPrice': li['item'].get('tokenPrice', 0),
+            'amount': li['amount'],
+        }
+        for li in line_items
+    ]
+    pending = get_stall_orders(stall_id, status='pending')
+    order = {
+        'orderId': tx_id,
+        'stallId': stall_id,
+        'stallName': stall.get('stallName', ''),
+        'stallType': stall.get('stallType', 'game'),
+        'userId': billing_user_id,
+        'userName': user_profile.get('name') or user_profile.get('phone', ''),
+        'kidId': kid_record['kidId'] if kid_record else None,
+        'kidName': kid_record['name'] if kid_record else None,
+        'items': order_line_items,
+        'totalTokens': total_tokens,
+        'status': 'pending',
+        'position': len(pending) + 1,
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+    }
+    save_order(stall_id, order)
 
     return jsonify({
         'txId': tx_id,
@@ -744,6 +792,7 @@ def stall_transactions(stall_id):
     return jsonify(list(reversed(txns)))
 
 # ── Join request ──────────────────────────────────────────────────────────────
+
 
 @stalls_bp.post('/api/stalls/<stall_id>/join-request')
 @require_auth
@@ -834,7 +883,8 @@ def list_join_requests(stall_id):
         return jsonify({'error': 'Stall not found'}), 404
     if not _is_member(stall, g.user['userId']):
         return jsonify({'error': 'Not a stall member'}), 403
-    pending = [r for r in stall.get('joinRequests', []) if r['status'] == 'pending']
+    pending = [r for r in stall.get(
+        'joinRequests', []) if r['status'] == 'pending']
     return jsonify(pending)
 
 
@@ -888,7 +938,8 @@ def handle_join_request(stall_id, user_id):
         return jsonify({'error': 'action must be approve or reject'}), 400
 
     requests = stall.get('joinRequests', [])
-    req = next((r for r in requests if r['userId'] == user_id and r['status'] == 'pending'), None)
+    req = next((r for r in requests if r['userId']
+               == user_id and r['status'] == 'pending'), None)
     if not req:
         return jsonify({'error': 'Pending join request not found'}), 404
 
@@ -934,7 +985,8 @@ def search_users():
         parent_id = p['userId']
         # match adult user
         if q in phone or q.lower() in name.lower():
-            results.append({'userId': parent_id, 'phone': phone, 'name': name or phone, 'isKid': False})
+            results.append({'userId': parent_id, 'phone': phone,
+                           'name': name or phone, 'isKid': False})
         # match kids belonging to this user
         for kid in get_user_kids(parent_id):
             kid_name = kid.get('name', '')
@@ -976,5 +1028,3 @@ def get_stall_route(stall_id):
     if not stall:
         return jsonify({'error': 'Stall not found'}), 404
     return jsonify(stall)
-
-

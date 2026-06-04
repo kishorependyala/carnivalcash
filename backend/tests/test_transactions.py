@@ -15,11 +15,13 @@ def setup_transfer_state(seed_profile, client, auth_header):
 
 
 def test_transfer_deducts_tokens_from_user(client, seed_profile, auth_header):
-    user, vendor, item = setup_transfer_state(seed_profile, client, auth_header)
+    user, vendor, item = setup_transfer_state(
+        seed_profile, client, auth_header)
 
     response = client.post(
         '/api/transactions/transfer',
-        json={'vendorId': vendor['userId'], 'items': [{'itemId': item['itemId'], 'qty': 2}], 'kidId': None},
+        json={'vendorId': vendor['userId'], 'items': [
+            {'itemId': item['itemId'], 'qty': 2}], 'kidId': None},
         headers=auth_header(user),
     )
 
@@ -29,11 +31,13 @@ def test_transfer_deducts_tokens_from_user(client, seed_profile, auth_header):
 
 
 def test_transfer_credits_vendor(client, seed_profile, auth_header):
-    user, vendor, item = setup_transfer_state(seed_profile, client, auth_header)
+    user, vendor, item = setup_transfer_state(
+        seed_profile, client, auth_header)
 
     client.post(
         '/api/transactions/transfer',
-        json={'vendorId': vendor['userId'], 'items': [{'itemId': item['itemId'], 'qty': 3}], 'kidId': None},
+        json={'vendorId': vendor['userId'], 'items': [
+            {'itemId': item['itemId'], 'qty': 3}], 'kidId': None},
         headers=auth_header(user),
     )
 
@@ -43,15 +47,18 @@ def test_transfer_credits_vendor(client, seed_profile, auth_header):
 
 
 def test_transfer_with_kid_checks_limit(client, seed_profile, auth_header):
-    user, vendor, item = setup_transfer_state(seed_profile, client, auth_header)
+    user, vendor, item = setup_transfer_state(
+        seed_profile, client, auth_header)
     save_user_kids(
         user['userId'],
-        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 20, 'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
+        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 20,
+            'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
     )
 
     response = client.post(
         '/api/transactions/transfer',
-        json={'vendorId': vendor['userId'], 'items': [{'itemId': item['itemId'], 'qty': 2}], 'kidId': 'kid-1'},
+        json={'vendorId': vendor['userId'], 'items': [
+            {'itemId': item['itemId'], 'qty': 2}], 'kidId': 'kid-1'},
         headers=auth_header(user),
     )
 
@@ -70,7 +77,8 @@ def test_transfer_fails_if_insufficient_balance(client, seed_profile, auth_heade
 
     response = client.post(
         '/api/transactions/transfer',
-        json={'vendorId': vendor['userId'], 'items': [{'itemId': item['itemId'], 'qty': 1}], 'kidId': None},
+        json={'vendorId': vendor['userId'], 'items': [
+            {'itemId': item['itemId'], 'qty': 1}], 'kidId': None},
         headers=auth_header(user),
     )
 
@@ -79,15 +87,18 @@ def test_transfer_fails_if_insufficient_balance(client, seed_profile, auth_heade
 
 
 def test_transfer_fails_if_kid_limit_exceeded(client, seed_profile, auth_header):
-    user, vendor, item = setup_transfer_state(seed_profile, client, auth_header)
+    user, vendor, item = setup_transfer_state(
+        seed_profile, client, auth_header)
     save_user_kids(
         user['userId'],
-        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 5, 'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
+        [{'kidId': 'kid-1', 'name': 'Alice', 'spendingLimit': 5,
+            'spent': 0, 'createdAt': '2026-05-10T10:00:00Z'}],
     )
 
     response = client.post(
         '/api/transactions/transfer',
-        json={'vendorId': vendor['userId'], 'items': [{'itemId': item['itemId'], 'qty': 2}], 'kidId': 'kid-1'},
+        json={'vendorId': vendor['userId'], 'items': [
+            {'itemId': item['itemId'], 'qty': 2}], 'kidId': 'kid-1'},
         headers=auth_header(user),
     )
 
@@ -95,11 +106,11 @@ def test_transfer_fails_if_kid_limit_exceeded(client, seed_profile, auth_header)
     assert response.get_json()['error'] == 'Kid spending limit exceeded'
 
 
-
 def test_transfer_to_stall_splits_tokens_to_charity(client, seed_profile, auth_header):
     user = seed_profile('5553000011', token_balance=50, name='Parent')
     stall_owner = seed_profile('5553000012', name='Owner')
-    charity, _ = add_charity('Animal Rescue', 'Shelter', '', stall_owner['userId'])
+    charity, _ = add_charity('Animal Rescue', 'Shelter',
+                             '', stall_owner['userId'])
 
     stall_response = client.post(
         '/api/stalls',
@@ -115,7 +126,8 @@ def test_transfer_to_stall_splits_tokens_to_charity(client, seed_profile, auth_h
 
     response = client.post(
         '/api/transactions/transfer',
-        json={'stallId': stall_id, 'items': [{'itemId': 'default', 'qty': 2}], 'kidId': None},
+        json={'stallId': stall_id, 'items': [
+            {'itemId': 'default', 'qty': 2}], 'kidId': None},
         headers=auth_header(user),
     )
 
@@ -123,3 +135,38 @@ def test_transfer_to_stall_splits_tokens_to_charity(client, seed_profile, auth_h
     assert response.get_json()['newBalance'] == 30
     assert get_charity(charity['charityId'])['tokenBalance'] == 6
     assert get_stall(stall_id)['tokenBalance'] == 14
+
+
+def test_transfer_to_stall_creates_pending_order_visible_in_stall_and_user_views(client, seed_profile, auth_header):
+    user = seed_profile('5553000020', token_balance=30, name='Alice')
+    stall_owner = seed_profile('5553000021', name='Owner')
+
+    stall_response = client.post(
+        '/api/stalls',
+        json={'stallName': 'Pizza Stand',
+              'stallType': 'food', 'tokensPerItem': 6},
+        headers=auth_header(stall_owner),
+    )
+    stall_id = stall_response.get_json()['stallId']
+
+    response = client.post(
+        '/api/transactions/transfer',
+        json={'stallId': stall_id, 'items': [
+            {'itemId': 'default', 'qty': 2}], 'kidId': None},
+        headers=auth_header(user),
+    )
+    assert response.status_code == 200
+    tx_id = response.get_json()['txId']
+
+    # Stall member can see the pending order
+    stall_orders = client.get(
+        f'/api/stalls/{stall_id}/orders', headers=auth_header(stall_owner)).get_json()
+    assert len(stall_orders) == 1
+    assert stall_orders[0]['orderId'] == tx_id
+    assert stall_orders[0]['status'] == 'pending'
+    assert stall_orders[0]['totalTokens'] == 12
+
+    # User can see their pending order
+    user_orders = client.get(
+        '/api/users/orders', headers=auth_header(user)).get_json()
+    assert any(o['orderId'] == tx_id for o in user_orders)

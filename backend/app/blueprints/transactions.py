@@ -4,6 +4,7 @@ from uuid import uuid4
 from flask import Blueprint, g, jsonify, request
 
 from app.storage.charity_store import credit_charity
+from app.storage.order_store import get_stall_orders, save_order
 from app.storage.stall_store import get_stall, get_stall_transactions, save_stall, save_stall_transactions
 from app.storage.user_store import (
     get_profile,
@@ -44,7 +45,8 @@ def vendor_catalog(vendor_id):
         description: Vendor ID, stall info, and active item list
     """
     vendor_profile = get_profile(vendor_id) or {}
-    items = [item for item in get_vendor_items(vendor_id) if item.get('active', True)]
+    items = [item for item in get_vendor_items(
+        vendor_id) if item.get('active', True)]
     stall = vendor_profile.get('stall') or {}
     return jsonify({
         'vendorId': vendor_id,
@@ -68,7 +70,8 @@ def my_vendor_catalog():
         description: Vendor's own stall and item list
     """
     vendor_profile = get_profile(g.user['userId']) or {}
-    items = [item for item in get_vendor_items(g.user['userId']) if item.get('active', True)]
+    items = [item for item in get_vendor_items(
+        g.user['userId']) if item.get('active', True)]
     stall = vendor_profile.get('stall') or {}
     return jsonify({
         'vendorId': g.user['userId'],
@@ -126,8 +129,10 @@ def vendor_charge():
         return jsonify({'error': 'Vendor not found'}), 404
 
     # vendor's own items catalog
-    vendor_items = {item['itemId']: item for item in get_vendor_items(vendor_id) if item.get('active', True)}
-    line_items, total_tokens = _resolve_line_items(requested_items, vendor_items)
+    vendor_items = {item['itemId']: item for item in get_vendor_items(
+        vendor_id) if item.get('active', True)}
+    line_items, total_tokens = _resolve_line_items(
+        requested_items, vendor_items)
     if line_items is None:
         return jsonify({'error': total_tokens}), 404
     if not line_items:
@@ -136,7 +141,8 @@ def vendor_charge():
     if int(user_profile.get('tokenBalance', 0)) < total_tokens:
         return jsonify({'error': 'Insufficient balance'}), 400
 
-    user_profile['tokenBalance'] = int(user_profile.get('tokenBalance', 0)) - total_tokens
+    user_profile['tokenBalance'] = int(
+        user_profile.get('tokenBalance', 0)) - total_tokens
     save_profile(user_id, user_profile)
 
     _record_transaction(
@@ -215,7 +221,8 @@ def transfer():
         if not stall:
             return jsonify({'error': 'Stall not found'}), 404
 
-        stall_items = {item['itemId']: item for item in stall.get('items', []) if item.get('active', True)}
+        stall_items = {item['itemId']: item for item in stall.get(
+            'items', []) if item.get('active', True)}
         default_item = {
             'itemId': 'default',
             'name': stall.get('description') or ('1 Play' if stall.get('stallType') == 'game' else '1 Serving'),
@@ -252,7 +259,8 @@ def transfer():
         if int(user_profile.get('tokenBalance', 0)) < total_tokens:
             return jsonify({'error': 'Insufficient balance'}), 400
 
-        user_profile['tokenBalance'] = int(user_profile.get('tokenBalance', 0)) - total_tokens
+        user_profile['tokenBalance'] = int(
+            user_profile.get('tokenBalance', 0)) - total_tokens
         save_profile(user_profile['userId'], user_profile)
 
         if kid is not None:
@@ -263,10 +271,12 @@ def transfer():
         for charity in stall.get('charities', []):
             pct = int(charity.get('percentage', 0))
             if pct > 0:
-                charity_tokens = max(1, int(total_tokens * pct / 100)) if total_tokens > 0 else 0
+                charity_tokens = max(
+                    1, int(total_tokens * pct / 100)) if total_tokens > 0 else 0
                 if charity_tokens > 0 and credit_charity(charity['charityId'], charity_tokens):
                     charity_total += charity_tokens
-        stall['tokenBalance'] = int(stall.get('tokenBalance', 0)) + (total_tokens - charity_total)
+        stall['tokenBalance'] = int(
+            stall.get('tokenBalance', 0)) + (total_tokens - charity_total)
         save_stall(stall_id, stall)
 
         tx_id = str(uuid4())
@@ -293,6 +303,38 @@ def transfer():
             })
         save_user_transactions(g.user['userId'], user_txns)
         save_stall_transactions(stall_id, stall_txns)
+
+        # Create a pending order so it appears in the stall queue and user order list
+        order_line_items = [
+            {
+                'itemId': li['item']['itemId'],
+                'itemName': li['item'].get('name', ''),
+                'qty': li['qty'],
+                'tokenPrice': li['item'].get('tokenPrice', 0),
+                'amount': li['amount'],
+            }
+            for li in line_items
+        ]
+        pending = get_stall_orders(stall_id, status='pending')
+        kid_name = kid.get('name') if kid else None
+        order = {
+            'orderId': tx_id,
+            'stallId': stall_id,
+            'stallName': stall_name,
+            'stallType': stall.get('stallType', 'game'),
+            'userId': g.user['userId'],
+            'userName': user_name,
+            'kidId': kid_id,
+            'kidName': kid_name,
+            'items': order_line_items,
+            'totalTokens': total_tokens,
+            'status': 'pending',
+            'position': len(pending) + 1,
+            'createdAt': timestamp,
+            'updatedAt': timestamp,
+        }
+        save_order(stall_id, order)
+
         return jsonify({'txId': tx_id, 'totalTokens': total_tokens, 'newBalance': user_profile['tokenBalance']})
 
     # ── Legacy vendor-user payment ──
@@ -300,8 +342,10 @@ def transfer():
     if vendor_profile is None:
         return jsonify({'error': 'Profile not found'}), 404
 
-    vendor_items = {item['itemId']: item for item in get_vendor_items(vendor_id) if item.get('active', True)}
-    line_items, total_tokens = _resolve_line_items(requested_items, vendor_items)
+    vendor_items = {item['itemId']: item for item in get_vendor_items(
+        vendor_id) if item.get('active', True)}
+    line_items, total_tokens = _resolve_line_items(
+        requested_items, vendor_items)
     if line_items is None:
         return jsonify({'error': total_tokens}), 404
     if not line_items:
@@ -310,7 +354,8 @@ def transfer():
     kid = None
     kids = get_user_kids(g.user['userId'])
     if kid_id:
-        kid = next((entry for entry in kids if entry.get('kidId') == kid_id), None)
+        kid = next(
+            (entry for entry in kids if entry.get('kidId') == kid_id), None)
         if kid is None:
             return jsonify({'error': 'Kid not found'}), 404
         if int(kid.get('spent', 0)) + total_tokens > int(kid.get('spendingLimit', 0)):
@@ -319,7 +364,8 @@ def transfer():
     if int(user_profile.get('tokenBalance', 0)) < total_tokens:
         return jsonify({'error': 'Insufficient balance'}), 400
 
-    user_profile['tokenBalance'] = int(user_profile.get('tokenBalance', 0)) - total_tokens
+    user_profile['tokenBalance'] = int(
+        user_profile.get('tokenBalance', 0)) - total_tokens
     save_profile(user_profile['userId'], user_profile)
 
     if kid is not None:
@@ -328,7 +374,8 @@ def transfer():
 
     tx_id = str(uuid4())
     timestamp = utc_now()
-    _record_transaction(tx_id, timestamp, vendor_id, vendor_profile, user_profile, line_items, kid_id, kid)
+    _record_transaction(tx_id, timestamp, vendor_id,
+                        vendor_profile, user_profile, line_items, kid_id, kid)
 
     return jsonify({'txId': tx_id, 'totalTokens': total_tokens, 'newBalance': user_profile['tokenBalance']})
 
@@ -377,4 +424,3 @@ def _record_transaction(tx_id, timestamp, vendor_id, vendor_profile, user_profil
 
     save_user_transactions(user_profile['userId'], user_txns)
     save_vendor_transactions(vendor_id, vendor_txns)
-

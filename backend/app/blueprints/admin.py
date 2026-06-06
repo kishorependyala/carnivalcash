@@ -132,10 +132,10 @@ def create_tokens():
     return jsonify({'userId': profile['userId'], 'tokenBalance': profile['tokenBalance']})
 
 
-@admin_bp.post('/api/admin/reset-tokens')
+@admin_bp.post('/api/admin/reset-token-balances')
 @require_auth
 @require_role('admin')
-def reset_tokens():
+def reset_token_balances():
     """Zero all user token balances and clear token-loading audit history."""
     profiles = list_profiles()
     zeroed = 0
@@ -150,7 +150,7 @@ def reset_tokens():
     data['auditLog'] = [e for e in data.get('auditLog', []) if e.get('action') != 'add_tokens']
     save_admin_data(data)
 
-    log_admin_action(g.user['userId'], 'reset_tokens', {'usersZeroed': zeroed, 'logsRemoved': removed})
+    log_admin_action(g.user['userId'], 'reset_token_balances', {'usersZeroed': zeroed, 'logsRemoved': removed})
     return jsonify({'usersZeroed': zeroed, 'logsRemoved': removed})
 
 

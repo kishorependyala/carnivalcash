@@ -83,7 +83,7 @@ function AdminStatsPage() {
     setResetBusy(true);
     setResetMsg(null);
     try {
-      const res = await adminApi.resetTokens();
+      const res = await adminApi.resetTokenBalances();
       setResetMsg({ ok: true, text: `Reset complete — ${res.usersZeroed} user(s) zeroed, ${res.logsRemoved} log entries cleared.` });
       await load();
       setTimeout(() => setResetMsg(null), 6000);

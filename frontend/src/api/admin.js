@@ -68,6 +68,10 @@ const adminApi = {
     const response = await api.post('/api/admin/reset-tokens', { code });
     return response.data;
   },
+  async resetTokenBalances() {
+    const response = await api.post('/api/admin/reset-token-balances');
+    return response.data;
+  },
   async deleteUser(userId, code) {
     const response = await api.delete(`/api/admin/users/${userId}`, { data: { code } });
     return response.data;

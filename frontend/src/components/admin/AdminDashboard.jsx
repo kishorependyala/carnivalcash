@@ -978,6 +978,7 @@ function AdminDashboard() {
   const [qrPayload, setQrPayload] = useState(() => getStale('qr') || '');
   const [allStalls, setAllStalls] = useState(() => getStale('admin_stalls') || []);
   const [stallsLoaded, setStallsLoaded] = useState(() => !!getStale('admin_stalls'));
+  const [stallsLoading, setStallsLoading] = useState(false);
   const [showStallPrint, setShowStallPrint] = useState(false);
   const [showUserPrint, setShowUserPrint] = useState(false);
   const [expandedStall, setExpandedStall] = useState(null);
@@ -1185,9 +1186,14 @@ function AdminDashboard() {
   };
 
   const loadStalls = async () => {
-    const result = await adminApi.listStallsFull();
-    setAllStalls(result);  setCache('admin_stalls', result);
-    setStallsLoaded(true);
+    setStallsLoading(true);
+    try {
+      const result = await adminApi.listStallsFull();
+      setAllStalls(result);  setCache('admin_stalls', result);
+      setStallsLoaded(true);
+    } finally {
+      setStallsLoading(false);
+    }
   };
 
   const loadPinResetRequests = useCallback(async () => {
@@ -1205,10 +1211,10 @@ function AdminDashboard() {
   usePolling(load, 10000);
 
   useEffect(() => {
-    if (tab === 'Admin' && adminSubTab === 'Stalls' && !stallsLoaded) {
+    if (tab === 'Admin' && !stallsLoaded && !stallsLoading) {
       loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'));
     }
-  }, [tab, adminSubTab, stallsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tab, stallsLoaded, stallsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (tab === 'Admin' && adminSubTab === 'Charities' && !charitiesLoaded) {
@@ -1587,9 +1593,6 @@ function AdminDashboard() {
                   type="button"
                   onClick={() => {
                     setAdminSubTab(sub);
-                    if (sub === 'Stalls' && !stallsLoaded) {
-                      loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'));
-                    }
                     if (sub === 'Charities' && !charitiesLoaded) {
                       charitiesApi.list().then(setCharities).catch(() => {}).finally(() => setCharitiesLoaded(true));
                     }
@@ -1903,7 +1906,8 @@ function AdminDashboard() {
                     <button style={btn('secondary')} onClick={() => loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'))}>Refresh</button>
                   </div>
                 </div>
-                {allStalls.length === 0 && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
+                {allStalls.length === 0 && !stallsLoading && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
+                {stallsLoading && <p style={{ color: '#6b7280' }}>Loading stalls…</p>}
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                   {stallCards}
                 </div>

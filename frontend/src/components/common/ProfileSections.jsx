@@ -61,6 +61,8 @@ export function SocialBadge({ platform, handle }) {
 /* ── Profile view tab ── */
 export function ProfileViewTab({ profile, balance, event, isAdmin, setStatus, onReload }) {
   const [dollars, setDollars] = useState('');
+  const [tokenBusy, setTokenBusy] = useState(false);
+  const [tokenMsg, setTokenMsg] = useState(null); // { ok, text }
   const socials = profile.socials || {};
   const hasSocials = Object.values(socials).some(Boolean);
   const rate = event?.tokenRate || 10;
@@ -68,12 +70,21 @@ export function ProfileViewTab({ profile, balance, event, isAdmin, setStatus, on
 
   const loadTokens = async () => {
     if (!tokens) return;
+    setTokenBusy(true);
+    setTokenMsg(null);
     try {
       await adminApi.addTokens({ phone: profile.phone, amount: tokens });
       await onReload();
+      const msg = `Loaded ${tokens} tokens ($${dollars} × ${rate} rate).`;
+      setTokenMsg({ ok: true, text: msg });
+      setStatus(`✅ ${msg}`);
       setDollars('');
-      setStatus(`✅ Loaded ${tokens} tokens ($${dollars} × ${rate} rate).`);
-    } catch (e) { setStatus(e.response?.data?.error || 'Unable to load tokens.'); }
+      setTimeout(() => setTokenMsg(null), 3000);
+    } catch (e) {
+      setTokenMsg({ ok: false, text: e.response?.data?.error || 'Unable to load tokens.' });
+    } finally {
+      setTokenBusy(false);
+    }
   };
 
   return (
@@ -108,17 +119,29 @@ export function ProfileViewTab({ profile, balance, event, isAdmin, setStatus, on
         <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.85rem', display: 'grid', gap: '0.6rem' }}>
           <div style={{ fontWeight: 700, color: '#b45309' }}>🪙 Load Tokens (Admin)</div>
           <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Rate: {rate} tokens / $1</div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span>$</span>
-            <input type="number" min="1" step="1"
-              style={{ ...inp, maxWidth: '120px' }} placeholder="Dollars"
-              value={dollars} onChange={e => setDollars(e.target.value)} />
-            {tokens != null && <span style={{ color: '#b45309', fontWeight: 700 }}>= {tokens} tokens</span>}
-            <button onClick={loadTokens} disabled={!tokens}
-              style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.1rem', fontWeight: 700, cursor: 'pointer', opacity: tokens ? 1 : 0.5 }}>
-              Add Tokens
-            </button>
-          </div>
+          {tokenBusy ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.85rem', background: '#fffbeb', borderRadius: '0.75rem', border: '1px solid #fcd34d' }}>
+              <span style={{ fontSize: '1.2rem', animation: 'spin 1s linear infinite' }}>⏳</span>
+              <span style={{ fontWeight: 700, color: '#b45309' }}>Processing… adding {tokens} tokens</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span>$</span>
+              <input type="number" min="1" step="1"
+                style={{ ...inp, maxWidth: '120px' }} placeholder="Dollars"
+                value={dollars} onChange={e => setDollars(e.target.value)} />
+              {tokens != null && <span style={{ color: '#b45309', fontWeight: 700 }}>= {tokens} tokens</span>}
+              <button onClick={loadTokens} disabled={!tokens}
+                style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.1rem', fontWeight: 700, cursor: 'pointer', opacity: tokens ? 1 : 0.5 }}>
+                Add Tokens
+              </button>
+            </div>
+          )}
+          {tokenMsg && (
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, padding: '0.5rem 0.85rem', borderRadius: '0.65rem', background: tokenMsg.ok ? '#d1fae5' : '#fee2e2', color: tokenMsg.ok ? '#065f46' : '#dc2626' }}>
+              {tokenMsg.ok ? '✅' : '❌'} {tokenMsg.text}
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -368,6 +391,8 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
   const [familyResults, setFamilyResults] = useState([]);
   const [familyLoading, setFamilyLoading] = useState(true);
   const [dollars, setDollars] = useState('');
+  const [tokenBusy, setTokenBusy] = useState(false);
+  const [tokenMsg, setTokenMsg] = useState(null); // { ok, text }
 
   useEffect(() => {
     userApi.getFamily().then(setFamily).catch(() => {}).finally(() => setFamilyLoading(false));
@@ -461,11 +486,21 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
   const tokens = dollars > 0 ? Math.floor(parseFloat(dollars) * rate) : null;
   const loadTokens = async () => {
     if (!tokens) return;
+    setTokenBusy(true);
+    setTokenMsg(null);
     try {
       await adminApi.addTokens({ phone: profile.phone, amount: tokens });
-      await onReload(); setDollars('');
-      setStatus(`✅ Loaded ${tokens} tokens ($${dollars} × ${rate} rate).`);
-    } catch (e) { setStatus(e.response?.data?.error || 'Unable to load tokens.'); }
+      await onReload();
+      const msg = `Loaded ${tokens} tokens ($${dollars} × ${rate} rate).`;
+      setTokenMsg({ ok: true, text: msg });
+      setStatus(`✅ ${msg}`);
+      setDollars('');
+      setTimeout(() => setTokenMsg(null), 3000);
+    } catch (e) {
+      setTokenMsg({ ok: false, text: e.response?.data?.error || 'Unable to load tokens.' });
+    } finally {
+      setTokenBusy(false);
+    }
   };
 
   const socials = profile.socials || {};
@@ -560,16 +595,28 @@ export function ProfileTab({ profile, balance, event, isAdmin, setStatus, onRelo
           <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.85rem', display: 'grid', gap: '0.6rem' }}>
             <div style={{ fontWeight: 700, color: '#b45309' }}>🪙 Load Tokens (Admin)</div>
             <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Rate: {rate} tokens / $1</div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span>$</span>
-              <input type="number" min="1" step="1" style={{ ...inp, maxWidth: '120px' }} placeholder="Dollars"
-                value={dollars} onChange={e => setDollars(e.target.value)} />
-              {tokens != null && <span style={{ color: '#b45309', fontWeight: 700 }}>= {tokens} tokens</span>}
-              <button onClick={loadTokens} disabled={!tokens}
-                style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.1rem', fontWeight: 700, cursor: 'pointer', opacity: tokens ? 1 : 0.5 }}>
-                Add Tokens
-              </button>
-            </div>
+            {tokenBusy ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.85rem', background: '#fffbeb', borderRadius: '0.75rem', border: '1px solid #fcd34d' }}>
+                <span style={{ fontSize: '1.2rem', animation: 'spin 1s linear infinite' }}>⏳</span>
+                <span style={{ fontWeight: 700, color: '#b45309' }}>Processing… adding {tokens} tokens</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span>$</span>
+                <input type="number" min="1" step="1" style={{ ...inp, maxWidth: '120px' }} placeholder="Dollars"
+                  value={dollars} onChange={e => setDollars(e.target.value)} />
+                {tokens != null && <span style={{ color: '#b45309', fontWeight: 700 }}>= {tokens} tokens</span>}
+                <button onClick={loadTokens} disabled={!tokens}
+                  style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.1rem', fontWeight: 700, cursor: 'pointer', opacity: tokens ? 1 : 0.5 }}>
+                  Add Tokens
+                </button>
+              </div>
+            )}
+            {tokenMsg && (
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, padding: '0.5rem 0.85rem', borderRadius: '0.65rem', background: tokenMsg.ok ? '#d1fae5' : '#fee2e2', color: tokenMsg.ok ? '#065f46' : '#dc2626' }}>
+                {tokenMsg.ok ? '✅' : '❌'} {tokenMsg.text}
+              </div>
+            )}
           </div>
         )}
       </section>

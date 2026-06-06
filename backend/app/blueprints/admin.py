@@ -5,6 +5,7 @@ from uuid import uuid4
 import io
 import json
 import os
+import threading
 import zipfile
 
 from flask import Blueprint, Response, g, jsonify, request, send_file
@@ -125,8 +126,9 @@ def create_tokens():
 
     profile['tokenBalance'] = int(profile.get('tokenBalance', 0)) + amount
     save_profile(profile['userId'], profile)
-    log_admin_action(g.user['userId'], 'add_tokens', {
-                     'phone': phone, 'amount': amount, 'newBalance': profile['tokenBalance']})
+    admin_id = g.user['userId']
+    details = {'phone': phone, 'amount': amount, 'newBalance': profile['tokenBalance']}
+    threading.Thread(target=log_admin_action, args=(admin_id, 'add_tokens', details), daemon=True).start()
     return jsonify({'userId': profile['userId'], 'tokenBalance': profile['tokenBalance']})
 
 
@@ -302,12 +304,37 @@ def get_stats():
         for profile in user_profiles
     ]
 
+    # Aggregate token-loading activity by admin from the audit log
+    admin_data = get_admin_data()
+    token_rate = admin_data.get('event', {}).get('tokenRate', 2) or 2
+    token_loads = [e for e in admin_data.get('auditLog', []) if e.get('action') == 'add_tokens']
+
+    admin_load_map = {}
+    for entry in token_loads:
+        aid = entry.get('adminId', 'unknown')
+        amount = int(entry.get('details', {}).get('amount', 0))
+        if aid not in admin_load_map:
+            admin_load_map[aid] = {'adminId': aid, 'loadCount': 0, 'tokensLoaded': 0}
+        admin_load_map[aid]['loadCount'] += 1
+        admin_load_map[aid]['tokensLoaded'] += amount
+
+    # Resolve admin names from profiles
+    all_profiles = {p['userId']: p for p in profiles}
+    token_loading_by_admin = []
+    for aid, row in admin_load_map.items():
+        p = all_profiles.get(aid, {})
+        row['adminName'] = p.get('name') or p.get('phone') or aid
+        row['dollarsCollected'] = round(row['tokensLoaded'] / token_rate, 2)
+        token_loading_by_admin.append(row)
+    token_loading_by_admin.sort(key=lambda r: r['tokensLoaded'], reverse=True)
+
     return jsonify(
         {
             'totalTokensIssued': sum(user['tokenBalance'] for user in users),
             'totalTokensSpent': total_tokens_spent,
             'vendors': vendors,
             'users': users,
+            'tokenLoadingByAdmin': token_loading_by_admin,
         }
     )
 

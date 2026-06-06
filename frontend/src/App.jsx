@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import AdminDashboard from './components/admin/AdminDashboard';
+import AdminStatsPage from './components/admin/AdminStatsPage';
 import LoginPage from './components/auth/LoginPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ItemSelectPage from './components/user/ItemSelectPage';
@@ -26,6 +27,7 @@ function App() {
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/stats" element={<ProtectedRoute roles={['admin']}><AdminStatsPage /></ProtectedRoute>} />
       <Route path="/user" element={<ProtectedRoute roles={['user']}><UserDashboard /></ProtectedRoute>} />
       <Route path="/scan" element={<ProtectedRoute roles={['user', 'admin']}><ScanPage /></ProtectedRoute>} />
       <Route path="/scan/items/:vendorId" element={<ProtectedRoute roles={['user', 'admin']}><ItemSelectPage mode="vendor" /></ProtectedRoute>} />

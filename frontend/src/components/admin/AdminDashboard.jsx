@@ -1564,6 +1564,21 @@ function AdminDashboard() {
             )}
             {/* Sub-tab bar */}
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/admin/stats')}
+                style={{
+                  padding: '0.35rem 1rem',
+                  borderRadius: '2rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: '#374151',
+                  color: '#fff',
+                  fontWeight: 700,
+                }}
+              >
+                📊 Open Stats Page
+              </button>
               {adminSubTabs.map((sub) => (
                 <button
                   key={sub}

@@ -978,6 +978,7 @@ function AdminDashboard() {
   const [qrPayload, setQrPayload] = useState(() => getStale('qr') || '');
   const [allStalls, setAllStalls] = useState(() => getStale('admin_stalls') || []);
   const [stallsLoaded, setStallsLoaded] = useState(() => !!getStale('admin_stalls'));
+  const [stallsLoading, setStallsLoading] = useState(false);
   const [showStallPrint, setShowStallPrint] = useState(false);
   const [showUserPrint, setShowUserPrint] = useState(false);
   const [expandedStall, setExpandedStall] = useState(null);
@@ -1086,6 +1087,8 @@ function AdminDashboard() {
   const [charityBusy, setCharityBusy] = useState(false);
   const [resetCode, setResetCode] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [clearTxCode, setClearTxCode] = useState('');
+  const [clearingTx, setClearingTx] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [adminSubTab, setAdminSubTab] = useState('Admins');
   const [expandedKid, setExpandedKid] = useState(null); // eslint-disable-line no-unused-vars
@@ -1183,9 +1186,14 @@ function AdminDashboard() {
   };
 
   const loadStalls = async () => {
-    const result = await adminApi.listStallsFull();
-    setAllStalls(result);  setCache('admin_stalls', result);
-    setStallsLoaded(true);
+    setStallsLoading(true);
+    try {
+      const result = await adminApi.listStallsFull();
+      setAllStalls(result);  setCache('admin_stalls', result);
+      setStallsLoaded(true);
+    } finally {
+      setStallsLoading(false);
+    }
   };
 
   const loadPinResetRequests = useCallback(async () => {
@@ -1203,10 +1211,10 @@ function AdminDashboard() {
   usePolling(load, 10000);
 
   useEffect(() => {
-    if (tab === 'Admin' && adminSubTab === 'Stalls' && !stallsLoaded) {
+    if (tab === 'Admin' && !stallsLoaded && !stallsLoading) {
       loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'));
     }
-  }, [tab, adminSubTab, stallsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tab, stallsLoaded, stallsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (tab === 'Admin' && adminSubTab === 'Charities' && !charitiesLoaded) {
@@ -1585,9 +1593,6 @@ function AdminDashboard() {
                   type="button"
                   onClick={() => {
                     setAdminSubTab(sub);
-                    if (sub === 'Stalls' && !stallsLoaded) {
-                      loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'));
-                    }
                     if (sub === 'Charities' && !charitiesLoaded) {
                       charitiesApi.list().then(setCharities).catch(() => {}).finally(() => setCharitiesLoaded(true));
                     }
@@ -1794,6 +1799,48 @@ function AdminDashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Clear all transactions */}
+                <div style={{ border: '1.5px solid #fca5a5', borderRadius: '0.85rem', padding: '1rem', display: 'grid', gap: '0.75rem' }}>
+                  <h2 style={{ margin: 0, color: '#dc2626' }}>🧹 Clear All Transactions</h2>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>
+                    Wipes all user and vendor transaction histories. Token balances are <strong>preserved</strong>. A timestamped snapshot is saved to <code>data/archive/</code> first. This cannot be undone.
+                  </p>
+                  {!clearingTx ? (
+                    <button style={btn('danger')} onClick={() => setClearingTx(true)}>Clear All Transactions…</button>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Enter code to confirm:</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <input
+                          type="password"
+                          style={{ ...inp, maxWidth: '160px', fontFamily: 'monospace', letterSpacing: '0.15em' }}
+                          placeholder="••••••"
+                          value={clearTxCode}
+                          onChange={(e) => setClearTxCode(e.target.value)}
+                          autoFocus
+                        />
+                        <button
+                          style={btn('danger')}
+                          disabled={!clearTxCode}
+                          onClick={async () => {
+                            try {
+                              const res = await adminApi.clearTransactions(clearTxCode);
+                              setStatus(`✅ Transactions cleared — ${res.usersCleared} users, ${res.vendorsCleared} vendors. Archived as ${res.archive}.`);
+                              setClearingTx(false);
+                              setClearTxCode('');
+                            } catch (err) {
+                              setStatus(err.response?.data?.error || 'Clear transactions failed.');
+                            }
+                          }}
+                        >
+                          Confirm Clear
+                        </button>
+                        <button style={btn('secondary')} onClick={() => { setClearingTx(false); setClearTxCode(''); }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1859,7 +1906,8 @@ function AdminDashboard() {
                     <button style={btn('secondary')} onClick={() => loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'))}>Refresh</button>
                   </div>
                 </div>
-                {allStalls.length === 0 && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
+                {allStalls.length === 0 && !stallsLoading && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
+                {stallsLoading && <p style={{ color: '#6b7280' }}>Loading stalls…</p>}
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                   {stallCards}
                 </div>

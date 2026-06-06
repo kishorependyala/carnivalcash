@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import charitiesApi from '../../api/charities';
 import stallsApi from '../../api/stalls';
 import { useAuth } from '../../context/AuthContext';
+import { getStale, setCache } from '../../utils/swrCache';
 import PrintableQR from './PrintableQR';
 import { card, inp } from './ProfileSections';
 
@@ -816,8 +817,9 @@ const subTab = (active) => ({
 export function MergedStallsTab() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [myStalls, setMyStalls] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const stale = getStale('my_stalls');
+  const [myStalls, setMyStalls] = useState(() => stale || []);
+  const [loading, setLoading] = useState(!stale);
   const [popup, setPopup] = useState(null);
   const [popupTab, setPopupTab] = useState('create');
   const [allStalls, setAllStalls] = useState([]);
@@ -831,7 +833,7 @@ export function MergedStallsTab() {
 
   useEffect(() => {
     stallsApi.mine()
-      .then((result) => { setMyStalls(result); })
+      .then((result) => { setMyStalls(result); setCache('my_stalls', result); })
       .catch(() => {})
       .finally(() => setLoading(false));
     // Load kids once

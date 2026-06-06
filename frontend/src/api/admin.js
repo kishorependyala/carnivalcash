@@ -112,6 +112,10 @@ const adminApi = {
     const response = await api.post('/api/admin/settings', payload);
     return response.data;
   },
+  async clearTransactions(code) {
+    const response = await api.post('/api/admin/clear-transactions', { code });
+    return response.data;
+  },
 };
 
 export default adminApi;

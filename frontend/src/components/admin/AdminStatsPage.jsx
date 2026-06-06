@@ -36,7 +36,7 @@ function StatTile({ label, value }) {
 function AdminStatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
+  const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [], tokenLoadingByAdmin: [] });
   const [rate, setRate] = useState(2);
   const [stallCount, setStallCount] = useState(0);
 
@@ -48,7 +48,7 @@ function AdminStatsPage() {
         adminApi.getEvent(),
         adminApi.listStallsFull(),
       ]);
-      setStats(statsRes || { totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [] });
+      setStats(statsRes || { totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [], tokenLoadingByAdmin: [] });
       setRate(eventRes?.tokenRate ?? 2);
       setStallCount(Array.isArray(stallsRes) ? stallsRes.length : 0);
     } catch (e) {
@@ -101,6 +101,26 @@ function AdminStatsPage() {
           <StatTile label="Stalls" value={stallCount} />
           <StatTile label="Token Rate" value={`$1 = ${rate}`} />
         </div>
+
+        <section style={card}>
+          <h3 style={{ margin: '0 0 0.7rem 0' }}>💰 Token Loading by Admin</h3>
+          {loading && (stats.tokenLoadingByAdmin || []).length === 0 ? <p style={{ margin: 0, color: '#6b7280' }}>Loading…</p> : null}
+          {!loading && (stats.tokenLoadingByAdmin || []).length === 0 ? <p style={{ margin: 0, color: '#6b7280' }}>No token loads recorded yet.</p> : null}
+          <div style={{ display: 'grid', gap: '0.45rem' }}>
+            {(stats.tokenLoadingByAdmin || []).map((row, idx) => (
+              <div key={row.adminId || idx} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0.75rem', background: '#fff', borderRadius: '0.6rem', padding: '0.55rem 0.7rem' }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{row.adminName || row.adminId}</div>
+                  <div style={{ color: '#6b7280', fontSize: '0.82rem' }}>{row.loadCount} load{row.loadCount !== 1 ? 's' : ''}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 900, color: '#b45309' }}>🪙 {row.tokensLoaded}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#065f46', fontWeight: 700 }}>${row.dollarsCollected.toFixed(2)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: '0.75rem' }}>
           <section style={card}>

@@ -79,6 +79,8 @@ function TabBar({ tabs, active, onChange, badges = {} }) {
 const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, refreshPinResetRequests }) {
   const [open, setOpen] = useState(false);
   const [dollars, setDollars] = useState('');
+  const [addBusy, setAddBusy] = useState(false);
+  const [addMsg, setAddMsg] = useState(null); // { ok, text }
   const [deleting, setDeleting] = useState(false);
   const [delCode, setDelCode] = useState('');
   const [linkQrOpen, setLinkQrOpen] = useState(false);
@@ -150,14 +152,21 @@ const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, re
 
   const doAdd = async () => {
     if (!tokens) return;
+    setAddBusy(true);
+    setAddMsg(null);
     try {
       await adminApi.addTokens({ phone: user.phone, amount: tokens });
-      setStatus(`✅ Added ${tokens} tokens to ${user.name || user.phone}`);
+      const msg = `Added ${tokens} tokens to ${user.name || user.phone}`;
+      setAddMsg({ ok: true, text: msg });
+      setStatus(`✅ ${msg}`);
       setOpen(false);
       setDollars('');
       onDone();
+      setTimeout(() => setAddMsg(null), 3000);
     } catch (error) {
-      setStatus(error.response?.data?.error || 'Failed to add tokens.');
+      setAddMsg({ ok: false, text: error.response?.data?.error || 'Failed to add tokens.' });
+    } finally {
+      setAddBusy(false);
     }
   };
 
@@ -260,11 +269,20 @@ const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, re
       )}
 
       {open && (
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span>$</span>
-          <input type="number" min="1" style={{ ...inp, maxWidth: '100px' }} value={dollars} placeholder="Dollars" onChange={(e) => setDollars(e.target.value)} autoFocus />
-          {tokens != null && <span style={{ color: '#b45309', fontWeight: 700 }}>= {tokens} tokens</span>}
-          <button style={btn()} onClick={doAdd} disabled={!tokens}>Confirm</button>
+        <div style={{ display: 'grid', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span>$</span>
+            <input type="number" min="1" style={{ ...inp, maxWidth: '100px' }} value={dollars} placeholder="Dollars" onChange={(e) => setDollars(e.target.value)} autoFocus disabled={addBusy} />
+            {tokens != null && <span style={{ color: '#b45309', fontWeight: 700 }}>= {tokens} tokens</span>}
+            <button style={{ ...btn(), minWidth: '100px', opacity: (!tokens || addBusy) ? 0.6 : 1 }} onClick={doAdd} disabled={!tokens || addBusy}>
+              {addBusy ? '⏳ Adding…' : 'Confirm'}
+            </button>
+          </div>
+          {addMsg && (
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, padding: '0.4rem 0.7rem', borderRadius: '0.5rem', background: addMsg.ok ? '#d1fae5' : '#fee2e2', color: addMsg.ok ? '#065f46' : '#dc2626' }}>
+              {addMsg.ok ? '✅' : '❌'} {addMsg.text}
+            </div>
+          )}
         </div>
       )}
 

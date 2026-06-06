@@ -39,6 +39,8 @@ function AdminStatsPage() {
   const [stats, setStats] = useState({ totalTokensIssued: 0, totalTokensSpent: 0, vendors: [], users: [], tokenLoadingByAdmin: [] });
   const [rate, setRate] = useState(2);
   const [stallCount, setStallCount] = useState(0);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetMsg, setResetMsg] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -76,6 +78,22 @@ function AdminStatsPage() {
       .slice(0, 10);
   }, [stats.users]);
 
+  const doReset = async () => {
+    if (!window.confirm('Reset ALL user token balances to 0 and clear token-loading history? This cannot be undone.')) return;
+    setResetBusy(true);
+    setResetMsg(null);
+    try {
+      const res = await adminApi.resetTokens();
+      setResetMsg({ ok: true, text: `Reset complete — ${res.usersZeroed} user(s) zeroed, ${res.logsRemoved} log entries cleared.` });
+      await load();
+      setTimeout(() => setResetMsg(null), 6000);
+    } catch (e) {
+      setResetMsg({ ok: false, text: e?.response?.data?.error || 'Reset failed.' });
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
   return (
     <Layout title="📊 Admin Stats" subtitle="Dedicated view for event-wide numbers and leaderboards.">
       <section style={{ display: 'grid', gap: '1rem' }}>
@@ -103,7 +121,18 @@ function AdminStatsPage() {
         </div>
 
         <section style={card}>
-          <h3 style={{ margin: '0 0 0.7rem 0' }}>💰 Token Loading by Admin</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0 }}>💰 Token Loading by Admin</h3>
+            <button type="button" onClick={doReset} disabled={resetBusy}
+              style={{ ...btn, background: '#dc2626', fontSize: '0.82rem', padding: '0.35rem 0.85rem', opacity: resetBusy ? 0.6 : 1 }}>
+              {resetBusy ? '⏳ Resetting…' : '🔄 Reset All Balances'}
+            </button>
+          </div>
+          {resetMsg && (
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, padding: '0.5rem 0.85rem', borderRadius: '0.65rem', background: resetMsg.ok ? '#d1fae5' : '#fee2e2', color: resetMsg.ok ? '#065f46' : '#dc2626' }}>
+              {resetMsg.ok ? '✅' : '❌'} {resetMsg.text}
+            </div>
+          )}
           {loading && (stats.tokenLoadingByAdmin || []).length === 0 ? <p style={{ margin: 0, color: '#6b7280' }}>Loading…</p> : null}
           {!loading && (stats.tokenLoadingByAdmin || []).length === 0 ? <p style={{ margin: 0, color: '#6b7280' }}>No token loads recorded yet.</p> : null}
           <div style={{ display: 'grid', gap: '0.45rem' }}>

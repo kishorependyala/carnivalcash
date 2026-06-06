@@ -10,7 +10,7 @@ import zipfile
 
 from flask import Blueprint, Response, g, jsonify, request, send_file
 
-from app.storage.admin_store import get_admin_data, get_event, get_settings, log_admin_action, save_event, save_settings
+from app.storage.admin_store import get_admin_data, get_event, get_settings, log_admin_action, save_admin_data, save_event, save_settings
 from app.storage.stall_store import list_stalls, save_stall, delete_stall
 from app.storage.user_store import (
     delete_profile,
@@ -130,6 +130,28 @@ def create_tokens():
     details = {'phone': phone, 'amount': amount, 'newBalance': profile['tokenBalance']}
     threading.Thread(target=log_admin_action, args=(admin_id, 'add_tokens', details), daemon=True).start()
     return jsonify({'userId': profile['userId'], 'tokenBalance': profile['tokenBalance']})
+
+
+@admin_bp.post('/api/admin/reset-tokens')
+@require_auth
+@require_role('admin')
+def reset_tokens():
+    """Zero all user token balances and clear token-loading audit history."""
+    profiles = list_profiles()
+    zeroed = 0
+    for profile in profiles:
+        if 'user' in profile.get('roles', []) and int(profile.get('tokenBalance', 0)) != 0:
+            profile['tokenBalance'] = 0
+            save_profile(profile['userId'], profile)
+            zeroed += 1
+
+    data = get_admin_data()
+    removed = sum(1 for e in data.get('auditLog', []) if e.get('action') == 'add_tokens')
+    data['auditLog'] = [e for e in data.get('auditLog', []) if e.get('action') != 'add_tokens']
+    save_admin_data(data)
+
+    log_admin_action(g.user['userId'], 'reset_tokens', {'usersZeroed': zeroed, 'logsRemoved': removed})
+    return jsonify({'usersZeroed': zeroed, 'logsRemoved': removed})
 
 
 @admin_bp.post('/api/admin/rate')

@@ -21,6 +21,10 @@ from app.storage.user_store import (
     get_vendor_transactions,
     list_profiles,
     save_profile,
+    save_user_transactions,
+    save_vendor_transactions,
+    users_dir,
+    vendors_dir,
 )
 from app.utils.auth_middleware import require_auth, require_role
 from app.utils.id_generator import generate_user_id
@@ -711,6 +715,85 @@ def reset_tokens():
         'archive': timestamp,
         'usersReset': len(profiles),
         'stallsReset': len(stalls),
+    })
+
+
+@admin_bp.post('/api/admin/clear-transactions')
+@require_auth
+@require_role('admin')
+def clear_transactions():
+    """
+    Clear all user and vendor transaction histories, preserving token balances.
+    Requires a confirmation code.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code: {type: string, example: "1234567"}
+    responses:
+      200:
+        description: Transactions cleared
+      403:
+        description: Invalid code
+    """
+    payload = request.get_json(silent=True) or {}
+    if str(payload.get('code', '')) != RESET_CODE:
+        return jsonify({'error': 'Invalid code'}), 403
+
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+    archive_path = DATA_DIR / 'archive' / timestamp
+    archive_path.mkdir(parents=True, exist_ok=True)
+
+    users_cleared = 0
+    vendors_cleared = 0
+
+    # Archive & clear user transactions
+    user_ids = [p.name for p in users_dir().iterdir() if p.is_dir()] if users_dir().exists() else []
+    user_archive = {}
+    for uid in user_ids:
+        tx_file = users_dir() / uid / 'transactions.json'
+        if tx_file.exists():
+            txs = json.loads(tx_file.read_text(encoding='utf-8')) if tx_file.exists() else []
+            if txs:
+                user_archive[uid] = txs
+                save_user_transactions(uid, [])
+                users_cleared += 1
+
+    if user_archive:
+        (archive_path / 'user_transactions.json').write_text(json.dumps(user_archive, indent=2), encoding='utf-8')
+
+    # Archive & clear vendor transactions
+    vendor_ids = [p.name for p in vendors_dir().iterdir() if p.is_dir()] if vendors_dir().exists() else []
+    vendor_archive = {}
+    for vid in vendor_ids:
+        tx_file = vendors_dir() / vid / 'transactions.json'
+        if tx_file.exists():
+            txs = json.loads(tx_file.read_text(encoding='utf-8')) if tx_file.exists() else []
+            if txs:
+                vendor_archive[vid] = txs
+                save_vendor_transactions(vid, [])
+                vendors_cleared += 1
+
+    if vendor_archive:
+        (archive_path / 'vendor_transactions.json').write_text(json.dumps(vendor_archive, indent=2), encoding='utf-8')
+
+    log_admin_action(g.user['userId'], 'clear_transactions', {
+        'archive': timestamp,
+        'usersCleared': users_cleared,
+        'vendorsCleared': vendors_cleared,
+    })
+
+    return jsonify({
+        'archive': timestamp,
+        'usersCleared': users_cleared,
+        'vendorsCleared': vendors_cleared,
     })
 
 

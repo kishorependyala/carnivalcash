@@ -1086,6 +1086,8 @@ function AdminDashboard() {
   const [charityBusy, setCharityBusy] = useState(false);
   const [resetCode, setResetCode] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [clearTxCode, setClearTxCode] = useState('');
+  const [clearingTx, setClearingTx] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [adminSubTab, setAdminSubTab] = useState('Admins');
   const [expandedKid, setExpandedKid] = useState(null); // eslint-disable-line no-unused-vars
@@ -1790,6 +1792,48 @@ function AdminDashboard() {
                           Confirm Reset
                         </button>
                         <button style={btn('secondary')} onClick={() => { setResetting(false); setResetCode(''); }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Clear all transactions */}
+                <div style={{ border: '1.5px solid #fca5a5', borderRadius: '0.85rem', padding: '1rem', display: 'grid', gap: '0.75rem' }}>
+                  <h2 style={{ margin: 0, color: '#dc2626' }}>🧹 Clear All Transactions</h2>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>
+                    Wipes all user and vendor transaction histories. Token balances are <strong>preserved</strong>. A timestamped snapshot is saved to <code>data/archive/</code> first. This cannot be undone.
+                  </p>
+                  {!clearingTx ? (
+                    <button style={btn('danger')} onClick={() => setClearingTx(true)}>Clear All Transactions…</button>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Enter code to confirm:</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <input
+                          type="password"
+                          style={{ ...inp, maxWidth: '160px', fontFamily: 'monospace', letterSpacing: '0.15em' }}
+                          placeholder="••••••"
+                          value={clearTxCode}
+                          onChange={(e) => setClearTxCode(e.target.value)}
+                          autoFocus
+                        />
+                        <button
+                          style={btn('danger')}
+                          disabled={!clearTxCode}
+                          onClick={async () => {
+                            try {
+                              const res = await adminApi.clearTransactions(clearTxCode);
+                              setStatus(`✅ Transactions cleared — ${res.usersCleared} users, ${res.vendorsCleared} vendors. Archived as ${res.archive}.`);
+                              setClearingTx(false);
+                              setClearTxCode('');
+                            } catch (err) {
+                              setStatus(err.response?.data?.error || 'Clear transactions failed.');
+                            }
+                          }}
+                        >
+                          Confirm Clear
+                        </button>
+                        <button style={btn('secondary')} onClick={() => { setClearingTx(false); setClearTxCode(''); }}>Cancel</button>
                       </div>
                     </div>
                   )}

@@ -6,7 +6,7 @@
 
 ---
 
-## 🏗️ Architecture 
+## 🏗️ Architecture  
 
 ```mermaid
 graph TB

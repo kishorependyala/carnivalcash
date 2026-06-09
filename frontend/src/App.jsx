@@ -7,6 +7,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import ItemSelectPage from './components/user/ItemSelectPage';
 import ScanPage from './components/user/ScanPage';
 import UserDashboard from './components/user/UserDashboard';
+import DonationsPage from './components/user/DonationsPage';
 import StallPage from './components/stall/StallPage';
 import VendorChargePage from './components/vendor/VendorChargePage';
 import VendorDashboard from './components/vendor/VendorDashboard';
@@ -29,6 +30,7 @@ function App() {
       <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/stats" element={<ProtectedRoute roles={['admin']}><AdminStatsPage /></ProtectedRoute>} />
       <Route path="/user" element={<ProtectedRoute roles={['user']}><UserDashboard /></ProtectedRoute>} />
+      <Route path="/donations" element={<ProtectedRoute roles={['user', 'admin', 'vendor']}><DonationsPage /></ProtectedRoute>} />
       <Route path="/scan" element={<ProtectedRoute roles={['user', 'admin']}><ScanPage /></ProtectedRoute>} />
       <Route path="/scan/items/:vendorId" element={<ProtectedRoute roles={['user', 'admin']}><ItemSelectPage mode="vendor" /></ProtectedRoute>} />
       <Route path="/scan/stall/:stallId" element={<ProtectedRoute roles={['user', 'admin']}><ItemSelectPage mode="stall" /></ProtectedRoute>} />

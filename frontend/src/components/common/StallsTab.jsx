@@ -4,9 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import charitiesApi from '../../api/charities';
 import stallsApi from '../../api/stalls';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import { getStale, setCache } from '../../utils/swrCache';
 import PrintableQR from './PrintableQR';
 import { card, inp } from './ProfileSections';
+
+// Strip "(child of X)" suffix added by old backend versions
+function cleanMemberName(name) {
+  if (!name) return name;
+  const idx = name.indexOf(' (child of ');
+  return idx !== -1 ? name.slice(0, idx) : name;
+}
 
 export const TYPE_META = {
   food: { icon: '🍕', label: 'Food', color: '#b45309', bg: '#fef3c7' },
@@ -267,7 +275,7 @@ function MemberAdder({ stallId, onUpdated }) {
   );
 }
 
-export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
+export function StallCard({ stall: initialStall, myUserId, onScanCustomer, tokenRate = 2 }) {
   const navigate = useNavigate();
   const [stall, setStall] = useState(initialStall);
   const [txns, setTxns] = useState([]);
@@ -285,6 +293,8 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
   const [stallCardValue, setStallCardValue] = useState('');
   const [stallCardBusy, setStallCardBusy] = useState(false);
   const [stallCardScanActive, setStallCardScanActive] = useState(false);
+  const [physicalInput, setPhysicalInput] = useState(String(initialStall.physicalTokens || 0));
+  const [savingPhysical, setSavingPhysical] = useState(false);
   const stallCardScanner = useRef(null);
   const scanDivId = `stall-card-reader-${initialStall.stallId}`;
 
@@ -329,6 +339,7 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
   useEffect(() => {
     setStall(initialStall);
     setNewItem({ name: '', tokenPrice: initialStall.tokensPerItem });
+    setPhysicalInput(String(initialStall.physicalTokens || 0));
     setOrders([]);
     setOrdersLoaded(false);
   }, [initialStall]);
@@ -390,6 +401,21 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
     catch { setStatus('Failed to load transactions.'); }
   };
 
+  const savePhysicalTokens = async () => {
+    const val = Math.max(0, parseInt(physicalInput, 10) || 0);
+    setPhysicalInput(String(val));
+    setSavingPhysical(true);
+    try {
+      const updated = await stallsApi.update(stall.stallId, { physicalTokens: val });
+      setStall(updated);
+      setStatus('');
+    } catch (e) {
+      setStatus(e.response?.data?.error || 'Failed to save physical tokens.');
+    } finally {
+      setSavingPhysical(false);
+    }
+  };
+
   const handleJoinRequest = async (userId, action) => {
     try {
       const u = await stallsApi.handleJoinRequest(stall.stallId, userId, action);
@@ -442,12 +468,13 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
 
       {/* ── Members (read-only) ── */}
       <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.65rem' }}>
-        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151', marginBottom: '0.35rem' }}>👥 Members</div>
+        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151', marginBottom: '0.35rem' }}>👥 {stall.stallName} Members</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
           {stall.members.map((uid) => {
             const isKid = uid.startsWith('KID:');
             const isStallAdmin = (stall.stallAdmins || []).includes(uid);
-            const displayName = uid === myUserId ? 'You' : (stall.memberNames?.[uid] || (isKid ? uid : `…${uid.slice(-8)}`));
+            const rawName = uid === myUserId ? 'You' : (stall.memberNames?.[uid] || (isKid ? uid : `…${uid.slice(-8)}`));
+            const displayName = cleanMemberName(rawName);
             return (
               <span key={uid} style={{ background: isStallAdmin ? '#fef3c7' : '#f3f4f6', color: isStallAdmin ? '#92400e' : '#374151', borderRadius: '999px', padding: '0.2rem 0.65rem', fontSize: '0.82rem', fontWeight: isStallAdmin ? 700 : 400 }}>
                 {isKid ? '👦' : '👤'} {displayName}{isStallAdmin ? ' 👑' : ''}
@@ -502,19 +529,71 @@ export function StallCard({ stall: initialStall, myUserId, onScanCustomer }) {
         </div>
       )}
 
-      {/* ── Transactions ── */}
-      <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.65rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151' }}>Transactions</div>
-          {!showTxns && <button onClick={loadTxns} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem' }}>Load</button>}
-        </div>
-        {showTxns && txns.length === 0 && <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>No transactions yet.</p>}
-        {showTxns && txns.map((tx) => (
-          <div key={`${tx.txId}-${tx.itemId}`} style={{ background: '#fffbeb', borderRadius: '0.65rem', padding: '0.4rem 0.7rem', fontSize: '0.82rem', marginTop: '0.25rem' }}>
-            <div style={{ fontWeight: 700 }}>{tx.userName} · {tx.itemName} × {tx.qty}</div>
-            <div style={{ color: '#b45309' }}>🪙 {tx.amount} <span style={{ color: '#9ca3af', fontSize: '0.75rem', marginLeft: '0.4rem' }}>{tx.timestamp}</span></div>
+      {/* ── Token Summary ── */}
+      <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '0.65rem', display: 'grid', gap: '0.65rem' }}>
+        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#374151' }}>🪙 Token Summary</div>
+
+        {/* Stats row */}
+        {(() => {
+          const digitalTokens = stall.tokenBalance || 0;
+          const physicalTokens = stall.physicalTokens || 0;
+          const totalTokens = digitalTokens + physicalTokens;
+          const dollars = tokenRate > 0 ? (totalTokens / tokenRate).toFixed(2) : '—';
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.5rem' }}>
+              {[
+                { label: 'Digital 💻', value: digitalTokens, color: '#1d4ed8', bg: '#dbeafe' },
+                { label: 'Physical 🎟️', value: physicalTokens, color: '#b45309', bg: '#fef3c7' },
+                { label: 'Total 🪙', value: totalTokens, color: '#065f46', bg: '#d1fae5', bold: true },
+                { label: `$ (÷${tokenRate})`, value: `$${dollars}`, color: '#7c3aed', bg: '#ede9fe', bold: true },
+              ].map(({ label, value, color, bg, bold }) => (
+                <div key={label} style={{ background: bg, borderRadius: '0.75rem', padding: '0.6rem 0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: bold ? '1.3rem' : '1.15rem', fontWeight: 900, color }}>{value}</div>
+                  <div style={{ fontSize: '0.72rem', color, fontWeight: 600, marginTop: '0.1rem' }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* Physical tokens input */}
+        {canManage && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', color: '#374151', fontWeight: 600 }}>🎟️ Physical tokens collected:</span>
+            <input
+              type="number"
+              min="0"
+              value={physicalInput}
+              onChange={(e) => setPhysicalInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && savePhysicalTokens()}
+              style={{ width: '6rem', padding: '0.3rem 0.55rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', fontSize: '0.9rem', fontFamily: 'monospace' }}
+            />
+            <button
+              onClick={savePhysicalTokens}
+              disabled={savingPhysical}
+              style={{ padding: '0.3rem 0.8rem', borderRadius: '0.5rem', border: 'none', cursor: savingPhysical ? 'default' : 'pointer', fontWeight: 700, background: '#f59e0b', color: '#fff', fontSize: '0.82rem', opacity: savingPhysical ? 0.6 : 1 }}
+            >
+              {savingPhysical ? 'Saving…' : 'Save'}
+            </button>
           </div>
-        ))}
+        )}
+
+        {/* Digital transactions */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151' }}>
+              Digital Transactions{showTxns && txns.length > 0 ? ` (${txns.length})` : ''}
+            </div>
+            {!showTxns && <button onClick={loadTxns} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem' }}>Load</button>}
+          </div>
+          {showTxns && txns.length === 0 && <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>No transactions yet.</p>}
+          {showTxns && txns.map((tx) => (
+            <div key={`${tx.txId}-${tx.itemId}`} style={{ background: '#fffbeb', borderRadius: '0.65rem', padding: '0.4rem 0.7rem', fontSize: '0.82rem', marginTop: '0.25rem' }}>
+              <div style={{ fontWeight: 700 }}>{cleanMemberName(tx.userName || '')} · {tx.itemName} × {tx.qty}</div>
+              <div style={{ color: '#b45309' }}>🪙 {tx.amount} <span style={{ color: '#9ca3af', fontSize: '0.75rem', marginLeft: '0.4rem' }}>{tx.timestamp}</span></div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Manage Modal ── */}
@@ -816,6 +895,7 @@ const subTab = (active) => ({
 
 export function MergedStallsTab() {
   const { user } = useAuth();
+  const { tokenRate } = useSettings();
   const navigate = useNavigate();
   const stale = getStale('my_stalls');
   const [myStalls, setMyStalls] = useState(() => stale || []);
@@ -914,6 +994,7 @@ export function MergedStallsTab() {
               stall={stall}
               myUserId={user?.userId}
               onScanCustomer={() => navigate(`/vendor/scan?stallId=${stall.stallId}`)}
+              tokenRate={tokenRate || 2}
             />
           ))}
       </>

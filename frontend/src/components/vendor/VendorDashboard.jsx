@@ -8,9 +8,10 @@ import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import { BrowseStallsTab, StallsTab } from '../common/StallsTab';
 import { HistoryTab, ProfileTab } from '../common/ProfileSections';
+import DonationsTab from '../common/DonationsTab';
 import { getStale, setCache } from '../../utils/swrCache';
 
-const TABS = ['Stalls', 'Browse', 'Profile', 'History'];
+const TABS = ['Stalls', 'Browse', 'Profile', 'History', 'Donations'];
 
 function TabBar({ tabs, active, onChange }) {
   return (
@@ -88,6 +89,7 @@ function VendorDashboard() {
         {tab === 'Browse' && <BrowseStallsTab />}
         {tab === 'Profile' && <ProfileTab profile={profile} balance={balance} event={null} isAdmin={isAdmin} setStatus={setStatus} onReload={load} kids={[]} setProfile={setProfile} tabs={TABS} tabLabels={{ Stalls: 'Vendor & Stalls', Browse: 'Vendor & Browse', Profile: 'Vendor & Profile', History: 'Vendor & History' }} />}
         {tab === 'History' && <HistoryTab transactions={transactions} />}
+        {tab === 'Donations' && <DonationsTab />}
       </div>
     </Layout>
   );

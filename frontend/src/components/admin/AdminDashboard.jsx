@@ -15,6 +15,7 @@ import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { TYPE_META, MergedStallsTab } from '../common/StallsTab';
 import { HistoryTab, card, inp } from '../common/ProfileSections'; // eslint-disable-line no-unused-vars
+import DonationsTab from '../common/DonationsTab';
 import { getStale, setCache } from '../../utils/swrCache';
 
 const btn = (variant = 'primary') => ({
@@ -27,7 +28,7 @@ const btn = (variant = 'primary') => ({
   color: variant === 'primary' ? '#fff' : variant === 'danger' ? '#dc2626' : '#374151',
 });
 
-const TABS = ['User', 'Stalls', 'Admin'];
+const TABS = ['User', 'Stalls', 'Donations', 'Admin'];
 const TAB_LABELS = { User: 'Admin & Users', Stalls: 'Admin & Stalls', Admin: 'Admin & Admin settings' };
 const OFFLINE_CARD_PREFIX = 'CARNIVAL_CARD:';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -76,7 +77,7 @@ function TabBar({ tabs, active, onChange, badges = {} }) {
   );
 }
 
-const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, refreshPinResetRequests }) {
+const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, refreshPinResetRequests, onImpersonate }) {
   const [open, setOpen] = useState(false);
   const [dollars, setDollars] = useState('');
   const [addBusy, setAddBusy] = useState(false);
@@ -231,6 +232,7 @@ const TokenRow = memo(function TokenRow({ user, tokenRate, onDone, setStatus, re
             {linkQrOpen ? 'Cancel' : '🃏 Card'}
           </button>
           <button style={btn('secondary')} onClick={doResetPin}>🔐 Reset PIN</button>
+          <button style={btn('secondary')} onClick={() => onImpersonate?.(user)}>👤 Login as</button>
           <button style={btn('danger')} onClick={doZero}>⬛ Zero</button>
           <button style={btn('danger')} onClick={() => { setDeleting((v) => !v); setDelCode(''); setOpen(false); setLinkQrOpen(false); }}>
             🗑️
@@ -458,6 +460,392 @@ function UsersPrintOverlay({ users, onClose }) {
       `}</style>
     </div>,
     document.body
+  );
+}
+
+function StallSummaryTable({ stalls, tokenRate = 2, onSaved }) {
+  const [edits, setEdits] = useState({});
+  const [saving, setSaving] = useState({});
+  const [sortCol, setSortCol] = useState('totalTokens');
+  const [sortDir, setSortDir] = useState('desc');
+  // kidEditing: memberId -> { draft, saving }
+  const [kidEditing, setKidEditing] = useState({});
+  // addingKid: stallId -> { draft, saving }
+  const [addingKid, setAddingKid] = useState({});
+  // charityEditing: `${stallId}:${charityId}` -> { name, percentage, saving }
+  const [charityEditing, setCharityEditing] = useState({});
+
+  const charityKey = (stallId, charityId) => `${stallId}:${charityId}`;
+
+  const startCharityEdit = (stallId, charity) =>
+    setCharityEditing(prev => ({
+      ...prev,
+      [charityKey(stallId, charity.charityId)]: { name: charity.name, percentage: String(charity.percentage ?? 0), saving: false },
+    }));
+
+  const cancelCharityEdit = (stallId, charityId) =>
+    setCharityEditing(prev => { const n = { ...prev }; delete n[charityKey(stallId, charityId)]; return n; });
+
+  const saveCharityEdit = async (stallId, charityId) => {
+    const ck = charityKey(stallId, charityId);
+    const draft = charityEditing[ck];
+    if (!draft) return;
+    setCharityEditing(prev => ({ ...prev, [ck]: { ...prev[ck], saving: true } }));
+    try {
+      await adminApi.adminUpdateStallSummary(stallId, {
+        charities: [{ charityId, name: draft.name, percentage: parseInt(draft.percentage, 10) || 0 }],
+      });
+      cancelCharityEdit(stallId, charityId);
+      onSaved?.();
+    } catch { /* ignore */ }
+    finally {
+      setCharityEditing(prev => prev[ck] ? { ...prev, [ck]: { ...prev[ck], saving: false } } : prev);
+    }
+  };
+
+  const toggleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('desc'); }
+  
+  };
+
+  const getEdit = (stallId, field, fallback) =>
+    edits[stallId]?.[field] !== undefined ? edits[stallId][field] : fallback;
+
+  const setEdit = (stallId, field, value) =>
+    setEdits(prev => ({ ...prev, [stallId]: { ...(prev[stallId] || {}), [field]: value } }));
+
+  const save = async (stall) => {
+    const edit = edits[stall.stallId];
+    if (!edit) return;
+    setSaving(prev => ({ ...prev, [stall.stallId]: true }));
+    try {
+      const payload = {};
+      if (edit.physicalTokens !== undefined) payload.physicalTokens = parseInt(edit.physicalTokens, 10) || 0;
+      if (edit.tokenBalance !== undefined) payload.tokenBalance = parseInt(edit.tokenBalance, 10) || 0;
+      await adminApi.adminUpdateStallSummary(stall.stallId, payload);
+      setEdits(prev => { const n = { ...prev }; delete n[stall.stallId]; return n; });
+      onSaved?.();
+    } catch { /* ignore */ }
+    finally { setSaving(prev => ({ ...prev, [stall.stallId]: false })); }
+  };
+
+  const startKidEdit = (memberId, currentName) =>
+    setKidEditing(prev => ({ ...prev, [memberId]: { draft: currentName, saving: false } }));
+
+  const cancelKidEdit = (memberId) =>
+    setKidEditing(prev => { const n = { ...prev }; delete n[memberId]; return n; });
+
+  const saveKidName = async (memberId, stallId) => {
+    const draft = kidEditing[memberId]?.draft?.trim();
+    if (!draft) return;
+    // parse KID:<parentUserId>:<kidId>
+    const parts = memberId.split(':');
+    const parentUserId = parts[1];
+    const kidId = parts[2];
+    setKidEditing(prev => ({ ...prev, [memberId]: { ...prev[memberId], saving: true } }));
+    try {
+      await adminApi.adminUpdateKid(parentUserId, kidId, draft);
+      cancelKidEdit(memberId);
+      onSaved?.();
+    } catch { /* ignore */ }
+    finally {
+      setKidEditing(prev => prev[memberId] ? { ...prev, [memberId]: { ...prev[memberId], saving: false } } : prev);
+    }
+  };
+
+  const saveNewKid = async (stallId) => {
+    const draft = addingKid[stallId]?.draft?.trim();
+    if (!draft) return;
+    setAddingKid(prev => ({ ...prev, [stallId]: { ...prev[stallId], saving: true } }));
+    try {
+      await adminApi.adminUpdateStallSummary(stallId, { newKids: [draft] });
+      setAddingKid(prev => { const n = { ...prev }; delete n[stallId]; return n; });
+      onSaved?.();
+    } catch { /* ignore */ }
+    finally {
+      setAddingKid(prev => prev[stallId] ? { ...prev, [stallId]: { ...prev[stallId], saving: false } } : prev);
+    }
+  };
+
+  // Sort stalls
+  const sortedStalls = [...stalls].sort((a, b) => {
+    const physA = parseInt(getEdit(a.stallId, 'physicalTokens', a.physicalTokens ?? 0), 10) || 0;
+    const physB = parseInt(getEdit(b.stallId, 'physicalTokens', b.physicalTokens ?? 0), 10) || 0;
+    const vals = {
+      stallName: [a.stallName?.toLowerCase(), b.stallName?.toLowerCase()],
+      transactionCount: [a.transactionCount ?? 0, b.transactionCount ?? 0],
+      tokenBalance: [a.tokenBalance ?? 0, b.tokenBalance ?? 0],
+      physicalTokens: [physA, physB],
+      totalTokens: [(a.tokenBalance ?? 0) + physA, (b.tokenBalance ?? 0) + physB],
+    };
+    const [va, vb] = vals[sortCol] || [0, 0];
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const tdBase = { padding: '0.5rem 0.6rem', verticalAlign: 'top', borderBottom: '1px solid #fde68a', fontSize: '0.85rem' };
+  const inp = { padding: '0.3rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #d1d5db', fontSize: '0.82rem', boxSizing: 'border-box' };
+
+  // Aggregate totals across all stalls
+  const totals = stalls.reduce((acc, s) => {
+    const phys = parseInt(getEdit(s.stallId, 'physicalTokens', s.physicalTokens ?? 0), 10) || 0;
+    const dig = s.tokenBalance ?? 0;
+    const kidCount = Object.keys(s.memberNames || {}).filter(k => k.startsWith('KID:')).length;
+    acc.stalls += 1;
+    acc.kids += kidCount;
+    acc.digital += dig;
+    acc.physical += phys;
+    acc.total += dig + phys;
+    acc.txns += s.transactionCount ?? 0;
+    return acc;
+  }, { stalls: 0, kids: 0, digital: 0, physical: 0, total: 0, txns: 0 });
+  const totalDollars = tokenRate > 0 ? (totals.total / tokenRate).toFixed(2) : '—';
+
+  const statChip = (icon, label, value, color = '#92400e', bg = '#fef3c7') => (
+    <div style={{ background: bg, borderRadius: '0.75rem', padding: '0.6rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '90px' }}>
+      <div style={{ fontSize: '1.1rem', fontWeight: 900, color }}>{icon} {value}</div>
+      <div style={{ fontSize: '0.7rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.1rem' }}>{label}</div>
+    </div>
+  );
+
+  const cols = [
+    { key: 'stallName',        label: 'Stall',             align: 'left'  },
+    { key: null,               label: 'Kids',              align: 'left'  },
+    { key: 'transactionCount', label: 'Txns',              align: 'right' },
+    { key: 'tokenBalance',     label: 'Digital 🪙',        align: 'right' },
+    { key: 'physicalTokens',   label: 'Physical 🪙',       align: 'right' },
+    { key: 'totalTokens',      label: 'Total 🪙',          align: 'right' },
+    { key: 'totalTokens',      label: '$ Collected',       align: 'right', altKey: true },
+    { key: null,               label: 'Charity / Donation',align: 'left'  },
+    { key: null,               label: '',                  align: 'left'  },
+  ];
+  const arrow = (key) => sortCol === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+
+  return (
+    <div style={{ display: 'grid', gap: '0.75rem' }}>
+      {/* Summary bar */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {statChip('🎪', 'Stalls',    totals.stalls,   '#92400e', '#fef3c7')}
+        {statChip('👧', 'Kids',      totals.kids,     '#1d4ed8', '#dbeafe')}
+        {statChip('🔄', 'Txns',      totals.txns,     '#374151', '#f3f4f6')}
+        {statChip('📱', 'Digital',   totals.digital,  '#b45309', '#fffbeb')}
+        {statChip('🎟', 'Physical',  totals.physical, '#6d28d9', '#ede9fe')}
+        {statChip('🪙', 'Total',     totals.total,    '#92400e', '#fde68a')}
+        {statChip('💵', 'Collected', `$${totalDollars}`, '#065f46', '#d1fae5')}
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+        <thead>
+          <tr style={{ background: '#fef3c7' }}>
+            {cols.map((c, i) => (
+              <th
+                key={i}
+                onClick={c.key && !c.altKey ? () => toggleSort(c.key) : undefined}
+                style={{
+                  padding: '0.5rem 0.6rem', textAlign: c.align, color: '#92400e', fontWeight: 700,
+                  whiteSpace: 'nowrap', cursor: c.key && !c.altKey ? 'pointer' : 'default',
+                  userSelect: 'none', background: sortCol === c.key && !c.altKey ? '#fde68a' : undefined,
+                }}
+              >
+                {c.label}{c.key && !c.altKey ? arrow(c.key) : ''}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sortedStalls.map((stall) => {
+            const physical = parseInt(getEdit(stall.stallId, 'physicalTokens', stall.physicalTokens ?? 0), 10) || 0;
+            const digital = parseInt(getEdit(stall.stallId, 'tokenBalance', stall.tokenBalance ?? 0), 10) || 0;
+            const total = digital + physical;
+            const dollars = tokenRate > 0 ? (total / tokenRate).toFixed(2) : '—';
+            const isDirty = !!edits[stall.stallId];
+            const isSaving = !!saving[stall.stallId];
+
+            // Kids: use KID-keyed members from memberNames
+                const kidEntries = Object.entries(stall.memberNames || {})
+                  .filter(([k]) => k.startsWith('KID:'))
+                  .map(([k, v]) => [k, v.replace(/\s*\(child of [^)]*\)/i, '').trim()]);
+
+            // Charities with calculated donation (keep for totals/display)
+            const charities = stall.charities || [];
+
+            return (
+              <tr key={stall.stallId} style={{ background: isDirty ? '#fffbeb' : '#fff' }}>
+                {/* Stall name */}
+                <td style={{ ...tdBase, fontWeight: 700, color: '#374151', whiteSpace: 'nowrap' }}>{stall.stallName}</td>
+
+                {/* Kids — display with per-kid ✏️ inline edit */}
+                <td style={{ ...tdBase, minWidth: '150px' }}>
+                  {kidEntries.length === 0 && <span style={{ color: '#9ca3af' }}>—</span>}
+                  {kidEntries.map(([memberId, cleanName]) => {
+                    const editing = kidEditing[memberId];
+                    return (
+                      <div key={memberId} style={{ marginBottom: '0.3rem' }}>
+                        {editing ? (
+                          <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                            <input
+                              autoFocus
+                              style={{ ...inp, flex: 1 }}
+                              value={editing.draft}
+                              onChange={e => setKidEditing(prev => ({ ...prev, [memberId]: { ...prev[memberId], draft: e.target.value } }))}
+                              onKeyDown={e => { if (e.key === 'Enter') saveKidName(memberId, stall.stallId); if (e.key === 'Escape') cancelKidEdit(memberId); }}
+                            />
+                            <button onClick={() => saveKidName(memberId, stall.stallId)} disabled={editing.saving}
+                              style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '0.4rem', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+                              {editing.saving ? '…' : '✓'}
+                            </button>
+                            <button onClick={() => cancelKidEdit(memberId)}
+                              style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.4rem', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ color: '#374151' }}>{cleanName}</span>
+                            <button onClick={() => startKidEdit(memberId, cleanName)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '0.8rem', padding: '0 0.2rem', lineHeight: 1 }}
+                              title="Edit kid name">✏️</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Add kid row */}
+                  {addingKid[stall.stallId] ? (
+                    <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', marginTop: kidEntries.length ? '0.3rem' : 0 }}>
+                      <input
+                        autoFocus
+                        placeholder="Kid name"
+                        style={{ ...inp, flex: 1 }}
+                        value={addingKid[stall.stallId].draft}
+                        onChange={e => setAddingKid(prev => ({ ...prev, [stall.stallId]: { ...prev[stall.stallId], draft: e.target.value } }))}
+                        onKeyDown={e => { if (e.key === 'Enter') saveNewKid(stall.stallId); if (e.key === 'Escape') setAddingKid(prev => { const n={...prev}; delete n[stall.stallId]; return n; }); }}
+                      />
+                      <button onClick={() => saveNewKid(stall.stallId)} disabled={addingKid[stall.stallId].saving}
+                        style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '0.4rem', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+                        {addingKid[stall.stallId].saving ? '…' : '✓'}
+                      </button>
+                      <button onClick={() => setAddingKid(prev => { const n={...prev}; delete n[stall.stallId]; return n; })}
+                        style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.4rem', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAddingKid(prev => ({ ...prev, [stall.stallId]: { draft: '', saving: false } }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.78rem', padding: '0.1rem 0', marginTop: kidEntries.length ? '0.25rem' : 0, display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+                    >
+                      ➕ {kidEntries.length === 0 ? 'Add kid name' : 'Add another'}
+                    </button>
+                  )}
+                </td>
+
+                {/* Txns */}
+                <td style={{ ...tdBase, textAlign: 'right', color: '#6b7280' }}>{stall.transactionCount ?? 0}</td>
+
+                {/* Digital — override editable */}
+                <td style={{ ...tdBase, textAlign: 'right', minWidth: '80px' }}>
+                  <input
+                    type="number"
+                    min="0"
+                    style={{ ...inp, textAlign: 'right', width: '70px' }}
+                    value={getEdit(stall.stallId, 'tokenBalance', stall.tokenBalance ?? 0)}
+                    onChange={e => setEdit(stall.stallId, 'tokenBalance', e.target.value)}
+                  />
+                </td>
+
+                {/* Physical — editable */}
+                <td style={{ ...tdBase, textAlign: 'right', minWidth: '80px' }}>
+                  <input
+                    type="number"
+                    min="0"
+                    style={{ ...inp, textAlign: 'right', width: '70px' }}
+                    value={getEdit(stall.stallId, 'physicalTokens', stall.physicalTokens ?? 0)}
+                    onChange={e => setEdit(stall.stallId, 'physicalTokens', e.target.value)}
+                  />
+                </td>
+
+                {/* Total */}
+                <td style={{ ...tdBase, textAlign: 'right', fontWeight: 800, color: '#92400e' }}>{total}</td>
+
+                {/* $ Collected */}
+                <td style={{ ...tdBase, textAlign: 'right', fontWeight: 700, color: '#7c3aed' }}>${dollars}</td>
+
+                {/* Charity / Donation — inline editable */}
+                <td style={{ ...tdBase, minWidth: '200px' }}>
+                  {charities.length === 0 && <span style={{ color: '#9ca3af' }}>—</span>}
+                  {charities.map((c) => {
+                    const ck = charityKey(stall.stallId, c.charityId);
+                    const editing = charityEditing[ck];
+                    const pct = c.percentage || 0;
+                    const tokens = Math.round(total * pct / 100);
+                    const amt = tokenRate > 0 ? (tokens / tokenRate).toFixed(2) : '—';
+                    return (
+                      <div key={c.charityId} style={{ marginBottom: '0.4rem' }}>
+                        {editing ? (
+                          <div style={{ display: 'grid', gap: '0.25rem' }}>
+                            <input
+                              autoFocus
+                              placeholder="Charity name"
+                              style={{ ...inp, width: '100%' }}
+                              value={editing.name}
+                              onChange={e => setCharityEditing(prev => ({ ...prev, [ck]: { ...prev[ck], name: e.target.value } }))}
+                            />
+                            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                              <input
+                                type="number" min="0" max="100"
+                                style={{ ...inp, width: '60px', textAlign: 'right' }}
+                                value={editing.percentage}
+                                onChange={e => setCharityEditing(prev => ({ ...prev, [ck]: { ...prev[ck], percentage: e.target.value } }))}
+                              />
+                              <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>%</span>
+                              <button onClick={() => saveCharityEdit(stall.stallId, c.charityId)} disabled={editing.saving}
+                                style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '0.4rem', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+                                {editing.saving ? '…' : '✓'}
+                              </button>
+                              <button onClick={() => cancelCharityEdit(stall.stallId, c.charityId)}
+                                style={{ background: '#f3f4f6', border: 'none', borderRadius: '0.4rem', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.3rem' }}>
+                            <span style={{ fontSize: '0.78rem', color: '#059669', flex: 1 }}>
+                              💚 {c.name} ({pct}%): 🪙{tokens} / ${amt}
+                            </span>
+                            <button onClick={() => startCharityEdit(stall.stallId, c)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '0.8rem', padding: '0', lineHeight: 1, flexShrink: 0 }}
+                              title="Edit charity">✏️</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </td>
+
+                {/* Save button */}
+                <td style={{ ...tdBase, whiteSpace: 'nowrap' }}>
+                  {isDirty && (
+                    <button
+                      onClick={() => save(stall)}
+                      disabled={isSaving}
+                      style={{ padding: '0.3rem 0.75rem', borderRadius: '0.5rem', border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', opacity: isSaving ? 0.6 : 1 }}
+                    >
+                      {isSaving ? '…' : '💾 Save'}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      </div>
+    </div>
   );
 }
 
@@ -976,8 +1364,364 @@ function DataFilesTab() {
   );
 }
 
+function StallMemberRow({ stallId, memberId, displayName, isAdmin, onToggled }) {
+  const [busy, setBusy] = useState(false);
+
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      const updated = await adminApi.adminToggleStallAdmin(stallId, memberId, !isAdmin);
+      onToggled(updated);
+    } catch {
+      // silently ignore — parent will show status via load
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.6rem', background: '#fff', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+      <span style={{ flex: 1 }}>{displayName}</span>
+      {isAdmin && (
+        <span style={{ background: '#dc2626', color: '#fff', borderRadius: '0.4rem', padding: '0.15rem 0.55rem', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.03em' }}>
+          Admin
+        </span>
+      )}
+      <button
+        onClick={toggle}
+        disabled={busy}
+        style={{ padding: '0.2rem 0.6rem', borderRadius: '0.4rem', border: 'none', cursor: busy ? 'default' : 'pointer', fontWeight: 600, fontSize: '0.75rem', background: isAdmin ? '#fee2e2' : '#d1fae5', color: isAdmin ? '#dc2626' : '#065f46', opacity: busy ? 0.6 : 1 }}
+      >
+        {busy ? '…' : isAdmin ? '− Remove Admin' : '+ Make Admin'}
+      </button>
+    </div>
+  );
+}
+
+function MaintenanceCard({ title, description, checkLabel, fixLabel, onCheck, onFix, reportContent, busy }) {
+  const [report, setReport] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [fixing, setFixing] = useState(false);
+  const [msg, setMsg] = useState('');
+  const isBusy = checking || fixing || busy;
+
+  const runCheck = async () => {
+    setChecking(true); setMsg('');
+    try { setReport(await onCheck()); }
+    catch (e) { setMsg('❌ ' + (e.response?.data?.error || 'Check failed.')); }
+    finally { setChecking(false); }
+  };
+
+  const runFix = async () => {
+    setFixing(true); setMsg('');
+    try {
+      const result = await onFix();
+      setMsg(result.successMsg || '✅ Done.');
+      setReport(null);
+    } catch (e) { setMsg('❌ ' + (e.response?.data?.error || 'Fix failed.')); }
+    finally { setFixing(false); }
+  };
+
+  const showFix = report && report.canFix;
+
+  return (
+    <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '1rem', padding: '1rem', display: 'grid', gap: '0.75rem' }}>
+      <div style={{ fontWeight: 800, fontSize: '0.97rem', color: '#92400e' }}>{title}</div>
+      <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>{description}</p>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <button
+          style={{ padding: '0.45rem 1.1rem', borderRadius: '0.65rem', border: 'none', cursor: isBusy ? 'default' : 'pointer', fontWeight: 600, background: '#f3f4f6', color: '#374151', opacity: isBusy ? 0.6 : 1 }}
+          onClick={runCheck} disabled={isBusy}
+        >
+          {checking ? '⏳ Checking…' : checkLabel}
+        </button>
+        {showFix && (
+          <button
+            style={{ padding: '0.45rem 1.1rem', borderRadius: '0.65rem', border: 'none', cursor: fixing ? 'default' : 'pointer', fontWeight: 600, background: '#dc2626', color: '#fff', opacity: fixing ? 0.6 : 1 }}
+            onClick={runFix} disabled={isBusy}
+          >
+            {fixing ? '⏳ Working…' : fixLabel(report)}
+          </button>
+        )}
+      </div>
+      {msg && (
+        <div style={{ background: msg.startsWith('✅') ? '#d1fae5' : '#fee2e2', borderRadius: '0.65rem', padding: '0.6rem 0.9rem', color: msg.startsWith('✅') ? '#065f46' : '#dc2626', fontWeight: 600, fontSize: '0.88rem' }}>
+          {msg}
+        </div>
+      )}
+      {report && reportContent(report)}
+    </div>
+  );
+}
+
+function MaintenanceTab() {
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      <h2 style={{ margin: 0 }}>🔧 Maintenance</h2>
+
+      {/* Card 1 — Duplicate Transactions */}
+      <MaintenanceCard
+        title="🔍 Duplicate Transaction Check"
+        description="Scans all user transaction files for entries with the same txId (caused by initial seed data loaded alongside real transactions)."
+        checkLabel="🔍 Check for Duplicates"
+        fixLabel={(r) => `🛠 Fix ${r.totalDuplicates} Duplicate(s)`}
+        onCheck={() => adminApi.maintenanceDedupeCheck()}
+        onFix={async () => {
+          if (!window.confirm('Remove all duplicate transactions? This cannot be undone.')) throw new Error('Cancelled');
+          const d = await adminApi.maintenanceDedupeTransactions();
+          return { successMsg: `✅ Fixed ${d.fixedUsers} user(s), removed ${d.totalRemoved} duplicate transaction(s).`, canFix: false };
+        }}
+        reportContent={(r) => (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <span style={{ background: '#fef3c7', borderRadius: '0.65rem', padding: '0.35rem 0.8rem', fontWeight: 700, color: '#92400e', fontSize: '0.9rem' }}>
+                Affected users: {r.affectedUsers}
+              </span>
+              <span style={{ background: r.totalDuplicates > 0 ? '#fee2e2' : '#d1fae5', borderRadius: '0.65rem', padding: '0.35rem 0.8rem', fontWeight: 700, color: r.totalDuplicates > 0 ? '#dc2626' : '#065f46', fontSize: '0.9rem' }}>
+                {r.totalDuplicates > 0 ? `⚠️ ${r.totalDuplicates} duplicates found` : '✅ No duplicates found'}
+              </span>
+            </div>
+            {r.details?.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#fef3c7' }}>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem', color: '#92400e' }}>User</th>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: '#92400e' }}>Phone</th>
+                    <th style={{ textAlign: 'right', padding: '0.4rem 0.5rem', color: '#92400e' }}>Total Txns</th>
+                    <th style={{ textAlign: 'right', padding: '0.4rem 0.75rem', color: '#dc2626' }}>Dupes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.details.map((row) => (
+                    <tr key={row.userId} style={{ borderBottom: '1px solid #fde68a' }}>
+                      <td style={{ padding: '0.4rem 0.75rem', fontWeight: 600 }}>{row.name || '—'}</td>
+                      <td style={{ padding: '0.4rem 0.5rem', color: '#6b7280', fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.phone}</td>
+                      <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right' }}>{row.totalTransactions}</td>
+                      <td style={{ padding: '0.4rem 0.75rem', textAlign: 'right', color: '#dc2626', fontWeight: 700 }}>{row.duplicateCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      />
+
+      {/* Card 2 — Admin Load Duplicates */}
+      <MaintenanceCard
+        title="⚡ Admin Load Duplicate Check"
+        description="Finds near-duplicate token-load audit entries caused by rapid double-clicks (same phone + amount within 3 seconds)."
+        checkLabel="🔍 Check Admin Loads"
+        fixLabel={(r) => `🛠 Remove ${r.duplicates?.length || 0} Duplicate Load(s)`}
+        onCheck={() => adminApi.maintenanceAdminLoadsCheck()}
+        onFix={async () => {
+          if (!window.confirm('Remove duplicate admin load entries from the audit log? This cannot be undone.')) throw new Error('Cancelled');
+          const d = await adminApi.maintenanceDedupeAdminLoads();
+          return { successMsg: `✅ Removed ${d.removed} duplicate entry(s). Audit log now has ${d.newCount} entries.` };
+        }}
+        reportContent={(r) => (
+          <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+            <span style={{ background: '#fef3c7', borderRadius: '0.65rem', padding: '0.35rem 0.8rem', fontWeight: 700, color: '#92400e', fontSize: '0.9rem' }}>
+              Total loads: {r.totalLoads}
+            </span>
+            <span style={{ background: r.duplicates?.length > 0 ? '#fee2e2' : '#d1fae5', borderRadius: '0.65rem', padding: '0.35rem 0.8rem', fontWeight: 700, color: r.duplicates?.length > 0 ? '#dc2626' : '#065f46', fontSize: '0.9rem' }}>
+              {r.duplicates?.length > 0 ? `⚠️ ${r.duplicates.length} duplicate(s)` : '✅ No duplicates'}
+            </span>
+          </div>
+        )}
+      />
+
+      {/* Card 3 — Empty Users */}
+      <MaintenanceCard
+        title="💤 Empty User Accounts"
+        description="Finds user accounts with 0 token balance, 0 tokens ever allocated, and 0 tokens spent. Admins and anyone linked to a stall (parents or kids) are excluded."
+        checkLabel="🔍 Find Empty Users"
+        fixLabel={(r) => `💤 Mark ${r.count} User(s) Inactive`}
+        onCheck={async () => {
+          const d = await adminApi.maintenanceEmptyUsersCheck();
+          return { ...d, canFix: d.count > 0 };
+        }}
+        onFix={async () => {
+          if (!window.confirm('Mark all empty user accounts as inactive?')) throw new Error('Cancelled');
+          const d = await adminApi.maintenanceMarkEmptyUsersInactive();
+          return { successMsg: `✅ Marked ${d.marked} user account(s) as inactive.` };
+        }}
+        reportContent={(r) => (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <span style={{ background: r.count > 0 ? '#fee2e2' : '#d1fae5', borderRadius: '0.65rem', padding: '0.35rem 0.8rem', fontWeight: 700, color: r.count > 0 ? '#dc2626' : '#065f46', fontSize: '0.9rem' }}>
+                {r.count > 0 ? `⚠️ ${r.count} empty account(s) found` : '✅ No empty accounts'}
+              </span>
+            </div>
+            {r.users?.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#fef3c7' }}>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem', color: '#92400e' }}>Phone</th>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: '#92400e' }}>Name</th>
+                    <th style={{ textAlign: 'right', padding: '0.4rem 0.5rem', color: '#6b7280' }}>Txns</th>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem', color: '#6b7280' }}>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.users.map((u) => (
+                    <tr key={u.userId} style={{ borderBottom: '1px solid #fde68a' }}>
+                      <td style={{ padding: '0.4rem 0.75rem', fontFamily: 'monospace', fontSize: '0.8rem', color: '#374151' }}>{u.phone}</td>
+                      <td style={{ padding: '0.4rem 0.5rem', color: '#9ca3af' }}>{u.name || '(no name)'}</td>
+                      <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', color: '#9ca3af' }}>{u.txnCount ?? 0}</td>
+                      <td style={{ padding: '0.4rem 0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>{u.createdAt?.slice(0, 10) || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
+function TokenSummaryTab({ tokenRate = 2 }) {
+  const [rows, setRows] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [sortCol, setSortCol] = useState('totalSpent');
+  const [sortDir, setSortDir] = useState('desc');
+
+  const load = async () => {
+    setLoading(true);
+    try { setRows(await adminApi.tokenSummary()); }
+    catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('desc'); }
+  };
+
+  const sorted = rows ? [...rows].sort((a, b) => {
+    const va = a[sortCol] ?? 0, vb = b[sortCol] ?? 0;
+    return sortDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  }) : [];
+
+  const totals = rows ? {
+    spent: rows.reduce((s, r) => s + r.totalSpent, 0),
+    unused: rows.filter(r => !r.wasZeroed).reduce((s, r) => s + r.currentBalance, 0),
+  } : null;
+
+  const exportCsv = () => {
+    if (!sorted.length) return;
+    const header = 'Name,Phone,Tokens Spent,Tokens Unused,Zeroed';
+    const csvRows = sorted.map(r =>
+      [
+        `"${(r.name || '').replace(/"/g, '""')}"`,
+        `"${r.phone}"`,
+        r.totalSpent,
+        r.wasZeroed ? 0 : r.currentBalance,
+        r.wasZeroed ? 'Yes' : 'No',
+      ].join(',')
+    );
+    const blob = new Blob([[header, ...csvRows].join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'carnival-token-summary.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const thStyle = (col) => ({
+    padding: '0.45rem 0.75rem',
+    textAlign: col === 'name' || col === 'phone' ? 'left' : 'right',
+    color: '#92400e',
+    fontWeight: 700,
+    cursor: 'pointer',
+    userSelect: 'none',
+    background: sortCol === col ? '#fde68a' : '#fef3c7',
+    whiteSpace: 'nowrap',
+  });
+
+  const arrow = (col) => sortCol === col ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0 }}>📊 Token Summary</h2>
+        {totals && (
+          <>
+            <span style={{ background: '#fef3c7', borderRadius: '0.65rem', padding: '0.3rem 0.75rem', fontWeight: 700, color: '#92400e', fontSize: '0.88rem' }}>
+              Spent: {totals.spent}
+            </span>
+            <span style={{ background: '#d1fae5', borderRadius: '0.65rem', padding: '0.3rem 0.75rem', fontWeight: 700, color: '#065f46', fontSize: '0.88rem' }}>
+              Unused: {totals.unused}
+            </span>
+            {tokenRate > 0 && (
+              <span style={{ background: '#ede9fe', borderRadius: '0.65rem', padding: '0.3rem 0.75rem', fontWeight: 700, color: '#7c3aed', fontSize: '0.88rem' }}>
+                ${((totals.spent + totals.unused) / tokenRate).toFixed(2)} total
+              </span>
+            )}
+          </>
+        )}
+        <button
+          onClick={exportCsv}
+          disabled={!rows?.length}
+          style={{ marginLeft: 'auto', padding: '0.4rem 1rem', borderRadius: '0.65rem', border: 'none', cursor: rows?.length ? 'pointer' : 'default', fontWeight: 600, background: '#374151', color: '#fff', fontSize: '0.85rem', opacity: rows?.length ? 1 : 0.5 }}
+        >
+          ⬇ Export CSV
+        </button>
+        <button onClick={load} disabled={loading} style={{ padding: '0.4rem 0.8rem', borderRadius: '0.65rem', border: 'none', cursor: 'pointer', fontWeight: 600, background: '#f3f4f6', color: '#374151', fontSize: '0.85rem' }}>
+          {loading ? '⏳' : '↺'}
+        </button>
+      </div>
+
+      {loading && <p style={{ color: '#6b7280', margin: 0 }}>Loading…</p>}
+
+      {!loading && rows && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+            <thead>
+              <tr>
+                <th style={thStyle('name')} onClick={() => toggleSort('name')}>Name{arrow('name')}</th>
+                <th style={thStyle('phone')} onClick={() => toggleSort('phone')}>Phone{arrow('phone')}</th>
+                <th style={thStyle('totalSpent')} onClick={() => toggleSort('totalSpent')}>Tokens Spent{arrow('totalSpent')}</th>
+                <th style={thStyle('currentBalance')} onClick={() => toggleSort('currentBalance')}>Tokens Unused{arrow('currentBalance')}</th>
+                {tokenRate > 0 && <th style={{ ...thStyle('totalSpent'), cursor: 'default' }}>$ Value</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((row) => {
+                const unused = row.wasZeroed ? 0 : row.currentBalance;
+                const dollars = tokenRate > 0 ? ((row.totalSpent + unused) / tokenRate).toFixed(2) : null;
+                return (
+                  <tr key={row.userId} style={{ borderBottom: '1px solid #fde68a', background: row.wasZeroed ? '#fafafa' : '#fffbeb' }}>
+                    <td style={{ padding: '0.45rem 0.75rem', fontWeight: 600, color: row.wasZeroed ? '#9ca3af' : '#374151' }}>
+                      {row.name || '—'}
+                      {row.wasZeroed && <span style={{ marginLeft: '0.4rem', fontSize: '0.72rem', color: '#9ca3af', fontWeight: 400 }}>(zeroed)</span>}
+                    </td>
+                    <td style={{ padding: '0.45rem 0.5rem', color: '#6b7280', fontFamily: 'monospace', fontSize: '0.82rem' }}>{row.phone}</td>
+                    <td style={{ padding: '0.45rem 0.5rem', textAlign: 'right', color: '#b45309', fontWeight: 700 }}>{row.totalSpent}</td>
+                    <td style={{ padding: '0.45rem 0.5rem', textAlign: 'right', color: row.wasZeroed ? '#9ca3af' : '#065f46', fontWeight: row.wasZeroed ? 400 : 700 }}>
+                      {row.wasZeroed ? <s>{row.currentBalance}</s> : unused}
+                    </td>
+                    {tokenRate > 0 && (
+                      <td style={{ padding: '0.45rem 0.75rem', textAlign: 'right', color: '#7c3aed', fontWeight: 600 }}>${dollars}</td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {sorted.length === 0 && <p style={{ color: '#9ca3af', textAlign: 'center', padding: '1.5rem' }}>No users found.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminDashboard() {
-  const { user: me } = useAuth();
+  const { user: me, login } = useAuth();
   const navigate = useNavigate();
   const isAdmin = me?.roles?.includes('admin'); // eslint-disable-line no-unused-vars
 
@@ -998,6 +1742,7 @@ function AdminDashboard() {
   const [stallsLoaded, setStallsLoaded] = useState(() => !!getStale('admin_stalls'));
   const [stallsLoading, setStallsLoading] = useState(false);
   const [showStallPrint, setShowStallPrint] = useState(false);
+  const [stallView, setStallView] = useState('table'); // 'table' | 'cards'
   const [showUserPrint, setShowUserPrint] = useState(false);
   const [expandedStall, setExpandedStall] = useState(null);
   const [deletingStall, setDeletingStall] = useState(null);
@@ -1083,14 +1828,14 @@ function AdminDashboard() {
               const isAdmin = stallAdmins.has(memberId);
               const displayName = memberNames[memberId] || memberId;
               return (
-                <div key={memberId} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.6rem', background: '#fff', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ flex: 1 }}>{displayName}</span>
-                  {isAdmin && (
-                    <span style={{ background: '#dc2626', color: '#fff', borderRadius: '0.4rem', padding: '0.15rem 0.55rem', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.03em' }}>
-                      Admin
-                    </span>
-                  )}
-                </div>
+                <StallMemberRow
+                  key={memberId}
+                  stallId={stall.stallId}
+                  memberId={memberId}
+                  displayName={displayName}
+                  isAdmin={isAdmin}
+                  onToggled={(updated) => setAllStalls((prev) => prev.map((s) => s.stallId === stall.stallId ? { ...s, stallAdmins: updated.stallAdmins } : s))}
+                />
               );
             })}
           </div>
@@ -1108,6 +1853,7 @@ function AdminDashboard() {
   const [clearTxCode, setClearTxCode] = useState('');
   const [clearingTx, setClearingTx] = useState(false);
   const [userSearch, setUserSearch] = useState('');
+  const [showInactiveUsers, setShowInactiveUsers] = useState(false);
   const [adminSubTab, setAdminSubTab] = useState('Admins');
   const [expandedKid, setExpandedKid] = useState(null); // eslint-disable-line no-unused-vars
   const [kidQrPopup, setKidQrPopup] = useState(null); // {name, qrValue}
@@ -1166,6 +1912,24 @@ function AdminDashboard() {
       setStatus(`Poll interval updated to ${val}s. Clients will use it on next refresh.`);
     } catch { setStatus('Failed to save setting.'); }
     setSavingSettings(false);
+  };
+
+  // Impersonation
+  const handleImpersonate = async (targetUser) => {
+    if (!window.confirm(`Login as ${targetUser.name || targetUser.phone}? Your admin session will be saved and you can restore it.`)) return;
+    try {
+      const res = await adminApi.impersonate(targetUser.userId);
+      // Save current admin token so we can restore it (banner + restore live in Layout)
+      sessionStorage.setItem('adminToken', localStorage.getItem('token'));
+      sessionStorage.setItem('adminUser', localStorage.getItem('user'));
+      login(res.token, res.user);
+      // Navigate based on impersonated user's role
+      const roles = res.user?.roles || [];
+      if (roles.includes('vendor')) navigate('/vendor');
+      else navigate('/user');
+    } catch (e) {
+      setStatus(e.response?.data?.error || 'Impersonation failed.');
+    }
   };
 
   const loadAdmin = async () => {
@@ -1304,7 +2068,7 @@ function AdminDashboard() {
 
   const admins = users.filter((user) => user.roles?.includes('admin'));
   const nonAdminUsers = users.filter((user) => !user.roles?.includes('admin'));
-  const adminSubTabs = ['Users', 'Admins', 'Stalls', 'Charities', 'Files', 'History', 'Cards'];
+  const adminSubTabs = ['Users', 'Summary', 'Admins', 'Stalls', 'Charities', 'Files', 'History', 'Cards', 'Maintenance'];
 
   const grantAdmin = async (user) => {
     const newRoles = Array.from(new Set([...(user.roles || []), 'admin']));
@@ -1421,6 +2185,7 @@ function AdminDashboard() {
   return (
     <Layout>
       <div style={{ display: 'grid', gap: '1rem' }}>
+
         {/* Welcome header */}
         {profile.name || profile.phone ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', borderRadius: '0.75rem' }}>
@@ -1556,6 +2321,8 @@ function AdminDashboard() {
         })()}
 
         {tab === 'Stalls' && <MergedStallsTab />}
+
+        {tab === 'Donations' && <DonationsTab />}
 
         {tab === 'Admin' && (
           <section style={card}>
@@ -1749,15 +2516,34 @@ function AdminDashboard() {
                   const allRegularUsers = users
                     .filter((u) => u.roles?.includes('user'))
                     .sort((a, b) => (a.name || a.phone || '').localeCompare(b.name || b.phone || ''));
+                  const visibleUsers = showInactiveUsers
+                    ? allRegularUsers.filter((u) => u.isActive === false)
+                    : allRegularUsers.filter((u) => u.isActive !== false);
                   const q = userSearch.toLowerCase().trim();
                   const filtered = q
-                    ? allRegularUsers.filter((u) => u.phone?.includes(q) || u.name?.toLowerCase().includes(q))
-                    : allRegularUsers;
+                    ? visibleUsers.filter((u) => u.phone?.includes(q) || u.name?.toLowerCase().includes(q))
+                    : visibleUsers;
+                  const inactiveCount = allRegularUsers.filter((u) => u.isActive === false).length;
                   return (
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <h2 style={{ margin: 0 }}>👥 Users ({allRegularUsers.length})</h2>
-                        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>Rate: {rate} tokens / $1</span>
+                        <h2 style={{ margin: 0 }}>👥 Users ({visibleUsers.length})</h2>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {inactiveCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowInactiveUsers((v) => !v)}
+                              style={{
+                                padding: '0.3rem 0.8rem', borderRadius: '2rem', border: '1.5px solid ' + (showInactiveUsers ? '#f59e0b' : '#d1d5db'),
+                                background: showInactiveUsers ? '#fef3c7' : '#f9fafb', color: showInactiveUsers ? '#92400e' : '#6b7280',
+                                fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer',
+                              }}
+                            >
+                              {showInactiveUsers ? `👥 Show Active (${allRegularUsers.length - inactiveCount})` : `💤 Show Inactive (${inactiveCount})`}
+                            </button>
+                          )}
+                          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>Rate: {rate} tokens / $1</span>
+                        </div>
                       </div>
                       <input
                         style={inp}
@@ -1768,7 +2554,12 @@ function AdminDashboard() {
                       {filtered.length === 0 && <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.88rem' }}>No users match.</p>}
                       <div style={{ display: 'grid', gap: '0.5rem', marginTop: '0.5rem' }}>
                         {filtered.map((u) => (
-                          <TokenRow key={u.userId} user={u} tokenRate={rate} onDone={load} setStatus={setStatus} refreshPinResetRequests={loadPinResetRequests} />
+                          <div key={u.userId} style={{ position: 'relative' }}>
+                            {u.isActive === false && (
+                              <div style={{ position: 'absolute', top: '0.4rem', right: '0.5rem', fontSize: '0.7rem', background: '#f3f4f6', color: '#9ca3af', borderRadius: '0.4rem', padding: '0.1rem 0.4rem', fontWeight: 700, zIndex: 1 }}>💤 inactive</div>
+                            )}
+                            <TokenRow key={u.userId} user={u} tokenRate={rate} onDone={load} setStatus={setStatus} refreshPinResetRequests={loadPinResetRequests} onImpersonate={handleImpersonate} />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -1917,8 +2708,16 @@ function AdminDashboard() {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <h2 style={{ margin: 0 }}>🎪 Stalls ({allStalls.length})</h2>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {allStalls.length > 0 && (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button
+                      style={{ ...btn(stallView === 'table' ? 'primary' : 'secondary'), fontSize: '0.82rem' }}
+                      onClick={() => setStallView('table')}
+                    >📋 Table</button>
+                    <button
+                      style={{ ...btn(stallView === 'cards' ? 'primary' : 'secondary'), fontSize: '0.82rem' }}
+                      onClick={() => setStallView('cards')}
+                    >🃏 Cards</button>
+                    {stallView === 'cards' && allStalls.length > 0 && (
                       <button style={btn('secondary')} onClick={() => setShowStallPrint(true)}>🖨️ Print All QRs</button>
                     )}
                     <button style={btn('secondary')} onClick={() => loadStalls().catch((error) => setStatus(error.response?.data?.error || 'Unable to load stalls.'))}>Refresh</button>
@@ -1926,9 +2725,18 @@ function AdminDashboard() {
                 </div>
                 {allStalls.length === 0 && !stallsLoading && <p style={{ color: '#6b7280' }}>No stalls yet.</p>}
                 {stallsLoading && <p style={{ color: '#6b7280' }}>Loading stalls…</p>}
-                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                  {stallCards}
-                </div>
+                {stallView === 'table' && allStalls.length > 0 && (
+                  <StallSummaryTable
+                    stalls={allStalls}
+                    tokenRate={rate}
+                    onSaved={() => loadStalls().catch(() => {})}
+                  />
+                )}
+                {stallView === 'cards' && (
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {stallCards}
+                  </div>
+                )}
                 {showStallPrint && <StallsPrintOverlay stalls={allStalls} onClose={() => setShowStallPrint(false)} />}
               </>
             )}
@@ -2007,6 +2815,8 @@ function AdminDashboard() {
             {adminSubTab === 'Files' && <DataFilesTab />}
             {adminSubTab === 'History' && <HistoryTab transactions={transactions} />}
             {adminSubTab === 'Cards' && <CardsTab allUsers={users} />}
+            {adminSubTab === 'Maintenance' && <MaintenanceTab />}
+            {adminSubTab === 'Summary' && <TokenSummaryTab tokenRate={rate} />}
           </section>
         )}
 

@@ -347,6 +347,8 @@ function ProfilePanel({ onClose }) {
 
 function BottomNav() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [panel, setPanel] = useState(null);
 
   if (!user) {
@@ -380,6 +382,34 @@ function BottomNav() {
     </button>
   );
 
+  const navLink = (path, icon, label) => {
+    const active = location.pathname === path;
+    return (
+      <button
+        key={path}
+        type="button"
+        onClick={() => { setPanel(null); navigate(path); }}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: '0.75rem 0.5rem',
+          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '0.15rem',
+          color: active ? '#d97706' : '#6b7280',
+          fontWeight: active ? 700 : 500,
+          fontSize: '0.82rem',
+          transition: 'color 0.15s',
+        }}
+      >
+        <span style={{ fontSize: '1.3rem' }}>{icon}</span>
+        {label}
+      </button>
+    );
+  };
+
   return (
     <>
       {panel ? (
@@ -403,6 +433,7 @@ function BottomNav() {
           {navBtn('stats', '📊', 'Stats')}
           {navBtn('tokens', '🪙', 'Tokens')}
           {navBtn('events', '📅', 'Events')}
+          {navLink('/donations', '💝', 'Donations')}
         </div>
       </nav>
     </>
@@ -446,13 +477,27 @@ function RefreshTimer({ intervalSec = 15 }) {
 const ROOT_PATHS = ['/user', '/vendor', '/admin', '/'];
 
 function Layout({ children }) {
-  const { user, logout } = useAuth();
+  const { user, logout, login } = useAuth();
   const { pollIntervalSec, appEnv, appRegion } = useSettings();
   const envLabel = appEnv && appRegion ? `${appRegion} · ${appEnv}` : null;
   const navigate = useNavigate();
   const location = useLocation();
   const isSubPage = !ROOT_PATHS.includes(location.pathname);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // ── Impersonation ──────────────────────────────────────────────────────────
+  const isImpersonating = !!sessionStorage.getItem('adminToken');
+
+  const handleRestoreAdmin = () => {
+    const adminToken = sessionStorage.getItem('adminToken');
+    if (!adminToken) return;
+    const adminUserRaw = sessionStorage.getItem('adminUser');
+    sessionStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminUser');
+    login(adminToken, adminUserRaw ? JSON.parse(adminUserRaw) : null);
+    navigate('/admin');
+  };
+  // ──────────────────────────────────────────────────────────────────────────
 
   const goBack = () => {
     if (window.history.length > 1) {
@@ -467,6 +512,21 @@ function Layout({ children }) {
   return (
     <div className="cc-shell">
       <header className="cc-header">
+        {/* Impersonation banner — shown on every page when admin is viewing as another user */}
+        {isImpersonating && (
+          <div style={{ background: '#f59e0b', padding: '0.45rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '1rem' }}>🎭</span>
+            <span style={{ fontWeight: 700, color: '#78350f', fontSize: '0.88rem', flex: 1 }}>
+              Viewing as <strong>{user?.name || user?.phone}</strong>
+            </span>
+            <button
+              onClick={handleRestoreAdmin}
+              style={{ padding: '0.3rem 0.9rem', borderRadius: '0.65rem', border: '2px solid #78350f', cursor: 'pointer', fontWeight: 800, background: '#fff', color: '#78350f', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+            >
+              ⬅ Return to Admin
+            </button>
+          </div>
+        )}
         <div className="cc-header-inner">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {isSubPage && (

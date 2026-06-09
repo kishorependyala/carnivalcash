@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from uuid import uuid4
@@ -8,20 +8,23 @@ import os
 import threading
 import zipfile
 
+import jwt
 from flask import Blueprint, Response, g, jsonify, request, send_file
 
-from app.storage.admin_store import get_admin_data, get_event, get_settings, log_admin_action, save_event, save_settings
-from app.storage.stall_store import list_stalls, save_stall, delete_stall
+from app.storage.admin_store import get_admin_data, get_event, get_settings, log_admin_action, save_admin_data, save_event, save_settings
+from app.storage.stall_store import list_stalls, save_stall, delete_stall, get_stall, get_stall_transactions
 from app.storage.user_store import (
     delete_profile,
     ensure_user_storage,
     find_profile_by_phone,
     get_profile,
     get_user_kids,
+    get_user_transactions,
     get_vendor_items,
     get_vendor_transactions,
     list_profiles,
     save_profile,
+    save_user_kids,
     save_user_transactions,
     save_vendor_transactions,
     users_dir,
@@ -29,7 +32,7 @@ from app.storage.user_store import (
 )
 from app.utils.auth_middleware import require_auth, require_role
 from app.utils.id_generator import generate_user_id
-from config import DATA_DIR
+from config import DATA_DIR, get_jwt_secret
 
 
 admin_bp = Blueprint('admin', __name__)
@@ -72,6 +75,8 @@ def public_settings():
     data = get_settings()
     data['appEnv'] = os.environ.get('APP_ENV', 'dev')
     data['appRegion'] = os.environ.get('APP_REGION', 'local')
+    event = get_event()
+    data['tokenRate'] = int((event or {}).get('tokenRate') or 2)
     return jsonify(data)
 
 
@@ -454,6 +459,7 @@ def list_users():
             'name': p.get('name', ''),
             'roles': p.get('roles', []),
             'tokenBalance': int(p.get('tokenBalance', 0)),
+            'isActive': p.get('isActive', True),
             'kids': kids_map.get(p['userId'], []) if 'user' in p.get('roles', []) else [],
         }
         for p in profiles
@@ -840,6 +846,13 @@ def admin_list_stalls():
     stalls = list_stalls()
     result = []
     for s in stalls:
+        txns = get_stall_transactions(s['stallId']) or []
+        digital = int(s.get('tokenBalance', 0))
+        physical = int(s.get('physicalTokens', 0))
+        total = digital + physical
+        # Build kids list from memberNames (keys starting with KID:)
+        member_names = s.get('memberNames', {})
+        kids = [v for k, v in member_names.items() if k.startswith('KID:')]
         result.append({
             'stallId': s['stallId'],
             'stallName': s['stallName'],
@@ -847,13 +860,122 @@ def admin_list_stalls():
             'description': s.get('description', ''),
             'tokensPerItem': s.get('tokensPerItem', 0),
             'memberCount': len(s.get('members', [])),
-            'tokenBalance': s.get('tokenBalance', 0),
+            'tokenBalance': digital,
+            'physicalTokens': physical,
+            'totalTokens': total,
+            'transactionCount': len(txns),
+            'kids': kids,
+            'charities': s.get('charities', []),
             'members': s.get('members', []),
             'stallAdmins': s.get('stallAdmins', []),
-            'memberNames': s.get('memberNames', {}),
+            'memberNames': member_names,
             'createdAt': s.get('createdAt', ''),
         })
     return jsonify(result)
+
+
+@admin_bp.put('/api/admin/stalls/<stall_id>/summary')
+@require_auth
+@require_role('admin')
+def admin_update_stall_summary(stall_id):
+    """
+    Update stall kids names and/or physicalTokens (admin override, no membership check).
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    """
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+    body = request.get_json() or {}
+
+    if 'physicalTokens' in body:
+        stall['physicalTokens'] = int(body['physicalTokens'])
+
+    if 'tokenBalance' in body:
+        stall['tokenBalance'] = int(body['tokenBalance'])
+
+    # kids is list of {memberId, name} to update existing memberNames entries
+    if 'kids' in body:
+        member_names = stall.get('memberNames', {})
+        for item in body['kids']:
+            mid = item.get('memberId')
+            name = item.get('name', '').strip()
+            if mid and mid.startswith('KID:') and name:
+                member_names[mid] = name
+        stall['memberNames'] = member_names
+
+    # newKids is list of names to add as manual kid entries (no user account required)
+    if 'newKids' in body:
+        member_names = stall.get('memberNames', {})
+        members = stall.get('members', [])
+        for name in body['newKids']:
+            name = name.strip()
+            if not name:
+                continue
+            kid_key = f'KID:manual:{str(uuid4())}'
+            member_names[kid_key] = name
+            members.append(kid_key)
+        stall['memberNames'] = member_names
+        stall['members'] = members
+
+    # charities: list of {charityId, name, percentage} to update existing charity entries
+    if 'charities' in body:
+        existing = {c['charityId']: c for c in stall.get('charities', [])}
+        for item in body['charities']:
+            cid = item.get('charityId')
+            if cid and cid in existing:
+                if 'name' in item and item['name'].strip():
+                    existing[cid]['name'] = item['name'].strip()
+                if 'percentage' in item:
+                    pct = max(0, min(100, int(item['percentage'])))
+                    existing[cid]['percentage'] = pct
+        stall['charities'] = list(existing.values())
+
+    save_stall(stall_id, stall)
+    return jsonify({'status': 'ok'})
+
+
+@admin_bp.put('/api/admin/users/<parent_user_id>/kids/<kid_id>')
+@require_auth
+@require_role('admin')
+def admin_update_kid(parent_user_id, kid_id):
+    """
+    Update a kid's name everywhere: parent's kids.json and all stall memberNames.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    """
+    body = request.get_json() or {}
+    new_name = body.get('name', '').strip()
+    if not new_name:
+        return jsonify({'error': 'Name is required'}), 400
+
+    # Update in parent's kids.json
+    kids = get_user_kids(parent_user_id) or []
+    updated = False
+    for kid in kids:
+        if kid.get('kidId') == kid_id:
+            kid['name'] = new_name
+            updated = True
+            break
+    if not updated:
+        return jsonify({'error': 'Kid not found'}), 404
+    save_user_kids(parent_user_id, kids)
+
+    # Update in all stall memberNames
+    member_key = f'KID:{parent_user_id}:{kid_id}'
+    for stall in list_stalls():
+        member_names = stall.get('memberNames', {})
+        if member_key in member_names:
+            member_names[member_key] = new_name
+            stall['memberNames'] = member_names
+            save_stall(stall['stallId'], stall)
+
+    log_admin_action(g.user['userId'], 'update_kid_name', {
+        'parentUserId': parent_user_id, 'kidId': kid_id, 'newName': new_name,
+    })
+    return jsonify({'status': 'ok', 'name': new_name})
 
 
 @admin_bp.delete('/api/admin/stalls/<stall_id>')
@@ -897,3 +1019,510 @@ def admin_delete_stall(stall_id):
     log_admin_action(g.user['userId'], 'delete_stall', {'stallId': stall_id, 'stallName': stall_data.get('stallName')})
     delete_stall(stall_id)
     return jsonify({'deleted': stall_id})
+
+
+@admin_bp.get('/api/admin/maintenance/dedupe-check')
+@require_auth
+@require_role('admin')
+def maintenance_dedupe_check():
+    """
+    Scan all user transaction files for duplicate txIds and return a summary.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Duplicate transaction report
+    """
+    affected = []
+    total_duplicates = 0
+
+    user_ids = [p.name for p in users_dir().iterdir() if p.is_dir()] if users_dir().exists() else []
+    for uid in user_ids:
+        tx_file = users_dir() / uid / 'transactions.json'
+        if not tx_file.exists():
+            continue
+        try:
+            txns = json.loads(tx_file.read_text(encoding='utf-8'))
+        except Exception:
+            continue
+        if not txns:
+            continue
+        ids = [t.get('txId') for t in txns]
+        dup_ids = {tid for tid in set(ids) if ids.count(tid) > 1}
+        if dup_ids:
+            profile = get_profile(uid) or {}
+            dup_count = sum(ids.count(tid) - 1 for tid in dup_ids)
+            total_duplicates += dup_count
+            affected.append({
+                'userId': uid,
+                'name': profile.get('name', ''),
+                'phone': profile.get('phone', ''),
+                'totalTransactions': len(txns),
+                'duplicateCount': dup_count,
+            })
+
+    return jsonify({
+        'affectedUsers': len(affected),
+        'totalDuplicates': total_duplicates,
+        'details': affected,
+    })
+
+
+@admin_bp.post('/api/admin/maintenance/dedupe-transactions')
+@require_auth
+@require_role('admin')
+def maintenance_dedupe_transactions():
+    """
+    Remove duplicate transactions (by txId) from all user transaction files, keeping first occurrence.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Deduplication result
+    """
+    fixed_users = 0
+    total_removed = 0
+
+    user_ids = [p.name for p in users_dir().iterdir() if p.is_dir()] if users_dir().exists() else []
+    for uid in user_ids:
+        tx_file = users_dir() / uid / 'transactions.json'
+        if not tx_file.exists():
+            continue
+        try:
+            txns = json.loads(tx_file.read_text(encoding='utf-8'))
+        except Exception:
+            continue
+        if not txns:
+            continue
+        seen = set()
+        deduped = []
+        for tx in txns:
+            tid = tx.get('txId')
+            if tid not in seen:
+                seen.add(tid)
+                deduped.append(tx)
+        removed = len(txns) - len(deduped)
+        if removed > 0:
+            save_user_transactions(uid, deduped)
+            fixed_users += 1
+            total_removed += removed
+
+    log_admin_action(g.user['userId'], 'dedupe_transactions', {
+        'fixedUsers': fixed_users,
+        'totalRemoved': total_removed,
+    })
+
+    return jsonify({
+        'fixedUsers': fixed_users,
+        'totalRemoved': total_removed,
+    })
+
+
+def _find_duplicate_loads(audit_log, window_secs=3):
+    """
+    Find add_tokens entries that are near-duplicates: same phone + same amount
+    within `window_secs` seconds of each other (rapid double-clicks).
+    Returns (kept_entries, duplicate_entries, duplicate_count).
+    """
+    loads = [(i, e) for i, e in enumerate(audit_log) if e.get('action') == 'add_tokens']
+    dup_indices = set()
+
+    for j in range(len(loads)):
+        idx_j, e_j = loads[j]
+        if idx_j in dup_indices:
+            continue
+        phone_j = e_j.get('details', {}).get('phone', '')
+        amount_j = e_j.get('details', {}).get('amount', 0)
+        try:
+            ts_j = datetime.fromisoformat(e_j['timestamp'].replace('Z', '+00:00'))
+        except Exception:
+            continue
+        for k in range(j + 1, len(loads)):
+            idx_k, e_k = loads[k]
+            if idx_k in dup_indices:
+                continue
+            phone_k = e_k.get('details', {}).get('phone', '')
+            amount_k = e_k.get('details', {}).get('amount', 0)
+            if phone_k != phone_j or amount_k != amount_j:
+                continue
+            try:
+                ts_k = datetime.fromisoformat(e_k['timestamp'].replace('Z', '+00:00'))
+            except Exception:
+                continue
+            if abs((ts_k - ts_j).total_seconds()) <= window_secs:
+                dup_indices.add(idx_k)
+
+    deduped = [e for i, e in enumerate(audit_log) if i not in dup_indices]
+    duplicates = [e for i, e in enumerate(audit_log) if i in dup_indices and e.get('action') == 'add_tokens']
+    return deduped, duplicates, len(dup_indices)
+
+
+@admin_bp.get('/api/admin/maintenance/admin-loads-check')
+@require_auth
+@require_role('admin')
+def maintenance_admin_loads_check():
+    """
+    Check the audit log for near-duplicate add_tokens entries (rapid double-clicks).
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Duplicate admin load report
+    """
+    data = get_admin_data()
+    audit_log = data.get('auditLog', [])
+    _, duplicates, dup_count = _find_duplicate_loads(audit_log)
+
+    # Summarise by phone
+    from collections import defaultdict
+    by_phone = defaultdict(lambda: {'duplicateCount': 0, 'tokensOverloaded': 0})
+    for e in duplicates:
+        phone = e.get('details', {}).get('phone', '')
+        amount = int(e.get('details', {}).get('amount', 0))
+        by_phone[phone]['duplicateCount'] += 1
+        by_phone[phone]['tokensOverloaded'] += amount
+
+    # Resolve names
+    all_profiles = {p.get('phone', ''): p for p in list_profiles()}
+    details = []
+    for phone, row in by_phone.items():
+        profile = all_profiles.get(phone, {})
+        details.append({
+            'phone': phone,
+            'name': profile.get('name', ''),
+            'duplicateCount': row['duplicateCount'],
+            'tokensOverloaded': row['tokensOverloaded'],
+        })
+    details.sort(key=lambda r: r['duplicateCount'], reverse=True)
+
+    return jsonify({
+        'totalDuplicates': dup_count,
+        'affectedUsers': len(by_phone),
+        'details': details,
+    })
+
+
+@admin_bp.post('/api/admin/maintenance/dedupe-admin-loads')
+@require_auth
+@require_role('admin')
+def maintenance_dedupe_admin_loads():
+    """
+    Remove near-duplicate add_tokens audit log entries (rapid double-clicks within 3 s).
+    Does NOT adjust token balances — audit log cleanup only.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Cleanup result
+    """
+    data = get_admin_data()
+    original_count = len(data.get('auditLog', []))
+    deduped_log, _, removed = _find_duplicate_loads(data.get('auditLog', []))
+    data['auditLog'] = deduped_log
+    save_admin_data(data)
+
+    log_admin_action(g.user['userId'], 'dedupe_admin_loads', {
+        'originalCount': original_count,
+        'removed': removed,
+        'newCount': len(deduped_log),
+    })
+
+    return jsonify({
+        'originalCount': original_count,
+        'removed': removed,
+        'newCount': len(deduped_log),
+    })
+
+
+def _find_empty_users():
+    """Return users with 0 token balance, 0 tokens ever allocated, and 0 tokens spent.
+    Excludes admins and any user (parent or kid) linked to a stall."""
+    profiles = list_profiles()
+
+    # Build set of user IDs protected by stall membership
+    stall_protected = set()
+    for stall in list_stalls():
+        for member_id in stall.get('members', []):
+            if member_id.startswith('KID:'):
+                # KID:<parentUserId>:<kidId> — protect the parent
+                parts = member_id.split(':')
+                if len(parts) >= 2:
+                    stall_protected.add(parts[1])
+            else:
+                stall_protected.add(member_id)
+
+    # Build allocated-tokens map from audit log (add_tokens actions)
+    admin_data = get_admin_data()
+    audit_log = admin_data.get('auditLog', [])
+    allocated_map = {}  # userId -> total tokens ever added
+    for entry in audit_log:
+        if entry.get('action') == 'add_tokens':
+            uid = entry.get('details', {}).get('userId') or entry.get('details', {}).get('targetUserId')
+            amount = int(entry.get('details', {}).get('amount', 0))
+            if uid:
+                allocated_map[uid] = allocated_map.get(uid, 0) + amount
+
+    empty = []
+    for p in profiles:
+        if 'user' not in p.get('roles', []):
+            continue
+        if 'admin' in p.get('roles', []):
+            continue
+        uid = p['userId']
+        if uid in stall_protected:
+            continue
+        if int(p.get('tokenBalance', 0)) != 0:
+            continue
+        if allocated_map.get(uid, 0) != 0:
+            continue
+        txns = get_user_transactions(uid) or []
+        total_spent = sum(int(t.get('amount', t.get('qty', 0))) for t in txns)
+        if total_spent != 0:
+            continue
+        empty.append({
+            'userId': uid,
+            'phone': p.get('phone', ''),
+            'name': p.get('name', ''),
+            'txnCount': len(txns),
+            'createdAt': p.get('createdAt', ''),
+        })
+    return empty
+
+
+@admin_bp.get('/api/admin/maintenance/empty-users-check')
+@require_auth
+@require_role('admin')
+def maintenance_empty_users_check():
+    """
+    Find user accounts with no name, 0 token balance, and no transactions.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of empty/unused user accounts
+    """
+    empty = _find_empty_users()
+    return jsonify({'count': len(empty), 'users': empty})
+
+
+@admin_bp.post('/api/admin/maintenance/delete-empty-users')
+@require_auth
+@require_role('admin')
+def maintenance_delete_empty_users():
+    """
+    Delete all user accounts that have no name, 0 balance, and no transactions.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Deletion result
+    """
+    empty = _find_empty_users()
+    deleted_ids = []
+    for u in empty:
+        delete_profile(u['userId'])
+        deleted_ids.append(u['userId'])
+
+    log_admin_action(g.user['userId'], 'delete_empty_users', {
+        'deletedCount': len(deleted_ids),
+        'deletedIds': deleted_ids,
+    })
+
+    return jsonify({'deleted': len(deleted_ids), 'deletedIds': deleted_ids})
+
+
+@admin_bp.post('/api/admin/maintenance/mark-empty-users-inactive')
+@require_auth
+@require_role('admin')
+def maintenance_mark_empty_users_inactive():
+    """
+    Mark all empty user accounts as inactive instead of deleting them.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: Result with count of marked users
+    """
+    empty = _find_empty_users()
+    marked_ids = []
+    for u in empty:
+        profile = get_profile(u['userId'])
+        if profile:
+            profile['isActive'] = False
+            save_profile(u['userId'], profile)
+            marked_ids.append(u['userId'])
+
+    log_admin_action(g.user['userId'], 'mark_empty_users_inactive', {
+        'markedCount': len(marked_ids),
+        'markedIds': marked_ids,
+    })
+
+    return jsonify({'marked': len(marked_ids), 'markedIds': marked_ids})
+
+
+@admin_bp.get('/api/admin/token-summary')
+@require_auth
+@require_role('admin')
+def token_summary():
+    """
+    Per-user token summary: total spent, current balance, whether balance was manually zeroed.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    responses:
+      200:
+        description: List of user token summaries
+    """
+    profiles = [p for p in list_profiles() if 'user' in p.get('roles', [])]
+    admin_data = get_admin_data()
+    zeroed_user_ids = {
+        e.get('details', {}).get('targetUserId')
+        for e in admin_data.get('auditLog', [])
+        if e.get('action') == 'zero_balance'
+    }
+
+    def _user_row(profile):
+        uid = profile['userId']
+        txns = get_user_transactions(uid)
+        total_spent = sum(int(t.get('amount', 0)) for t in txns if t.get('type') == 'debit')
+        balance = int(profile.get('tokenBalance', 0))
+        was_zeroed = uid in zeroed_user_ids
+        return {
+            'userId': uid,
+            'name': profile.get('name', ''),
+            'phone': profile.get('phone', ''),
+            'totalSpent': total_spent,
+            'currentBalance': balance,
+            'wasZeroed': was_zeroed,
+        }
+
+    with ThreadPoolExecutor() as ex:
+        rows = list(ex.map(_user_row, profiles))
+
+    rows.sort(key=lambda r: r['totalSpent'], reverse=True)
+    return jsonify(rows)
+
+
+@admin_bp.post('/api/admin/impersonate/<user_id>')
+@require_auth
+@require_role('admin')
+def impersonate_user(user_id):
+    """
+    Generate a JWT token for another user (admin impersonation).
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: user_id
+        required: true
+        schema: {type: string}
+    responses:
+      200:
+        description: JWT token and user info for the target user
+      400:
+        description: Cannot impersonate yourself
+      404:
+        description: User not found
+    """
+    if user_id == g.user['userId']:
+        return jsonify({'error': 'Cannot impersonate yourself'}), 400
+
+    profile = get_profile(user_id)
+    if profile is None:
+        return jsonify({'error': 'User not found'}), 404
+
+    roles = list(profile.get('roles', []))
+    token = jwt.encode(
+        {
+            'userId': profile['userId'],
+            'phone': profile['phone'],
+            'roles': roles,
+            'exp': datetime.now(timezone.utc) + timedelta(hours=8),
+            'impersonatedBy': g.user['userId'],
+        },
+        get_jwt_secret(),
+        algorithm='HS256',
+    )
+
+    log_admin_action(g.user['userId'], 'impersonate', {
+        'targetUserId': user_id,
+        'targetName': profile.get('name', ''),
+        'targetPhone': profile.get('phone', ''),
+    })
+
+    return jsonify({
+        'token': token,
+        'user': {
+            'userId': profile['userId'],
+            'phone': profile['phone'],
+            'roles': roles,
+            'name': profile.get('name', ''),
+            'impersonatedBy': g.user['userId'],
+        },
+    })
+
+
+@admin_bp.put('/api/admin/stalls/<stall_id>/members/<member_id>/admin')
+@require_auth
+@require_role('admin')
+def admin_toggle_stall_admin(stall_id, member_id):
+    """
+    Admin-level toggle of stall admin status for any member.
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    parameters:
+      - in: path
+        name: stall_id
+        required: true
+        schema: {type: string}
+      - in: path
+        name: member_id
+        required: true
+        schema: {type: string}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [admin]
+            properties:
+              admin: {type: boolean}
+    responses:
+      200:
+        description: Updated stall
+      404:
+        description: Stall or member not found
+    """
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+    if member_id not in stall.get('members', []):
+        return jsonify({'error': 'Not a stall member'}), 404
+
+    stall.setdefault('stallAdmins', [stall.get('createdBy', '')])
+
+    body = request.get_json(silent=True) or {}
+    make_admin = body.get('admin', True)
+    if make_admin:
+        if member_id not in stall['stallAdmins']:
+            stall['stallAdmins'].append(member_id)
+    else:
+        stall['stallAdmins'] = [a for a in stall['stallAdmins'] if a != member_id]
+
+    save_stall(stall_id, stall)
+    log_admin_action(g.user['userId'], 'toggle_stall_admin', {
+        'stallId': stall_id,
+        'memberId': member_id,
+        'admin': make_admin,
+    })
+    return jsonify(stall)

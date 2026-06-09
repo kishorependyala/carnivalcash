@@ -7,6 +7,7 @@ from .blueprints.auth import auth_bp
 from .blueprints.bootstrap import bootstrap_bp
 from .blueprints.cards import cards_bp
 from .blueprints.charities import charities_bp
+from .blueprints.donations import donations_bp
 from .blueprints.events import events_bp
 from .blueprints.orders import orders_bp
 from .blueprints.stalls import stalls_bp
@@ -73,6 +74,7 @@ def create_app():
     app.register_blueprint(stalls_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(charities_bp)
+    app.register_blueprint(donations_bp)
     app.register_blueprint(stats_bp)
     app.register_blueprint(events_bp)
 

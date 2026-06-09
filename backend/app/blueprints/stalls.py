@@ -295,6 +295,8 @@ def update_stall(stall_id):
         stall['description'] = body['description'].strip()
     if 'charities' in body:
         stall['charities'] = _normalize_charities(body.get('charities'))
+    if 'physicalTokens' in body:
+        stall['physicalTokens'] = max(0, int(body.get('physicalTokens') or 0))
 
     save_stall(stall_id, stall)
     return jsonify(stall)
@@ -355,8 +357,8 @@ def add_member(stall_id):
         kid = next((k for k in kids if k.get('kidId') == kid_id), None)
         if not kid:
             return jsonify({'error': 'Kid not found'}), 404
-        parent_name = parent.get('name') or parent.get('phone', '')
-        display_name = f"{kid['name']} (child of {parent_name})"
+        parent_name = parent.get('name') or parent.get('phone', '')  # noqa: F841
+        display_name = kid['name']
         new_user_id = member_id
     elif member_id:
         new_user = get_profile(member_id)

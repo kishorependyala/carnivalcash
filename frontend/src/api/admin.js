@@ -116,6 +116,54 @@ const adminApi = {
     const response = await api.post('/api/admin/clear-transactions', { code });
     return response.data;
   },
+  async maintenanceDedupeCheck() {
+    const response = await api.get('/api/admin/maintenance/dedupe-check');
+    return response.data;
+  },
+  async maintenanceDedupeTransactions() {
+    const response = await api.post('/api/admin/maintenance/dedupe-transactions');
+    return response.data;
+  },
+  async maintenanceAdminLoadsCheck() {
+    const response = await api.get('/api/admin/maintenance/admin-loads-check');
+    return response.data;
+  },
+  async maintenanceDedupeAdminLoads() {
+    const response = await api.post('/api/admin/maintenance/dedupe-admin-loads');
+    return response.data;
+  },
+  async maintenanceEmptyUsersCheck() {
+    const response = await api.get('/api/admin/maintenance/empty-users-check');
+    return response.data;
+  },
+  async maintenanceDeleteEmptyUsers() {
+    const response = await api.post('/api/admin/maintenance/delete-empty-users');
+    return response.data;
+  },
+  async maintenanceMarkEmptyUsersInactive() {
+    const response = await api.post('/api/admin/maintenance/mark-empty-users-inactive');
+    return response.data;
+  },
+  async impersonate(userId) {
+    const response = await api.post(`/api/admin/impersonate/${userId}`);
+    return response.data;
+  },
+  async adminToggleStallAdmin(stallId, memberId, admin) {
+    const response = await api.put(`/api/admin/stalls/${stallId}/members/${memberId}/admin`, { admin });
+    return response.data;
+  },
+  async adminUpdateStallSummary(stallId, data) {
+    const response = await api.put(`/api/admin/stalls/${stallId}/summary`, data);
+    return response.data;
+  },
+  async adminUpdateKid(parentUserId, kidId, name) {
+    const response = await api.put(`/api/admin/users/${parentUserId}/kids/${kidId}`, { name });
+    return response.data;
+  },
+  async tokenSummary() {
+    const response = await api.get('/api/admin/token-summary');
+    return response.data;
+  },
 };
 
 export default adminApi;

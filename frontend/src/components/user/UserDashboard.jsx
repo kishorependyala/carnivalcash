@@ -11,9 +11,10 @@ import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
 import { card, inp } from '../common/ProfileSections';
 import { MergedStallsTab } from '../common/StallsTab';
+import DonationsTab from '../common/DonationsTab';
 import { clearUserCache, getStale, setCache } from '../../utils/swrCache';
 
-const TABS = ['User', 'Stalls'];
+const TABS = ['User', 'Stalls', 'Donations'];
 const TAB_LABELS = { User: 'My profile', Stalls: 'Stalls' };
 
 const actionBtn = {
@@ -392,6 +393,7 @@ function UserDashboard() {
         )}
 
         {tab === 'Stalls' && <MergedStallsTab />}
+        {tab === 'Donations' && <DonationsTab />}
       </div>
 
       {/* ── Kid / User QR Popup ── */}

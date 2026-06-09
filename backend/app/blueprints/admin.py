@@ -1497,6 +1497,53 @@ def maintenance_clear_orphaned_charity_balances():
         'clearedCount': len(cleared), 'clearedIds': cleared,
     })
     return jsonify({'cleared': len(cleared)})
+
+
+def _find_zero_token_stalls():
+    """Stalls with 0 digital and 0 physical tokens that are currently active."""
+    return [
+        {
+            'stallId': s['stallId'],
+            'stallName': s.get('stallName', ''),
+            'creatorName': s.get('creatorName', ''),
+            'digital': int(s.get('tokenBalance', 0)),
+            'physical': int(s.get('physicalTokens', 0)),
+        }
+        for s in list_stalls()
+        if int(s.get('tokenBalance', 0)) == 0
+        and int(s.get('physicalTokens', 0)) == 0
+        and s.get('isActive', True)
+    ]
+
+
+@admin_bp.get('/api/admin/maintenance/zero-token-stalls-check')
+@require_auth
+@require_role('admin')
+def maintenance_zero_token_stalls_check():
+    """Find active stalls with 0 digital and 0 physical tokens."""
+    stalls = _find_zero_token_stalls()
+    return jsonify({'count': len(stalls), 'stalls': stalls})
+
+
+@admin_bp.post('/api/admin/maintenance/mark-zero-token-stalls-inactive')
+@require_auth
+@require_role('admin')
+def maintenance_mark_zero_token_stalls_inactive():
+    """Mark all zero-token active stalls as inactive so they are excluded from donations."""
+    stalls_to_mark = _find_zero_token_stalls()
+    marked = []
+    for item in stalls_to_mark:
+        stall = get_stall(item['stallId'])
+        if not stall:
+            continue
+        stall['isActive'] = False
+        save_stall(item['stallId'], stall)
+        marked.append(item['stallId'])
+
+    log_admin_action(g.user['userId'], 'mark_zero_token_stalls_inactive', {
+        'markedCount': len(marked), 'stallIds': marked,
+    })
+    return jsonify({'marked': len(marked)})
 @require_auth
 @require_role('admin')
 def token_summary():

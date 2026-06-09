@@ -1579,7 +1579,49 @@ function MaintenanceTab() {
         )}
       />
 
-      {/* Card 5 — Orphaned Charity Balances */}
+      {/* Card 5 — Zero-Token Stalls */}
+      <MaintenanceCard
+        title="💤 Zero-Token Stalls"
+        description="Finds active stalls with 0 digital and 0 physical tokens. Marking them inactive hides them from the Donations tab."
+        checkLabel="🔍 Find Zero-Token Stalls"
+        fixLabel={(r) => `💤 Mark ${r.count} Stall(s) Inactive`}
+        onCheck={async () => {
+          const d = await adminApi.maintenanceZeroTokenStallsCheck();
+          return { ...d, canFix: d.count > 0 };
+        }}
+        onFix={async () => {
+          if (!window.confirm('Mark all zero-token stalls as inactive?')) throw new Error('Cancelled');
+          const d = await adminApi.maintenanceMarkZeroTokenStallsInactive();
+          return { successMsg: `✅ Marked ${d.marked} stall(s) as inactive.` };
+        }}
+        reportContent={(r) => (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <span style={{ background: r.count > 0 ? '#fef3c7' : '#d1fae5', borderRadius: '0.65rem', padding: '0.35rem 0.8rem', fontWeight: 700, color: r.count > 0 ? '#92400e' : '#065f46', fontSize: '0.9rem', display: 'inline-block' }}>
+              {r.count > 0 ? `⚠️ ${r.count} zero-token stall(s) found` : '✅ No zero-token stalls'}
+            </span>
+            {r.stalls?.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#fef3c7' }}>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem', color: '#92400e' }}>Stall</th>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: '#6b7280' }}>Creator</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.stalls.map((s) => (
+                    <tr key={s.stallId} style={{ borderBottom: '1px solid #fde68a' }}>
+                      <td style={{ padding: '0.4rem 0.75rem', fontWeight: 600 }}>{s.stallName}</td>
+                      <td style={{ padding: '0.4rem 0.5rem', color: '#6b7280', fontSize: '0.82rem' }}>{s.creatorName || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      />
+
+      {/* Card 6 — Orphaned Charity Balances */}
       <MaintenanceCard
         title="🧹 Orphaned Charity Balances"
         description="Finds charities that have a token balance from past transactions but are no longer linked to any active stall. These show as 'unmapped' in the Donations tab."

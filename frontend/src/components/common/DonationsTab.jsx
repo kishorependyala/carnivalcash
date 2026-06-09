@@ -51,7 +51,6 @@ export default function DonationsTab() {
 
   const charities = data?.charities || [];
   const grandTotalDollars = data?.grandTotalDollars ?? 0;
-  const grandTotalTokens = data?.grandTotalTokens ?? 0;
 
   const totalTokens = charities.reduce((s, c) => s + c.totalTokens, 0);
   const totalDollars = charities.reduce((s, c) => s + c.totalDollars, 0);

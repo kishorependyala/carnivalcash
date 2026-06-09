@@ -17,6 +17,8 @@ def _build_charity_summary(token_rate=2):
     grand_total_tokens = 0
 
     for stall in stalls:
+        if not stall.get('isActive', True):
+            continue
         digital = int(stall.get('tokenBalance', 0))
         physical = int(stall.get('physicalTokens', 0))
         total = digital + physical

@@ -160,6 +160,14 @@ const adminApi = {
     const response = await api.post('/api/admin/maintenance/clear-orphaned-charity-balances');
     return response.data;
   },
+  async maintenanceZeroTokenStallsCheck() {
+    const response = await api.get('/api/admin/maintenance/zero-token-stalls-check');
+    return response.data;
+  },
+  async maintenanceMarkZeroTokenStallsInactive() {
+    const response = await api.post('/api/admin/maintenance/mark-zero-token-stalls-inactive');
+    return response.data;
+  },
   async impersonate(userId) {
     const response = await api.post(`/api/admin/impersonate/${userId}`);
     return response.data;

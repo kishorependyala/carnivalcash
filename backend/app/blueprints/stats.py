@@ -41,7 +41,10 @@ def get_stats():
 
     total_users = len(profiles)
     total_tokens_in_circulation = sum(int(profile.get('tokenBalance', 0)) for profile in profiles)
-    total_stall_tokens = sum(int(stall.get('tokenBalance', 0)) for stall in stalls)
+    total_stall_tokens = sum(
+        int(stall.get('tokenBalance', 0)) + int(stall.get('physicalTokens', 0))
+        for stall in stalls
+    )
     total_charity_tokens = sum(int(charity.get('tokenBalance', 0)) for charity in charities)
     total_active_stalls = len(stalls)
 
@@ -64,7 +67,7 @@ def get_stats():
             'stallTokensEarned': total_stall_tokens,
             'charityTokensDonated': total_charity_tokens,
             'topStalls': sorted(
-                [{'name': stall['stallName'], 'tokens': int(stall.get('tokenBalance', 0))} for stall in stalls],
+                [{'name': stall['stallName'], 'tokens': int(stall.get('tokenBalance', 0)) + int(stall.get('physicalTokens', 0))} for stall in stalls],
                 key=lambda entry: entry['tokens'],
                 reverse=True,
             )[:5],

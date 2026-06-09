@@ -49,7 +49,6 @@ export default function DonationsTab() {
     }
   };
 
-  const tokenRate = data?.tokenRate || 2;
   const charities = data?.charities || [];
 
   const totalTokens = charities.reduce((s, c) => s + c.totalTokens, 0);

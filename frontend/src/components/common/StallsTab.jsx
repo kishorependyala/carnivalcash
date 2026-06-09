@@ -98,7 +98,7 @@ export function CreateStallForm({ onCreated }) {
   );
 }
 
-function CharityConfig({ charities, onChange }) {
+export function CharityConfig({ charities, onChange }) {
   const [allCharities, setAllCharities] = useState([]);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');

@@ -13,7 +13,7 @@ import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../common/Layout';
 import PrintableQR from '../common/PrintableQR';
-import { TYPE_META, MergedStallsTab } from '../common/StallsTab';
+import { TYPE_META, MergedStallsTab, CharityConfig } from '../common/StallsTab';
 import { HistoryTab, card, inp } from '../common/ProfileSections'; // eslint-disable-line no-unused-vars
 import DonationsTab from '../common/DonationsTab';
 import { getStale, setCache } from '../../utils/swrCache';
@@ -1747,6 +1747,9 @@ function AdminDashboard() {
   const [expandedStall, setExpandedStall] = useState(null);
   const [deletingStall, setDeletingStall] = useState(null);
   const [stallDelCode, setStallDelCode] = useState('');
+  const [charityEditStall, setCharityEditStall] = useState(null); // stallId being edited
+  const [charityEditValues, setCharityEditValues] = useState([]);
+  const [charityEditBusy, setCharityEditBusy] = useState(false);
 
   const stallCards = useMemo(() => allStalls.map((stall) => {
     const typeMeta = TYPE_META[stall.stallType] || TYPE_META.game;
@@ -1821,28 +1824,86 @@ function AdminDashboard() {
           </div>
         )}
         {isExpanded && (
-          <div style={{ marginTop: '0.5rem', borderTop: '1px solid #fde68a', paddingTop: '0.75rem', display: 'grid', gap: '0.4rem' }}>
-            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#92400e', marginBottom: '0.25rem' }}>Members</div>
-            {members.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.85rem', margin: 0 }}>No members.</p>}
-            {members.map((memberId) => {
-              const isAdmin = stallAdmins.has(memberId);
-              const displayName = memberNames[memberId] || memberId;
-              return (
-                <StallMemberRow
-                  key={memberId}
-                  stallId={stall.stallId}
-                  memberId={memberId}
-                  displayName={displayName}
-                  isAdmin={isAdmin}
-                  onToggled={(updated) => setAllStalls((prev) => prev.map((s) => s.stallId === stall.stallId ? { ...s, stallAdmins: updated.stallAdmins } : s))}
-                />
-              );
-            })}
+          <div style={{ marginTop: '0.5rem', borderTop: '1px solid #fde68a', paddingTop: '0.75rem', display: 'grid', gap: '0.75rem' }}>
+
+            {/* Creator login-as */}
+            {stall.createdBy && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.82rem', color: '#6b7280' }}>
+                  👤 Created by <strong>{stall.creatorName || stall.createdBy}</strong>
+                </span>
+                <button
+                  style={{ ...btn('secondary'), fontSize: '0.78rem', padding: '0.25rem 0.65rem' }}
+                  onClick={(e) => { e.stopPropagation(); handleImpersonate({ userId: stall.createdBy, name: stall.creatorName, phone: '' }); }}
+                >
+                  🔑 Login as
+                </button>
+              </div>
+            )}
+
+            {/* Charity config */}
+            <div>
+              {charityEditStall === stall.stallId ? (
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                  <CharityConfig charities={charityEditValues} onChange={setCharityEditValues} />
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      style={{ ...btn(), fontSize: '0.82rem', padding: '0.3rem 0.75rem' }}
+                      disabled={charityEditBusy}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setCharityEditBusy(true);
+                        try {
+                          const res = await adminApi.adminUpdateStallCharities(stall.stallId, charityEditValues);
+                          setAllStalls((prev) => prev.map((s) => s.stallId === stall.stallId ? { ...s, charities: res.charities } : s));
+                          setCharityEditStall(null);
+                        } catch (err) {
+                          setStatus(err.response?.data?.error || 'Failed to save charities.');
+                        } finally {
+                          setCharityEditBusy(false);
+                        }
+                      }}
+                    >{charityEditBusy ? 'Saving…' : '💾 Save Charities'}</button>
+                    <button style={{ ...btn('secondary'), fontSize: '0.82rem', padding: '0.3rem 0.75rem' }} onClick={(e) => { e.stopPropagation(); setCharityEditStall(null); }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#6b7280' }}>
+                    💝 {stall.charities?.length > 0 ? stall.charities.map((c) => `${c.name} (${c.percentage}%)`).join(', ') : 'No charities configured'}
+                  </span>
+                  <button
+                    style={{ ...btn('secondary'), fontSize: '0.78rem', padding: '0.25rem 0.65rem' }}
+                    onClick={(e) => { e.stopPropagation(); setCharityEditStall(stall.stallId); setCharityEditValues(stall.charities || []); }}
+                  >✏️ Edit Charities</button>
+                </div>
+              )}
+            </div>
+
+            {/* Members */}
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#92400e', marginBottom: '0.25rem' }}>Members</div>
+              {members.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.85rem', margin: 0 }}>No members.</p>}
+              {members.map((memberId) => {
+                const isAdmin = stallAdmins.has(memberId);
+                const displayName = memberNames[memberId] || memberId;
+                return (
+                  <StallMemberRow
+                    key={memberId}
+                    stallId={stall.stallId}
+                    memberId={memberId}
+                    displayName={displayName}
+                    isAdmin={isAdmin}
+                    onToggled={(updated) => setAllStalls((prev) => prev.map((s) => s.stallId === stall.stallId ? { ...s, stallAdmins: updated.stallAdmins } : s))}
+                  />
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
     );
-  }), [allStalls, expandedStall, deletingStall, stallDelCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [allStalls, expandedStall, deletingStall, stallDelCode, charityEditStall, charityEditValues, charityEditBusy]); // eslint-disable-line react-hooks/exhaustive-deps
   const [charities, setCharities] = useState([]);
   const [charitiesLoaded, setCharitiesLoaded] = useState(false);
   const [newCharity, setNewCharity] = useState({ name: '', description: '', website: '' });

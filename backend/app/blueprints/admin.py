@@ -870,6 +870,8 @@ def admin_list_stalls():
             'stallAdmins': s.get('stallAdmins', []),
             'memberNames': member_names,
             'createdAt': s.get('createdAt', ''),
+            'createdBy': s.get('createdBy', ''),
+            'creatorName': s.get('creatorName', ''),
         })
     return jsonify(result)
 
@@ -936,7 +938,27 @@ def admin_update_stall_summary(stall_id):
     return jsonify({'status': 'ok'})
 
 
-@admin_bp.put('/api/admin/users/<parent_user_id>/kids/<kid_id>')
+@admin_bp.put('/api/admin/stalls/<stall_id>/charities')
+@require_auth
+@require_role('admin')
+def admin_update_stall_charities(stall_id):
+    """
+    Replace a stall's charity configuration (admin override, no membership check).
+    ---
+    tags: [Admin]
+    security: [{BearerAuth: []}]
+    """
+    from app.blueprints.stalls import _normalize_charities
+    stall = get_stall(stall_id)
+    if not stall:
+        return jsonify({'error': 'Stall not found'}), 404
+    body = request.get_json() or {}
+    stall['charities'] = _normalize_charities(body.get('charities', []))
+    save_stall(stall_id, stall)
+    log_admin_action(g.user['userId'], 'update_stall_charities', {
+        'stallId': stall_id, 'charities': stall['charities'],
+    })
+    return jsonify({'status': 'ok', 'charities': stall['charities']})
 @require_auth
 @require_role('admin')
 def admin_update_kid(parent_user_id, kid_id):

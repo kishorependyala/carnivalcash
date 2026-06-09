@@ -148,6 +148,10 @@ const adminApi = {
     const response = await api.post(`/api/admin/impersonate/${userId}`);
     return response.data;
   },
+  async adminUpdateStallCharities(stallId, charities) {
+    const response = await api.put(`/api/admin/stalls/${stallId}/charities`, { charities });
+    return response.data;
+  },
   async adminToggleStallAdmin(stallId, memberId, admin) {
     const response = await api.put(`/api/admin/stalls/${stallId}/members/${memberId}/admin`, { admin });
     return response.data;

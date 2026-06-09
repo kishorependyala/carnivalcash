@@ -1578,6 +1578,94 @@ function MaintenanceTab() {
           </div>
         )}
       />
+
+      {/* Card 5 — Orphaned Charity Balances */}
+      <MaintenanceCard
+        title="🧹 Orphaned Charity Balances"
+        description="Finds charities that have a token balance from past transactions but are no longer linked to any active stall. These show as 'unmapped' in the Donations tab."
+        checkLabel="🔍 Find Orphaned Balances"
+        fixLabel={(r) => `🧹 Clear ${r.count} Orphaned Balance(s)`}
+        onCheck={async () => {
+          const d = await adminApi.maintenanceOrphanedCharityBalancesCheck();
+          return { ...d, canFix: d.count > 0 };
+        }}
+        onFix={async () => {
+          if (!window.confirm('Zero out all orphaned charity token balances? This cannot be undone.')) throw new Error('Cancelled');
+          const d = await adminApi.maintenanceClearOrphanedCharityBalances();
+          return { successMsg: `✅ Cleared ${d.cleared} orphaned charity balance(s).` };
+        }}
+        reportContent={(r) => (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <span style={{ background: r.count > 0 ? '#fef3c7' : '#d1fae5', borderRadius: '0.65rem', padding: '0.35rem 0.8rem', fontWeight: 700, color: r.count > 0 ? '#92400e' : '#065f46', fontSize: '0.9rem', display: 'inline-block' }}>
+              {r.count > 0 ? `⚠️ ${r.count} orphaned balance(s) found` : '✅ No orphaned balances'}
+            </span>
+            {r.charities?.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#fef3c7' }}>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem', color: '#92400e' }}>Charity</th>
+                    <th style={{ textAlign: 'right', padding: '0.4rem 0.75rem', color: '#6b7280' }}>🪙 Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.charities.map((c) => (
+                    <tr key={c.charityId} style={{ borderBottom: '1px solid #fde68a' }}>
+                      <td style={{ padding: '0.4rem 0.75rem', fontWeight: 600 }}>💚 {c.name}</td>
+                      <td style={{ padding: '0.4rem 0.75rem', textAlign: 'right', color: '#b45309' }}>{c.tokenBalance}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      />
+      <MaintenanceCard
+        title="💝 Stalls Without Charity"
+        description="Finds stalls that have no charity configured. Assigns the placeholder 'Please pick a charity' charity (0%) so stall owners know to update it."
+        checkLabel="🔍 Find Stalls Without Charity"
+        fixLabel={(r) => `💝 Assign Default to ${r.count} Stall(s)`}
+        onCheck={async () => {
+          const d = await adminApi.maintenanceNoCharityStallsCheck();
+          return { ...d, canFix: d.count > 0 };
+        }}
+        onFix={async () => {
+          const d = await adminApi.maintenanceAssignDefaultCharity();
+          return { successMsg: `✅ Assigned "${d.charity.name}" to ${d.assigned} stall(s).` };
+        }}
+        reportContent={(r) => (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ background: r.count > 0 ? '#fef3c7' : '#d1fae5', borderRadius: '0.65rem', padding: '0.35rem 0.8rem', fontWeight: 700, color: r.count > 0 ? '#92400e' : '#065f46', fontSize: '0.9rem' }}>
+                {r.count > 0 ? `⚠️ ${r.count} stall(s) have no charity` : '✅ All stalls have charities'}
+              </span>
+              {r.defaultCharity && (
+                <span style={{ fontSize: '0.82rem', color: '#6b7280' }}>
+                  Default: 💚 <strong>{r.defaultCharity.name}</strong>
+                </span>
+              )}
+            </div>
+            {r.stalls?.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#fef3c7' }}>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem', color: '#92400e' }}>Stall</th>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: '#6b7280' }}>Creator</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.stalls.map((s) => (
+                    <tr key={s.stallId} style={{ borderBottom: '1px solid #fde68a' }}>
+                      <td style={{ padding: '0.4rem 0.75rem', fontWeight: 600 }}>{s.stallName}</td>
+                      <td style={{ padding: '0.4rem 0.5rem', color: '#6b7280', fontSize: '0.82rem' }}>{s.creatorName || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      />
     </div>
   );
 }

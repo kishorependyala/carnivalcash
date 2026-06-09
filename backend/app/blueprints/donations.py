@@ -14,11 +14,13 @@ def _build_charity_summary(token_rate=2):
     """Aggregate per-charity donation totals across all stalls, plus unmapped charities."""
     stalls = list_stalls()
     charity_map = {}  # charityId -> { name, stalls: [], totalTokens }
+    grand_total_tokens = 0
 
     for stall in stalls:
         digital = int(stall.get('tokenBalance', 0))
         physical = int(stall.get('physicalTokens', 0))
         total = digital + physical
+        grand_total_tokens += total
         for c in stall.get('charities', []):
             cid = c['charityId']
             pct = c.get('percentage', 0)
@@ -59,7 +61,8 @@ def _build_charity_summary(token_rate=2):
                     'unmapped': True,
                 }
 
-    return list(charity_map.values())
+    grand_total_dollars = round(grand_total_tokens / token_rate, 2) if token_rate > 0 else 0
+    return list(charity_map.values()), grand_total_tokens, grand_total_dollars
 
 
 @donations_bp.get('/api/donations')
@@ -75,7 +78,7 @@ def get_donations():
     except Exception:
         token_rate = 2
 
-    charities = _build_charity_summary(token_rate)
+    charities, grand_total_tokens, grand_total_dollars = _build_charity_summary(token_rate)
     data = get_donations_data()
     matches = data.get('employerMatches', [])
     uid = g.user['userId']
@@ -107,7 +110,12 @@ def get_donations():
         c['myMatch'] = any(m['userId'] == uid for m in matches if m.get('charityId') == cid)
 
     charities.sort(key=lambda c: c['totalTokens'], reverse=True)
-    return jsonify({'charities': charities, 'tokenRate': token_rate})
+    return jsonify({
+        'charities': charities,
+        'tokenRate': token_rate,
+        'grandTotalTokens': grand_total_tokens,
+        'grandTotalDollars': grand_total_dollars,
+    })
 
 
 @donations_bp.post('/api/donations/employer-match')

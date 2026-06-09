@@ -144,6 +144,22 @@ const adminApi = {
     const response = await api.post('/api/admin/maintenance/mark-empty-users-inactive');
     return response.data;
   },
+  async maintenanceNoCharityStallsCheck() {
+    const response = await api.get('/api/admin/maintenance/no-charity-stalls-check');
+    return response.data;
+  },
+  async maintenanceAssignDefaultCharity() {
+    const response = await api.post('/api/admin/maintenance/assign-default-charity');
+    return response.data;
+  },
+  async maintenanceOrphanedCharityBalancesCheck() {
+    const response = await api.get('/api/admin/maintenance/orphaned-charity-balances-check');
+    return response.data;
+  },
+  async maintenanceClearOrphanedCharityBalances() {
+    const response = await api.post('/api/admin/maintenance/clear-orphaned-charity-balances');
+    return response.data;
+  },
   async impersonate(userId) {
     const response = await api.post(`/api/admin/impersonate/${userId}`);
     return response.data;

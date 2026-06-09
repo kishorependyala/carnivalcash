@@ -1389,7 +1389,114 @@ def maintenance_mark_empty_users_inactive():
     return jsonify({'marked': len(marked_ids), 'markedIds': marked_ids})
 
 
-@admin_bp.get('/api/admin/token-summary')
+DEFAULT_CHARITY_NAME = 'Please pick a charity'
+
+
+def _get_or_create_default_charity():
+    """Return the default placeholder charity, creating it if needed."""
+    from app.storage.charity_store import add_charity, list_charities
+    charities = list_charities()
+    existing = next((c for c in charities if c['name'].strip().lower() == DEFAULT_CHARITY_NAME.lower()), None)
+    if existing:
+        return existing
+    charity, _ = add_charity(
+        name=DEFAULT_CHARITY_NAME,
+        description='Placeholder — stall owner should update this to a real charity.',
+        website='',
+        added_by='system',
+    )
+    return charity
+
+
+def _find_stalls_without_charities():
+    stalls = list_stalls()
+    return [
+        {'stallId': s['stallId'], 'stallName': s.get('stallName', ''), 'creatorName': s.get('creatorName', '')}
+        for s in stalls if not s.get('charities')
+    ]
+
+
+@admin_bp.get('/api/admin/maintenance/no-charity-stalls-check')
+@require_auth
+@require_role('admin')
+def maintenance_no_charity_stalls_check():
+    """Find stalls with no charity configured."""
+    stalls = _find_stalls_without_charities()
+    charity = _get_or_create_default_charity()
+    return jsonify({'count': len(stalls), 'stalls': stalls, 'defaultCharity': charity})
+
+
+@admin_bp.post('/api/admin/maintenance/assign-default-charity')
+@require_auth
+@require_role('admin')
+def maintenance_assign_default_charity():
+    """Assign the default placeholder charity to all stalls that have no charity configured."""
+    stalls_to_fix = _find_stalls_without_charities()
+    charity = _get_or_create_default_charity()
+    assigned = []
+    for item in stalls_to_fix:
+        stall = get_stall(item['stallId'])
+        if not stall:
+            continue
+        stall['charities'] = [{'charityId': charity['charityId'], 'name': charity['name'], 'percentage': 100}]
+        save_stall(item['stallId'], stall)
+        assigned.append(item['stallId'])
+
+    log_admin_action(g.user['userId'], 'assign_default_charity', {
+        'assignedCount': len(assigned),
+        'charityId': charity['charityId'],
+        'charityName': charity['name'],
+        'stallIds': assigned,
+    })
+    return jsonify({'assigned': len(assigned), 'charity': charity})
+
+
+def _find_orphaned_charity_balances():
+    """Charities in the charity store with tokenBalance > 0 but not linked to any stall."""
+    from app.storage.charity_store import list_charities
+    stalls = list_stalls()
+    stall_charity_ids = {
+        c['charityId']
+        for s in stalls
+        for c in s.get('charities', [])
+    }
+    return [
+        {'charityId': c['charityId'], 'name': c['name'], 'tokenBalance': c.get('tokenBalance', 0)}
+        for c in list_charities()
+        if c.get('tokenBalance', 0) > 0 and c['charityId'] not in stall_charity_ids
+    ]
+
+
+@admin_bp.get('/api/admin/maintenance/orphaned-charity-balances-check')
+@require_auth
+@require_role('admin')
+def maintenance_orphaned_charity_balances_check():
+    """Find charities with a token balance that are no longer linked to any stall."""
+    orphaned = _find_orphaned_charity_balances()
+    return jsonify({'count': len(orphaned), 'charities': orphaned})
+
+
+@admin_bp.post('/api/admin/maintenance/clear-orphaned-charity-balances')
+@require_auth
+@require_role('admin')
+def maintenance_clear_orphaned_charity_balances():
+    """Zero out token balances for charities no longer linked to any stall."""
+    from app.storage.charity_store import list_charities, save_charities
+    orphaned = _find_orphaned_charity_balances()
+    if not orphaned:
+        return jsonify({'cleared': 0})
+    orphaned_ids = {c['charityId'] for c in orphaned}
+    charities = list_charities()
+    cleared = []
+    for c in charities:
+        if c['charityId'] in orphaned_ids:
+            c['tokenBalance'] = 0
+            cleared.append(c['charityId'])
+    save_charities(charities)
+    log_admin_action(g.user['userId'], 'clear_orphaned_charity_balances', {
+        'clearedCount': len(cleared), 'clearedIds': cleared,
+    })
+    return jsonify({'cleared': len(cleared)})
 @require_auth
 @require_role('admin')
 def token_summary():

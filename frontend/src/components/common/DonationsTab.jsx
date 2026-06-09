@@ -50,10 +50,13 @@ export default function DonationsTab() {
   };
 
   const charities = data?.charities || [];
+  const grandTotalDollars = data?.grandTotalDollars ?? 0;
+  const grandTotalTokens = data?.grandTotalTokens ?? 0;
 
   const totalTokens = charities.reduce((s, c) => s + c.totalTokens, 0);
   const totalDollars = charities.reduce((s, c) => s + c.totalDollars, 0);
   const totalMatches = charities.reduce((s, c) => s + c.employerMatches.length, 0);
+  const pctOfCollected = grandTotalDollars > 0 ? ((totalDollars / grandTotalDollars) * 100).toFixed(1) : null;
 
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
@@ -70,8 +73,10 @@ export default function DonationsTab() {
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {[
             { icon: '💚', label: 'Charities', value: charities.length, color: '#065f46', bg: '#d1fae5' },
-            { icon: '🪙', label: 'Total Tokens', value: totalTokens, color: '#92400e', bg: '#fde68a' },
-            { icon: '💵', label: 'Total Amount', value: `$${totalDollars.toFixed(2)}`, color: '#065f46', bg: '#d1fae5' },
+            { icon: '🪙', label: 'Donated Tokens', value: totalTokens, color: '#92400e', bg: '#fde68a' },
+            { icon: '💝', label: 'Donated Amount', value: `$${totalDollars.toFixed(2)}`, color: '#065f46', bg: '#d1fae5' },
+            { icon: '💵', label: 'Total Collected', value: `$${grandTotalDollars.toFixed(2)}`, color: '#7c3aed', bg: '#ede9fe' },
+            ...(pctOfCollected ? [{ icon: '📊', label: '% to Charity', value: `${pctOfCollected}%`, color: '#0369a1', bg: '#e0f2fe' }] : []),
             { icon: '🤝', label: 'Employer Matches', value: totalMatches, color: '#1d4ed8', bg: '#dbeafe' },
           ].map(({ icon, label, value, color, bg }) => (
             <div key={label} style={{ background: bg, borderRadius: '0.75rem', padding: '0.5rem 0.9rem', textAlign: 'center', minWidth: '85px' }}>

@@ -246,7 +246,6 @@ export default function DonationsTab() {
   const grandTotalDollars = data?.grandTotalDollars ?? 0;
 
   const totalDollars = charities.reduce((s, c) => s + c.totalDollars, 0);
-  const totalMatches = charities.reduce((s, c) => s + c.employerMatches.length, 0);
   const pctOfCollected = grandTotalDollars > 0 ? ((totalDollars / grandTotalDollars) * 100).toFixed(1) : null;
 
   // Count charities that have at least one local receipt

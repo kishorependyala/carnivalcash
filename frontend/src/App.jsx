@@ -8,6 +8,7 @@ import ItemSelectPage from './components/user/ItemSelectPage';
 import ScanPage from './components/user/ScanPage';
 import UserDashboard from './components/user/UserDashboard';
 import DonationsPage from './components/user/DonationsPage';
+import PublicDonationsPage from './components/user/PublicDonationsPage';
 import StallPage from './components/stall/StallPage';
 import VendorChargePage from './components/vendor/VendorChargePage';
 import VendorDashboard from './components/vendor/VendorDashboard';
@@ -27,6 +28,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/donations/public" element={<PublicDonationsPage />} />
       <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/stats" element={<ProtectedRoute roles={['admin']}><AdminStatsPage /></ProtectedRoute>} />
       <Route path="/user" element={<ProtectedRoute roles={['user']}><UserDashboard /></ProtectedRoute>} />

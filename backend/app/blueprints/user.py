@@ -9,6 +9,7 @@ from app.storage.user_store import (
     get_profile,
     get_user_kids,
     get_user_transactions,
+    list_profiles,
     save_profile,
     save_user_kids,
 )
@@ -402,3 +403,16 @@ def get_public_kid(parent_id, kid_id):
     if not kid:
         return jsonify({'error': 'Kid not found'}), 404
     return jsonify({'name': kid.get('name', ''), 'kidId': kid_id})
+
+
+@user_bp.get('/api/users/names')
+@require_auth
+def get_user_names():
+    """Return a list of active user names for typeahead (no sensitive data)."""
+    profiles = list_profiles()
+    names = sorted(
+        [{'id': u['userId'], 'name': u.get('name', '').strip()}
+         for u in profiles if u.get('name', '').strip() and u.get('active', True)],
+        key=lambda x: x['name'].lower()
+    )
+    return jsonify({'names': names})

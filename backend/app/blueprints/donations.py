@@ -4,8 +4,8 @@ from flask import Blueprint, g, jsonify, request
 
 from app.storage.donations_store import get_donations_data, save_donations_data
 from app.storage.charity_store import list_charities
-from app.storage.stall_store import list_stalls
-from app.utils.auth_middleware import require_auth
+from app.storage.stall_store import list_stalls, save_stall
+from app.utils.auth_middleware import require_auth, require_role
 
 donations_bp = Blueprint('donations', __name__)
 
@@ -118,6 +118,146 @@ def get_donations():
         'grandTotalTokens': grand_total_tokens,
         'grandTotalDollars': grand_total_dollars,
     })
+
+
+@donations_bp.get('/api/donations/public')
+def get_donations_public():
+    """Return per-charity donation summary — no authentication required (read-only public view)."""
+    from app.storage.admin_store import get_event
+    try:
+        event = get_event()
+        token_rate = int(event.get('tokenRate', 2)) if event else 2
+    except Exception:
+        token_rate = 2
+
+    charities, grand_total_tokens, grand_total_dollars = _build_charity_summary(token_rate)
+    data = get_donations_data()
+    matches = data.get('employerMatches', [])
+
+    for c in charities:
+        cid = c['charityId']
+        match_count = sum(1 for m in matches if m.get('charityId') == cid)
+        c['employerMatches'] = []   # no personal data in public view
+        c['employerMatchCount'] = match_count
+        c['myMatch'] = False
+
+    charities.sort(key=lambda c: c['totalTokens'], reverse=True)
+    return jsonify({
+        'charities': charities,
+        'tokenRate': token_rate,
+        'grandTotalTokens': grand_total_tokens,
+        'grandTotalDollars': grand_total_dollars,
+    })
+
+
+@donations_bp.post('/api/admin/donations/map-employer-matches')
+@require_auth
+@require_role('admin')
+def admin_map_employer_matches():
+    """Bulk-register employer matches for a list of users across all charities (100% match)."""
+    from app.storage.user_store import get_profile
+    from app.storage.admin_store import get_event
+
+    body = request.get_json() or {}
+    user_ids = body.get('userIds', [])
+    if not user_ids:
+        return jsonify({'error': 'userIds required'}), 400
+
+    try:
+        event = get_event()
+        token_rate = int(event.get('tokenRate', 2)) if event else 2
+    except Exception:
+        token_rate = 2
+
+    charities, _, _ = _build_charity_summary(token_rate)
+    data = get_donations_data()
+    matches = data.get('employerMatches', [])
+
+    added = 0
+    for uid in user_ids:
+        profile = get_profile(uid) or {}
+        user_name = profile.get('name', '').strip()
+        user_phone = profile.get('phone', '')
+        for c in charities:
+            cid = c['charityId']
+            existing = next((m for m in matches if m['charityId'] == cid and m['userId'] == uid), None)
+            if existing:
+                existing['amount'] = c['employerMatchTokens']
+                existing['updatedAt'] = datetime.now(timezone.utc).isoformat()
+            else:
+                matches.append({
+                    'userId': uid,
+                    'userName': user_name,
+                    'userPhone': user_phone,
+                    'charityId': cid,
+                    'charityName': c['name'],
+                    'amount': c['employerMatchTokens'],
+                    'createdAt': datetime.now(timezone.utc).isoformat(),
+                })
+                added += 1
+
+    data['employerMatches'] = matches
+    save_donations_data(data)
+    return jsonify({'status': 'ok', 'added': added, 'usersProcessed': len(user_ids)})
+
+
+@donations_bp.post('/api/admin/stalls/distribute-charities')
+@require_auth
+@require_role('admin')
+def admin_distribute_charities():
+    """
+    Distribute charity percentages evenly across all stalls.
+
+    Top stall (highest total tokens): each charity gets equal share (100/N %).
+    Remaining stalls: also set to equal share so the overall grand total is
+    evenly distributed across all charities.
+    """
+    stalls = list_stalls()
+    active = [s for s in stalls if s.get('isActive', True)]
+
+    all_charity_ids = set()
+    for s in active:
+        for c in s.get('charities', []):
+            all_charity_ids.add(c['charityId'])
+
+    if not all_charity_ids:
+        return jsonify({'error': 'No charities configured on any stall'}), 400
+
+    all_charities_list = list_charities()
+    charity_names = {c['charityId']: c['name'] for c in all_charities_list}
+
+    n = len(all_charity_ids)
+    base_pct = 100 // n
+    remainder = 100 - base_pct * n
+
+    def even_split(charity_ids):
+        ids = list(charity_ids)
+        result = []
+        for i, cid in enumerate(ids):
+            pct = base_pct + (1 if i < remainder else 0)
+            result.append({
+                'charityId': cid,
+                'name': charity_names.get(cid, cid),
+                'percentage': pct,
+            })
+        return result
+
+    # Sort active stalls: top stall (highest total tokens) first
+    def total_tokens(s):
+        return int(s.get('tokenBalance', 0)) + int(s.get('physicalTokens', 0))
+
+    sorted_stalls = sorted(active, key=total_tokens, reverse=True)
+    updated = 0
+    for stall in sorted_stalls:
+        stall_charity_ids = {c['charityId'] for c in stall.get('charities', [])}
+        if not stall_charity_ids:
+            stall_charity_ids = all_charity_ids
+        new_charities = even_split(stall_charity_ids)
+        stall['charities'] = new_charities
+        save_stall(stall['stallId'], stall)
+        updated += 1
+
+    return jsonify({'status': 'ok', 'stallsUpdated': updated, 'charitiesPerStall': n})
 
 
 @donations_bp.post('/api/donations/employer-match')

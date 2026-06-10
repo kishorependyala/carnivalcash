@@ -192,6 +192,14 @@ const adminApi = {
     const response = await api.get('/api/admin/token-summary');
     return response.data;
   },
+  async mapEmployerMatches(userIds) {
+    const response = await api.post('/api/admin/donations/map-employer-matches', { userIds });
+    return response.data;
+  },
+  async distributeStallCharities() {
+    const response = await api.post('/api/admin/stalls/distribute-charities');
+    return response.data;
+  },
 };
 
 export default adminApi;

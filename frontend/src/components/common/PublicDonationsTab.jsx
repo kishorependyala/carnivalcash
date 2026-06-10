@@ -103,7 +103,6 @@ export default function PublicDonationsTab() {
             { icon: '💝', label: 'Mapped to Charity Money', value: `$${totalDollars.toFixed(2)}`, color: '#065f46', bg: '#d1fae5' },
             { icon: '💵', label: 'Raised Money', value: `$${grandTotalDollars.toFixed(2)}`, color: '#7c3aed', bg: '#ede9fe' },
             ...(pctOfCollected ? [{ icon: '📊', label: '% to Charity', value: `${pctOfCollected}%`, color: '#0369a1', bg: '#e0f2fe' }] : []),
-            { icon: '🤝', label: 'Employer Matches', value: totalMatches, color: '#1d4ed8', bg: '#dbeafe' },
             { icon: '💼', label: 'Employer 100% Match', value: `$${totalEmployerMatch.toFixed(2)}`, color: '#059669', bg: '#f0fdf4' },
             { icon: '🏆', label: 'Total Donated', value: `$${totalDonatedGrand.toFixed(2)}`, color: '#7c3aed', bg: '#ede9fe' },
           ].map(({ icon, label, value, color, bg }) => (

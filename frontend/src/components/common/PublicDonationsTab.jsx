@@ -74,7 +74,6 @@ export default function PublicDonationsTab() {
   const grandTotalDollars = data?.grandTotalDollars ?? 0;
 
   const totalDollars = charities.reduce((s, c) => s + c.totalDollars, 0);
-  const totalMatches = charities.reduce((s, c) => s + (c.employerMatchCount ?? 0), 0);
   const totalEmployerMatch = charities
     .filter(c => (c.employerMatchCount ?? 0) > 0 && (receipts[c.charityId] || []).length > 0)
     .reduce((s, c) => s + c.employerMatchDollars, 0);

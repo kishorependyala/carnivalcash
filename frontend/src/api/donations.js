@@ -21,6 +21,18 @@ const donationsApi = {
     const response = await api.get('/api/users/names');
     return response.data.names || [];
   },
+  async getReceipts() {
+    const response = await api.get('/api/donations/receipts');
+    return response.data.receipts || {};
+  },
+  async addReceipt(charityId, { fileName, data, donatedBy }) {
+    const response = await api.post(`/api/donations/receipts/${charityId}`, { fileName, data, donatedBy });
+    return response.data;
+  },
+  async removeReceipt(charityId, receiptId) {
+    const response = await api.delete(`/api/donations/receipts/${charityId}/${receiptId}`);
+    return response.data;
+  },
 };
 
 export default donationsApi;

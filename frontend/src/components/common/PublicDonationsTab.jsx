@@ -2,11 +2,6 @@ import { useEffect, useState } from 'react';
 
 import donationsApi from '../../api/donations';
 
-const RECEIPTS_KEY = 'cc_charity_receipts';
-function loadReceipts() {
-  try { return JSON.parse(localStorage.getItem(RECEIPTS_KEY) || '{}'); } catch { return {}; }
-}
-
 const card = {
   background: '#fffbeb',
   border: '1px solid #fde68a',
@@ -48,12 +43,17 @@ export default function PublicDonationsTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
-  const [receipts, setReceipts] = useState(loadReceipts);
+  const [receipts, setReceipts] = useState({});
 
   const load = async () => {
     setLoading(true);
     try {
-      setData(await donationsApi.getPublic());
+      const [donations, serverReceipts] = await Promise.all([
+        donationsApi.getPublic(),
+        donationsApi.getReceipts(),
+      ]);
+      setData(donations);
+      setReceipts(serverReceipts);
     } catch {
       setStatus('Unable to load donation data.');
     } finally {
@@ -62,13 +62,6 @@ export default function PublicDonationsTab() {
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Refresh receipts when tab regains focus (uploaded on another tab/page)
-  useEffect(() => {
-    const onFocus = () => setReceipts(loadReceipts());
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, []);
 
   const charities = data?.charities || [];
   const grandTotalDollars = data?.grandTotalDollars ?? 0;
@@ -172,11 +165,11 @@ export default function PublicDonationsTab() {
                     <td style={{ ...td, minWidth: '160px' }}>
                       {(receipts[charity.charityId] || []).length > 0 ? (
                         <div style={{ display: 'grid', gap: '0.35rem' }}>
-                          {(receipts[charity.charityId] || []).map((r, i) => (
-                            <div key={i} style={{ fontSize: '0.78rem', borderBottom: '1px solid #fde68a', paddingBottom: '0.2rem' }}>
+                          {(receipts[charity.charityId] || []).map((r) => (
+                            <div key={r.id} style={{ fontSize: '0.78rem', borderBottom: '1px solid #fde68a', paddingBottom: '0.2rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                <a href={r.data} download={r.name} style={{ color: '#059669', fontWeight: 600, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>
-                                  📎 {r.name}
+                                <a href={r.data} download={r.fileName} style={{ color: '#059669', fontWeight: 600, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.fileName}>
+                                  📎 {r.fileName}
                                 </a>
                                 <button
                                   onClick={() => { const w = window.open(); w.document.write(`<html><body style="margin:0;background:#111"><img src="${r.data}" style="max-width:100%;display:block" onerror="this.style.display='none'" /><iframe src="${r.data}" style="width:100%;height:100vh;border:none"></iframe></body></html>`); }}

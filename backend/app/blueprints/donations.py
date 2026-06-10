@@ -260,6 +260,87 @@ def admin_distribute_charities():
     return jsonify({'status': 'ok', 'stallsUpdated': updated, 'charitiesPerStall': n})
 
 
+# ── Receipt storage helpers ──────────────────────────────────────────────────
+
+def _receipts_dir():
+    from config import get_data_dir
+    d = get_data_dir() / 'receipts'
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+def _load_charity_receipts(charity_id):
+    import json
+    f = _receipts_dir() / f'{charity_id}.json'
+    if not f.exists():
+        return []
+    try:
+        return json.loads(f.read_text(encoding='utf-8'))
+    except Exception:
+        return []
+
+def _save_charity_receipts(charity_id, receipts):
+    import json
+    f = _receipts_dir() / f'{charity_id}.json'
+    f.write_text(json.dumps(receipts, indent=2), encoding='utf-8')
+
+
+# ── Receipt endpoints ────────────────────────────────────────────────────────
+
+@donations_bp.get('/api/donations/receipts')
+def get_all_receipts():
+    """Return all uploaded receipts grouped by charityId — no auth required."""
+    receipts_dir = _receipts_dir()
+    result = {}
+    for f in receipts_dir.glob('*.json'):
+        charity_id = f.stem
+        try:
+            import json
+            result[charity_id] = json.loads(f.read_text(encoding='utf-8'))
+        except Exception:
+            result[charity_id] = []
+    return jsonify({'receipts': result})
+
+
+@donations_bp.post('/api/donations/receipts/<charity_id>')
+@require_auth
+def add_receipt(charity_id):
+    """Upload a receipt for a charity."""
+    from uuid import uuid4
+    body = request.get_json() or {}
+    file_name = body.get('fileName', 'receipt')
+    data = body.get('data', '')
+    donated_by = body.get('donatedBy', '').strip()
+
+    if not data:
+        return jsonify({'error': 'data required'}), 400
+
+    receipts = _load_charity_receipts(charity_id)
+    entry = {
+        'id': str(uuid4()),
+        'charityId': charity_id,
+        'fileName': file_name,
+        'data': data,
+        'donatedBy': donated_by,
+        'addedAt': datetime.now(timezone.utc).isoformat(),
+        'uploadedBy': g.user.get('userId', ''),
+    }
+    receipts.append(entry)
+    _save_charity_receipts(charity_id, receipts)
+    return jsonify({'status': 'ok', 'receipt': entry}), 201
+
+
+@donations_bp.delete('/api/donations/receipts/<charity_id>/<receipt_id>')
+@require_auth
+def remove_receipt(charity_id, receipt_id):
+    """Delete a receipt. Any authenticated user may remove."""
+    receipts = _load_charity_receipts(charity_id)
+    new_receipts = [r for r in receipts if r.get('id') != receipt_id]
+    if len(new_receipts) == len(receipts):
+        return jsonify({'error': 'Not found'}), 404
+    _save_charity_receipts(charity_id, new_receipts)
+    return jsonify({'status': 'ok'})
+
+
 @donations_bp.post('/api/donations/employer-match')
 @require_auth
 def add_employer_match():
